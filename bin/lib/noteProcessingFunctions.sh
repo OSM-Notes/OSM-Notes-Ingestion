@@ -612,7 +612,7 @@ EOF
     fi
 
     local NOTE_IDS
-    NOTE_IDS=$(tr '\n' ',' < "${CHUNK_PATH}" | sed 's/,$//')
+    NOTE_IDS=$(tr '\n' ',' < "${CHUNK_PATH}" | sed 's/,$//' || true)
     if [[ -z "${NOTE_IDS:-}" ]]; then
      continue
     fi
@@ -708,8 +708,8 @@ function __validate_xml_coordinates() {
   # Strategy 1: Use grep to find coordinates in first few lines (safest for very large files)
   __logd "Attempting grep-based validation for large file..."
   local HEAD_LINES=2000
-  SAMPLE_LATITUDES=$(head -n "${HEAD_LINES}" "${XML_FILE}" | grep -o 'lat="[^"]*"' | head -50 | sed 's/lat="//;s/"//g' | grep -v '^$')
-  SAMPLE_LONGITUDES=$(head -n "${HEAD_LINES}" "${XML_FILE}" | grep -o 'lon="[^"]*"' | head -50 | sed 's/lon="//;s/"//g' | grep -v '^$')
+  SAMPLE_LATITUDES=$(head -n "${HEAD_LINES}" "${XML_FILE}" | grep -o 'lat="[^"]*"' | head -50 | sed 's/lat="//;s/"//g' | grep -v '^$' || true)
+  SAMPLE_LONGITUDES=$(head -n "${HEAD_LINES}" "${XML_FILE}" | grep -o 'lon="[^"]*"' | head -50 | sed 's/lon="//;s/"//g' | grep -v '^$' || true)
 
   if [[ -n "${SAMPLE_LATITUDES}" ]] && [[ -n "${SAMPLE_LONGITUDES}" ]]; then
    SAMPLE_COUNT=$(echo "${SAMPLE_LATITUDES}" | wc -l)
@@ -746,8 +746,8 @@ function __validate_xml_coordinates() {
  local LONGITUDES
 
  # Extract coordinates using grep and sed (works for all XML formats)
- LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$')
- LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$')
+ LATITUDES=$(grep -o 'lat="[^"]*"' "${XML_FILE}" | sed 's/lat="//;s/"//g' | grep -v '^$' || true)
+ LONGITUDES=$(grep -o 'lon="[^"]*"' "${XML_FILE}" | sed 's/lon="//;s/"//g' | grep -v '^$' || true)
 
  if [[ -z "${LATITUDES}" ]] || [[ -z "${LONGITUDES}" ]]; then
   __logw "No coordinates found in XML file"
@@ -864,8 +864,14 @@ function __handle_error_with_cleanup() {
  # Create failed execution file to prevent re-execution (only for non-network errors)
  if [[ -n "${FAILED_EXECUTION_FILE:-}" ]] && [[ "${IS_NETWORK_ERROR}" == "false" ]]; then
   __loge "Creating failed execution file: ${FAILED_EXECUTION_FILE}"
-  echo "Error occurred at $(date): ${ERROR_MESSAGE} (code: ${ERROR_CODE})" > "${FAILED_EXECUTION_FILE}"
-  echo "Stack trace: $(caller 0)" >> "${FAILED_EXECUTION_FILE}"
+  {
+   local DATE_OUTPUT
+   DATE_OUTPUT=$(date || echo "unknown")
+   echo "Error occurred at ${DATE_OUTPUT}: ${ERROR_MESSAGE} (code: ${ERROR_CODE})"
+   local CALLER_OUTPUT
+   CALLER_OUTPUT=$(caller 0 || echo "unknown")
+   echo "Stack trace: ${CALLER_OUTPUT}"
+  } > "${FAILED_EXECUTION_FILE}"
   echo "Temporary directory: ${TMP_DIR:-unknown}" >> "${FAILED_EXECUTION_FILE}"
  elif [[ "${IS_NETWORK_ERROR}" == "true" ]]; then
   __logw "Skipping failed execution file creation for temporary network error"
@@ -891,7 +897,9 @@ function __handle_error_with_cleanup() {
 
  # Log error details for debugging
  __loge "Error details - Code: ${ERROR_CODE}, Message: ${ERROR_MESSAGE}"
- __loge "Stack trace: $(caller 0)"
+ local CALLER_OUTPUT
+ CALLER_OUTPUT=$(caller 0 || echo "unknown")
+ __loge "Stack trace: ${CALLER_OUTPUT}"
  if [[ "${IS_NETWORK_ERROR}" == "true" ]]; then
   __loge "Failed execution file NOT created (network error - will retry on next execution)"
  else
@@ -945,6 +953,8 @@ function __acquire_download_slot() {
  START_TIME=$(date +%s)
 
  # Clean up stale locks first
+ # shellcheck disable=SC2310
+ # Intentional: cleanup failures should not stop execution
  __cleanup_stale_slots || true
 
  while [[ ${RETRY_COUNT} -lt ${MAX_RETRIES} ]]; do
@@ -954,7 +964,9 @@ function __acquire_download_slot() {
    # Count active downloads inside flock to prevent race conditions
    local ACTIVE_NOW=0
    if [[ -d "${ACTIVE_DIR}" ]]; then
-    ACTIVE_NOW=$(find "${ACTIVE_DIR}" -name "*.lock" -type d 2> /dev/null | wc -l)
+    local FIND_RESULT
+    FIND_RESULT=$(find "${ACTIVE_DIR}" -name "*.lock" -type d 2> /dev/null || echo "")
+    ACTIVE_NOW=$(echo "${FIND_RESULT}" | wc -l || echo "0")
    fi
 
    # Try to create lock only if we're under the limit
@@ -967,7 +979,9 @@ function __acquire_download_slot() {
       # Re-count to verify we didn't exceed limit
       local ACTIVE_AFTER=0
       if [[ -d "${ACTIVE_DIR}" ]]; then
-       ACTIVE_AFTER=$(find "${ACTIVE_DIR}" -name "*.lock" -type d 2> /dev/null | wc -l)
+       local FIND_RESULT
+       FIND_RESULT=$(find "${ACTIVE_DIR}" -name "*.lock" -type d 2> /dev/null || echo "")
+       ACTIVE_AFTER=$(echo "${FIND_RESULT}" | wc -l || echo "0")
       fi
       # Only succeed if we didn't exceed the limit
       if [[ ${ACTIVE_AFTER} -le ${MAX_SLOTS} ]]; then
@@ -1030,7 +1044,9 @@ function __release_download_slot() {
  local ACTIVE_COUNT=0
  if [[ -d "${ACTIVE_DIR}" ]]; then
   # Count both directories and files for backward compatibility
-  ACTIVE_COUNT=$(find "${ACTIVE_DIR}" -name "*.lock" \( -type d -o -type f \) 2> /dev/null | wc -l)
+  local FIND_RESULT
+  FIND_RESULT=$(find "${ACTIVE_DIR}" -name "*.lock" \( -type d -o -type f \) 2> /dev/null || echo "")
+  ACTIVE_COUNT=$(echo "${FIND_RESULT}" | wc -l || echo "0")
  fi
  __logd "Download slot released (active: ${ACTIVE_COUNT}/${RATE_LIMIT:-4})"
 
@@ -1190,22 +1206,30 @@ function __wait_for_download_turn() {
  while [[ ${WAIT_COUNT} -lt ${MAX_WAIT_TIME} ]]; do
   # Read current serving number atomically
   local CURRENT_SERVING=0
-  (
-   flock -s 200
-   if [[ -f "${CURRENT_SERVING_FILE}" ]]; then
-    CURRENT_SERVING=$(cat "${CURRENT_SERVING_FILE}" 2> /dev/null || echo "0")
-   fi
-  ) 200> "${QUEUE_DIR}/ticket_lock"
+  CURRENT_SERVING=$(
+   (
+    flock -s 200
+    if [[ -f "${CURRENT_SERVING_FILE}" ]]; then
+     cat "${CURRENT_SERVING_FILE}" 2> /dev/null || echo "0"
+    else
+     echo "0"
+    fi
+   ) 200> "${QUEUE_DIR}/ticket_lock"
+  )
 
   # Calculate how many slots are currently in use
   local ACTIVE_DOWNLOADS=0
   if [[ -d "${QUEUE_DIR}/active" ]]; then
-   ACTIVE_DOWNLOADS=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null | wc -l)
+   local FIND_RESULT
+   FIND_RESULT=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null || echo "")
+   ACTIVE_DOWNLOADS=$(echo "${FIND_RESULT}" | wc -l || echo "0")
   fi
 
   # Periodically prune stale locks to avoid deadlocks (every ~30s)
   # Skip pruning on first iteration (WAIT_COUNT=0) to avoid delay when slots are available
   if [[ ${WAIT_COUNT} -gt 0 ]] && [[ $((WAIT_COUNT % 30)) -eq 0 ]]; then
+   # shellcheck disable=SC2310
+   # Intentional: pruning failures should not stop execution
    __queue_prune_stale_locks || true
   fi
 
@@ -1239,7 +1263,9 @@ function __wait_for_download_turn() {
      # Re-check after lock and only advance if still safe (no active)
      local ACTIVE_NOW=0
      if [[ -d "${QUEUE_DIR}/active" ]]; then
-      ACTIVE_NOW=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null | wc -l)
+      local FIND_RESULT
+      FIND_RESULT=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null || echo "")
+      ACTIVE_NOW=$(echo "${FIND_RESULT}" | wc -l || echo "0")
      fi
      if [[ ${ACTIVE_NOW} -eq 0 ]] && [[ ${TICKET_COUNTER} -gt ${CUR} ]]; then
       echo "${TICKET_COUNTER}" > "${CURRENT_SERVING_FILE}"
@@ -1270,7 +1296,9 @@ function __wait_for_download_turn() {
     # Re-check active downloads after acquiring lock
     local ACTIVE_AFTER_LOCK=0
     if [[ -d "${QUEUE_DIR}/active" ]]; then
-     ACTIVE_AFTER_LOCK=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null | wc -l)
+     local FIND_RESULT
+     FIND_RESULT=$(find "${QUEUE_DIR}/active" -name "*.lock" -type f 2> /dev/null || echo "")
+     ACTIVE_AFTER_LOCK=$(echo "${FIND_RESULT}" | wc -l || echo "0")
     fi
 
     # Double-check that we can still proceed
@@ -1285,7 +1313,13 @@ function __wait_for_download_turn() {
      local WAIT_TIME=0
      local STATUS_CHECK_FAILED=false
      set +e
-     WAIT_TIME=$(__check_overpass_status 2>&1 | tail -1)
+     local STATUS_OUTPUT
+     # shellcheck disable=SC2310,SC2311
+     # SC2310: Intentional: check return value explicitly
+     # SC2311: Intentional: function in command substitution
+     STATUS_OUTPUT=$(__check_overpass_status 2>&1 || echo "")
+     set -e
+     WAIT_TIME=$(echo "${STATUS_OUTPUT}" | tail -1 || echo "0")
      local STATUS_CHECK_EXIT=$?
      set -e
 
@@ -1414,6 +1448,8 @@ if ! declare -f __retry_file_operation > /dev/null 2>&1; then
 
   if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
    # Use simple semaphore system (recommended - no tickets, no ordering)
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly
    if ! __wait_for_download_slot; then
     __loge "Failed to obtain download slot after waiting"
     trap - EXIT INT TERM
@@ -1422,7 +1458,9 @@ if ! declare -f __retry_file_operation > /dev/null 2>&1; then
    fi
    __logd "Download slot acquired, proceeding with download"
    # Setup slot cleanup on exit
-   # shellcheck disable=SC2317
+   # shellcheck disable=SC2317,SC2310
+   # SC2317: Function is invoked indirectly via trap
+   # SC2310: Intentional: cleanup failures should not stop execution
    __cleanup_slot() {
     __release_download_slot > /dev/null 2>&1 || true
    }
@@ -1435,6 +1473,8 @@ if ! declare -f __retry_file_operation > /dev/null 2>&1; then
     __logd "File operation succeeded on attempt $((RETRY_COUNT + 1))"
     # Release download slot if acquired
     if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+     # shellcheck disable=SC2310
+     # Intentional: release failures should not stop execution
      __release_download_slot > /dev/null 2>&1 || true
     fi
     trap - EXIT INT TERM
@@ -1448,7 +1488,9 @@ if ! declare -f __retry_file_operation > /dev/null 2>&1; then
      # Try to extract and log specific error messages from stderr
      if [[ -f "${OUTPUT_OVERPASS:-}" ]]; then
       local ERROR_LINE
-      ERROR_LINE=$(grep -i "error" "${OUTPUT_OVERPASS}" | head -1 || echo "")
+      local GREP_RESULT
+      GREP_RESULT=$(grep -i "error" "${OUTPUT_OVERPASS}" || echo "")
+      ERROR_LINE=$(echo "${GREP_RESULT}" | head -1 || echo "")
       if [[ -n "${ERROR_LINE}" ]]; then
        __logw "Overpass error detected: ${ERROR_LINE}"
       fi
@@ -1481,6 +1523,8 @@ if ! declare -f __retry_file_operation > /dev/null 2>&1; then
   __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
   # Release download slot if acquired
   if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+   # shellcheck disable=SC2310
+   # Intentional: release failures should not stop execution
    __release_download_slot > /dev/null 2>&1 || true
   fi
   trap - EXIT INT TERM
@@ -1513,7 +1557,11 @@ if ! declare -f __check_overpass_status > /dev/null 2>&1; then
   fi
 
   # Extract available slots number (format: "X slots available now")
-  AVAILABLE_SLOTS=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' | head -1 | grep -o '[0-9]*' || echo "0")
+  local SLOTS_LINE
+  local GREP_RESULT
+  GREP_RESULT=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' || echo "")
+  SLOTS_LINE=$(echo "${GREP_RESULT}" | head -1 || echo "")
+  AVAILABLE_SLOTS=$(echo "${SLOTS_LINE}" | grep -o '[0-9]*' || echo "0")
 
   if [[ -n "${AVAILABLE_SLOTS}" ]] && [[ "${AVAILABLE_SLOTS}" -gt 0 ]]; then
    __logd "Overpass API has ${AVAILABLE_SLOTS} slot(s) available now"
@@ -1525,11 +1573,15 @@ if ! declare -f __check_overpass_status > /dev/null 2>&1; then
   # Extract wait time from "Slot available after" messages (format: "...in X seconds.")
   # There can be multiple lines, we need the minimum wait time
   local ALL_WAIT_TIMES
-  ALL_WAIT_TIMES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' | grep -o '[0-9]*' || echo "")
+  local WAIT_LINES
+  WAIT_LINES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' || echo "")
+  ALL_WAIT_TIMES=$(echo "${WAIT_LINES}" | grep -o '[0-9]*' || echo "")
 
   if [[ -n "${ALL_WAIT_TIMES}" ]]; then
    # Find the minimum wait time from all available slots
-   WAIT_TIME=$(echo "${ALL_WAIT_TIMES}" | sort -n | head -1)
+   local SORTED_TIMES
+   SORTED_TIMES=$(echo "${ALL_WAIT_TIMES}" | sort -n || echo "")
+   WAIT_TIME=$(echo "${SORTED_TIMES}" | head -1 || echo "0")
 
    if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
     __logd "Overpass API busy, next slot available in ${WAIT_TIME} seconds (from ${RATE_LIMIT:-4} slots)"
@@ -1739,7 +1791,9 @@ function __retry_osm_api() {
   local TEMP_OUTPUT
   TEMP_OUTPUT=$(mktemp)
   local HTTP_CODE
-  HTTP_CODE=$(curl "${CURL_OPTS[@]}" -w "%{http_code}" -o "${TEMP_OUTPUT}" "${URL}" 2> /dev/null | tail -c 3)
+  local CURL_OUTPUT
+  CURL_OUTPUT=$(curl "${CURL_OPTS[@]}" -w "%{http_code}" -o "${TEMP_OUTPUT}" "${URL}" 2> /dev/null || echo "")
+  HTTP_CODE=$(echo "${CURL_OUTPUT}" | tail -c 3 || echo "")
 
   # Handle 304 Not Modified (cached response is still valid)
   if [[ "${HTTP_CODE}" == "304" ]]; then
@@ -1840,60 +1894,6 @@ function __retry_geoserver_api() {
  return 1
 }
 
-# Retry GeoServer API calls with authentication
-# Parameters: url method data output_file max_retries base_delay timeout
-# Returns: 0 if successful, 1 if failed after all retries
-function __retry_geoserver_api() {
- __log_start
- local URL="$1"
- local METHOD="${2:-GET}"
- local DATA="${3:-}"
- local OUTPUT_FILE="${4:-/dev/null}"
- local LOCAL_MAX_RETRIES="${5:-3}"
- local BASE_DELAY="${6:-2}"
- local TIMEOUT="${7:-30}"
- local RETRY_COUNT=0
- local EXPONENTIAL_DELAY="${BASE_DELAY}"
-
- __logd "Executing GeoServer API call with retry logic: ${METHOD} ${URL}"
- __logd "Output: ${OUTPUT_FILE}, Max retries: ${LOCAL_MAX_RETRIES}, Timeout: ${TIMEOUT}s"
-
- while [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; do
-  local CURL_CMD="curl -s --connect-timeout ${TIMEOUT} --max-time ${TIMEOUT}"
-  # shellcheck disable=SC2154
-  # GEOSERVER_USER and GEOSERVER_PASSWORD are defined in etc/properties.sh or environment
-  CURL_CMD="${CURL_CMD} -u \"${GEOSERVER_USER}:${GEOSERVER_PASSWORD}\""
-
-  if [[ "${METHOD}" == "POST" ]] || [[ "${METHOD}" == "PUT" ]]; then
-   CURL_CMD="${CURL_CMD} -X ${METHOD}"
-   if [[ -n "${DATA}" ]]; then
-    CURL_CMD="${CURL_CMD} -d \"${DATA}\""
-   fi
-  fi
-
-  CURL_CMD="${CURL_CMD} -o \"${OUTPUT_FILE}\" \"${URL}\""
-
-  if eval "${CURL_CMD}"; then
-   __logd "GeoServer API call succeeded on attempt $((RETRY_COUNT + 1))"
-   __log_finish
-   return 0
-  else
-   __logw "GeoServer API call failed on attempt $((RETRY_COUNT + 1))"
-  fi
-
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-  if [[ ${RETRY_COUNT} -lt ${LOCAL_MAX_RETRIES} ]]; then
-   __logw "GeoServer API call failed on attempt ${RETRY_COUNT}, retrying in ${EXPONENTIAL_DELAY}s"
-   sleep "${EXPONENTIAL_DELAY}"
-   EXPONENTIAL_DELAY=$((EXPONENTIAL_DELAY * 2))
-  fi
- done
-
- __loge "GeoServer API call failed after ${LOCAL_MAX_RETRIES} attempts"
- __log_finish
- return 1
-}
-
 # Retry database operations with specific configuration
 # Parameters: query output_file max_retries base_delay
 # Returns: 0 if successful, 1 if failed after all retries
@@ -1922,7 +1922,9 @@ function __retry_database_operation() {
   if [[ -s "${OUTPUT_FILE}" ]]; then
    if grep -qiE "^ERROR\|^error\|no existe\|relation.*does not exist" "${OUTPUT_FILE}" 2> /dev/null; then
     HAS_ERROR=true
-    __loge "SQL error detected in output: $(head -1 "${OUTPUT_FILE}")"
+    local ERROR_FIRST_LINE
+    ERROR_FIRST_LINE=$(head -1 "${OUTPUT_FILE}" || echo "")
+    __loge "SQL error detected in output: ${ERROR_FIRST_LINE}"
    fi
   fi
 
@@ -1930,7 +1932,9 @@ function __retry_database_operation() {
   if [[ -s "${ERROR_FILE}" ]]; then
    if grep -qiE "ERROR\|error\|no existe\|relation.*does not exist" "${ERROR_FILE}" 2> /dev/null; then
     HAS_ERROR=true
-    __loge "PostgreSQL error: $(cat "${ERROR_FILE}")"
+    local ERROR_CONTENT
+    ERROR_CONTENT=$(cat "${ERROR_FILE}" || echo "")
+    __loge "PostgreSQL error: ${ERROR_CONTENT}"
    fi
   fi
 
@@ -1953,7 +1957,9 @@ function __retry_database_operation() {
 
  # Log final error before exiting
  if [[ -s "${ERROR_FILE}" ]]; then
-  __loge "Final PostgreSQL error: $(cat "${ERROR_FILE}")"
+  local FINAL_ERROR
+  FINAL_ERROR=$(cat "${ERROR_FILE}" || echo "")
+  __loge "Final PostgreSQL error: ${FINAL_ERROR}"
  fi
  rm -f "${ERROR_FILE}"
 
@@ -1978,15 +1984,19 @@ function __log_data_gap() {
  local GAP_FILE="/tmp/processAPINotes_gaps.log"
  touch "${GAP_FILE}"
 
- cat >> "${GAP_FILE}" << EOF
+ {
+  local GAP_DATE
+  GAP_DATE=$(date '+%Y-%m-%d %H:%M:%S' || echo "unknown")
+  cat << EOF
 ========================================
-GAP DETECTED: $(date '+%Y-%m-%d %H:%M:%S')
+GAP DETECTED: ${GAP_DATE}
 ========================================
 Type: ${GAP_TYPE}
 Count: ${GAP_COUNT}/${TOTAL_COUNT} (${GAP_PERCENTAGE}%)
 Details: ${ERROR_DETAILS}
 ---
 EOF
+ } >> "${GAP_FILE}"
 
  # Log to database
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -c "

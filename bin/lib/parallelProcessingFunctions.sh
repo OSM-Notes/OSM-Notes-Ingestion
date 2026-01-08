@@ -99,10 +99,10 @@ function __show_help_library() {
 #   fi
 #
 # Related: docs/Documentation.md#parallel-processing (resource management)
+# shellcheck disable=SC2120
+# MODE parameter is optional and has a default value
 function __check_system_resources() {
  __log_start
- # shellcheck disable=SC2120
- # MODE parameter is optional and has a default value
  local MODE="${1:-normal}"
  local MEMORY_PERCENT
  local CURRENT_LOAD
@@ -290,7 +290,9 @@ function __adjust_process_delay() {
   local CURRENT_LOAD
   CURRENT_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//' || true)
   if [[ -n "${CURRENT_LOAD}" ]] && [[ "${CURRENT_LOAD}" != "0.00" ]]; then
-   if [[ $(echo "${CURRENT_LOAD} > ${MAX_LOAD_AVERAGE}" | bc -l 2> /dev/null || echo "0") == "1" ]]; then
+   local BC_RESULT
+   BC_RESULT=$(echo "${CURRENT_LOAD} > ${MAX_LOAD_AVERAGE}" | bc -l 2> /dev/null || echo "0")
+   if [[ "${BC_RESULT}" == "1" ]]; then
     ADJUSTED_DELAY=$((ADJUSTED_DELAY * 2))
     __logw "Increased process delay to ${ADJUSTED_DELAY}s due to high system load (${CURRENT_LOAD})" >&2
    fi
@@ -657,8 +659,10 @@ __divide_xml_file() {
    END_POS=$(sed -n "${END_LINE}p" "${NOTE_POSITIONS_FILE}" 2> /dev/null || echo "1")
 
    # Create part file
-   echo '<?xml version="1.0" encoding="UTF-8"?>' > "${PART_FILE}"
-   echo "<${ROOT_TAG}>" >> "${PART_FILE}"
+   {
+    echo '<?xml version="1.0" encoding="UTF-8"?>'
+    echo "<${ROOT_TAG}>"
+   } > "${PART_FILE}"
 
    # Extract content between positions
    sed -n "${START_POS},${END_POS}p" "${INPUT_XML}" >> "${PART_FILE}"
@@ -693,7 +697,9 @@ __divide_xml_file() {
   # Find the start of the first note (skip header)
   local HEADER_SIZE=0
   local FIRST_NOTE_LINE
-  FIRST_NOTE_LINE=$(grep -n "<note" "${INPUT_XML}" 2> /dev/null | head -1 || echo "")
+  local GREP_RESULT
+  GREP_RESULT=$(grep -n "<note" "${INPUT_XML}" 2> /dev/null || echo "")
+  FIRST_NOTE_LINE=$(echo "${GREP_RESULT}" | head -1 || echo "")
   if [[ -n "${FIRST_NOTE_LINE}" ]]; then
    HEADER_SIZE=$(echo "${FIRST_NOTE_LINE}" | cut -d: -f1 2> /dev/null || echo "0")
   fi
@@ -892,7 +898,9 @@ __divide_xml_file() {
 
  # Count actual parts created and show statistics
  local ACTUAL_PARTS
- ACTUAL_PARTS=$(find "${OUTPUT_DIR}" -name "${PART_PREFIX}_*.xml" -type f 2> /dev/null | wc -l 2> /dev/null || echo "0")
+ local FIND_RESULT
+ FIND_RESULT=$(find "${OUTPUT_DIR}" -name "${PART_PREFIX}_*.xml" -type f 2> /dev/null || echo "")
+ ACTUAL_PARTS=$(echo "${FIND_RESULT}" | wc -l 2> /dev/null || echo "0")
 
  if [[ ${ACTUAL_PARTS} -eq 0 ]]; then
   __loge "ERROR: Failed to create XML parts"
@@ -1027,13 +1035,17 @@ function __processXmlPartsParallel() {
  # Auto-detect processing type if not provided
  if [[ -z "${PROCESSING_TYPE}" ]]; then
   local PLANET_CHECK
-  PLANET_CHECK=$(find "${INPUT_DIR}" -name "planet_part_*.xml" -type f 2> /dev/null | head -1 || echo "")
+  local PLANET_FIND_RESULT
+  PLANET_FIND_RESULT=$(find "${INPUT_DIR}" -name "planet_part_*.xml" -type f 2> /dev/null || echo "")
+  PLANET_CHECK=$(echo "${PLANET_FIND_RESULT}" | head -1 || echo "")
   if [[ -n "${PLANET_CHECK}" ]]; then
    PROCESSING_TYPE="Planet"
    __logd "Auto-detected Planet format from file names"
   else
    local API_CHECK
-   API_CHECK=$(find "${INPUT_DIR}" -name "api_part_*.xml" -type f 2> /dev/null | head -1 || echo "")
+   local API_FIND_RESULT
+   API_FIND_RESULT=$(find "${INPUT_DIR}" -name "api_part_*.xml" -type f 2> /dev/null || echo "")
+   API_CHECK=$(echo "${API_FIND_RESULT}" | head -1 || echo "")
    if [[ -n "${API_CHECK}" ]]; then
     PROCESSING_TYPE="API"
     __logd "Auto-detected API format from file names"
@@ -1079,6 +1091,8 @@ function __processXmlPartsParallel() {
   BASE_NAME=$(basename "${XML_FILE}" .xml)
 
   # Wait for resources if needed before launching new process
+  # shellcheck disable=SC2119
+  # Intentional: function called without arguments, uses default values
   if ! __check_system_resources; then
    __logd "Waiting for system resources before processing ${BASE_NAME}..."
    if ! __wait_for_resources 60; then
@@ -1246,7 +1260,9 @@ function __consolidate_part_logs() {
    echo ""
    echo "--- ${PART_NAME} LOG START ---"
    echo "File: ${PART_LOG}"
-   echo "Size: $(stat -c%s "${PART_LOG}" 2> /dev/null || echo "unknown") bytes"
+   local LOG_SIZE
+   LOG_SIZE=$(stat -c%s "${PART_LOG}" 2> /dev/null || echo "unknown")
+   echo "Size: ${LOG_SIZE} bytes"
    echo "----------------------------------------"
    cat "${PART_LOG}" 2> /dev/null || echo "ERROR: Could not read part log"
    echo "----------------------------------------"
@@ -1363,7 +1379,9 @@ function __splitXmlForParallelSafe() {
 
  # Verify parts were created
  local CREATED_PARTS
- CREATED_PARTS=$(find "${OUTPUT_DIR}" -name "${FORMAT_TYPE,,}_part_*.xml" -type f 2> /dev/null | wc -l 2> /dev/null || echo "0")
+ local CREATED_FIND_RESULT
+ CREATED_FIND_RESULT=$(find "${OUTPUT_DIR}" -name "${FORMAT_TYPE,,}_part_*.xml" -type f 2> /dev/null || echo "")
+ CREATED_PARTS=$(echo "${CREATED_FIND_RESULT}" | wc -l 2> /dev/null || echo "0")
 
  if [[ "${CREATED_PARTS}" -eq 0 ]]; then
   __loge "ERROR: No parts were created"
@@ -1711,7 +1729,11 @@ function __validate_xml_part() {
 
  # Check for extra content after closing root tag
  local LINES_AFTER_CLOSING_TAG
- LINES_AFTER_CLOSING_TAG=$(grep -n "</${EXPECTED_ROOT_TAG}>" "${XML_PART_FILE}" | tail -1 | cut -d: -f1)
+ local GREP_RESULT
+ GREP_RESULT=$(grep -n "</${EXPECTED_ROOT_TAG}>" "${XML_PART_FILE}" || echo "")
+ local TAIL_RESULT
+ TAIL_RESULT=$(echo "${GREP_RESULT}" | tail -1 || echo "")
+ LINES_AFTER_CLOSING_TAG=$(echo "${TAIL_RESULT}" | cut -d: -f1 || echo "0")
  if [[ -n "${LINES_AFTER_CLOSING_TAG}" ]]; then
   local TOTAL_LINES
   TOTAL_LINES=$(wc -l < "${XML_PART_FILE}" 2> /dev/null || echo "0")
@@ -1968,7 +1990,11 @@ function __divide_xml_file_binary() {
 
   # Validate that we have complete notes (find last complete note)
   local LAST_COMPLETE_NOTE
-  LAST_COMPLETE_NOTE=$(grep -n "</note>" "${OUTPUT_FILE}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
+  local GREP_RESULT
+  GREP_RESULT=$(grep -n "</note>" "${OUTPUT_FILE}" 2> /dev/null || echo "")
+  local TAIL_RESULT
+  TAIL_RESULT=$(echo "${GREP_RESULT}" | tail -1 || echo "")
+  LAST_COMPLETE_NOTE=$(echo "${TAIL_RESULT}" | cut -d: -f1 || echo "0")
 
   if [[ "${LAST_COMPLETE_NOTE}" -gt 0 ]]; then
    # Truncate file to last complete note
@@ -2084,7 +2110,7 @@ function __divide_xml_file_binary() {
   PART_BASENAME=$(basename "${OUTPUT_FILE}" .xml)
   local PART_NUM
   # Use parameter expansion instead of sed when possible
-  PART_NUM="${PART_BASENAME#${PART_PREFIX}_}"
+  PART_NUM="${PART_BASENAME#"${PART_PREFIX}"_}"
 
   if [[ -f "${OUTPUT_FILE}" ]]; then
    local PART_NOTES
@@ -2249,7 +2275,9 @@ function __handle_corrupted_xml_file() {
   local CLOSING_TAG_LINES
   CLOSING_TAG_LINES=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null || echo "")
   if [[ -n "${CLOSING_TAG_LINES}" ]]; then
-   LAST_CLOSING_TAG_LINE=$(echo "${CLOSING_TAG_LINES}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
+   local TAIL_RESULT
+   TAIL_RESULT=$(echo "${CLOSING_TAG_LINES}" | tail -1 || echo "")
+   LAST_CLOSING_TAG_LINE=$(echo "${TAIL_RESULT}" | cut -d: -f1 2> /dev/null || echo "0")
   else
    LAST_CLOSING_TAG_LINE="0"
   fi
@@ -2266,7 +2294,8 @@ function __handle_corrupted_xml_file() {
     local CLOSING_TAG_LINE_CONTENT
     CLOSING_TAG_LINE_CONTENT=$(sed -n "${LAST_CLOSING_TAG_LINE}p" "${XML_FILE}" 2> /dev/null)
     # Check if line contains only closing tag (with optional whitespace)
-    if echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm-notes>[[:space:]]*$" 2> /dev/null || echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm>[[:space:]]*$" 2> /dev/null; then
+    # Use extended regex to check both patterns in a single grep
+    if echo "${CLOSING_TAG_LINE_CONTENT}" | grep -qE "^[[:space:]]*</(osm-notes|osm)>[[:space:]]*$" 2> /dev/null; then
      # Line contains only the closing tag, no extra content
      :
     else
@@ -2306,7 +2335,9 @@ function __handle_corrupted_xml_file() {
   local CLOSING_TAG_LINES
   CLOSING_TAG_LINES=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null || echo "")
   if [[ -n "${CLOSING_TAG_LINES}" ]]; then
-   LAST_VALID_LINE=$(echo "${CLOSING_TAG_LINES}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
+   local TAIL_RESULT
+   TAIL_RESULT=$(echo "${CLOSING_TAG_LINES}" | tail -1 || echo "")
+   LAST_VALID_LINE=$(echo "${TAIL_RESULT}" | cut -d: -f1 2> /dev/null || echo "0")
   else
    LAST_VALID_LINE="0"
   fi
@@ -2331,7 +2362,9 @@ function __handle_corrupted_xml_file() {
   __logd "Attempting to recover from missing closing tag..."
   # Try to add missing closing tag
   local ROOT_ELEMENT
-  ROOT_ELEMENT=$(grep -o "<osm-notes\|<osm" "${XML_FILE}" | head -1)
+  local GREP_RESULT
+  GREP_RESULT=$(grep -o "<osm-notes\|<osm" "${XML_FILE}" || echo "")
+  ROOT_ELEMENT=$(echo "${GREP_RESULT}" | head -1 || echo "")
   if [[ -n "${ROOT_ELEMENT}" ]]; then
    local CLOSING_TAG
    CLOSING_TAG="</${ROOT_ELEMENT#<}>"
@@ -2446,7 +2479,9 @@ function __validate_xml_integrity() {
  fi
 
  # Check for XML declaration
- if ! head -n 5 "${XML_FILE}" | grep -q "<?xml" 2> /dev/null; then
+ local HEAD_RESULT
+ HEAD_RESULT=$(head -n 5 "${XML_FILE}" 2> /dev/null || echo "")
+ if ! echo "${HEAD_RESULT}" | grep -q "<?xml" 2> /dev/null; then
   __logw "WARNING: XML file missing declaration: ${XML_FILE}"
   if [[ "${ENABLE_RECOVERY}" == "true" ]]; then
    __logd "Attempting to recover missing XML declaration..."

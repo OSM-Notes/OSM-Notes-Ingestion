@@ -196,6 +196,8 @@ function __resolve_geojson_file() {
    DOWNLOAD_URL="${BOUNDARIES_DATA_REPO_URL}/${FILE_NAME}"
    DOWNLOADED_FILE="${TMP_DIR}/${FILE_NAME}"
    TMP_DECOMPRESSED="${DOWNLOADED_FILE}"
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly
    if ! __retry_network_operation "${DOWNLOAD_URL}" "${DOWNLOADED_FILE}" 3 2 30; then
     __loge "Failed to download ${FILE_NAME} from GitHub repository"
     return 1
@@ -526,6 +528,8 @@ function __processBoundary_impl {
   __logd "Skipping network connectivity check because CONTINUE_ON_OVERPASS_ERROR=true"
  else
   __logd "Checking network connectivity for boundary ${ID}..."
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if ! __check_network_connectivity 10; then
    __loge "Network connectivity check failed for boundary ${ID}"
    __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed for boundary ${ID}" \
@@ -599,6 +603,8 @@ function __processBoundary_impl {
 
   # Attempt download with fallback among endpoints
   __log_overpass_attempt "${ID}" "${ATTEMPT_NUM}" "${DOWNLOAD_VALIDATION_RETRIES}"
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if ! __overpass_download_with_endpoints "${QUERY_FILE_TO_USE}" "${JSON_FILE}" "${OUTPUT_OVERPASS}" "${MAX_RETRIES_LOCAL}" "${BASE_DELAY_LOCAL}"; then
    local ELAPSED_NOW
    ELAPSED_NOW=$(($(date +%s) - DOWNLOAD_START_TIME))
@@ -696,6 +702,8 @@ function __processBoundary_impl {
 
   # Validate the JSON structure and ensure it contains elements
   __log_json_validation_start "${ID}"
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if ! __validate_json_with_element "${JSON_FILE}" "elements"; then
    __loge "JSON validation failed for boundary ${ID} - will retry download"
    DOWNLOAD_VALIDATION_RETRY_COUNT=$((DOWNLOAD_VALIDATION_RETRY_COUNT + 1))
@@ -763,6 +771,8 @@ function __processBoundary_impl {
   local GEOJSON_CLEANUP="rm -f ${GEOJSON_FILE} 2>/dev/null || true"
 
   __log_geojson_conversion_attempt "${ID}" "${GEOJSON_ATTEMPT_NUM}" "${GEOJSON_VALIDATION_RETRIES}"
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if ! __retry_file_operation "${GEOJSON_OPERATION}" 2 5 "${GEOJSON_CLEANUP}"; then
    local GEOJSON_ELAPSED_NOW
    GEOJSON_ELAPSED_NOW=$(($(date +%s) - GEOJSON_START_TIME))
@@ -777,6 +787,8 @@ function __processBoundary_impl {
 
   # Validate the GeoJSON structure and ensure it contains features
   __log_geojson_validation "${ID}"
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if ! __validate_json_with_element "${GEOJSON_FILE}" "features"; then
    __loge "GeoJSON validation failed for boundary ${ID} - will retry conversion"
    GEOJSON_VALIDATION_RETRY_COUNT=$((GEOJSON_VALIDATION_RETRY_COUNT + 1))
@@ -863,6 +875,8 @@ function __processBoundary_impl {
  local LOCK_OPERATION="mkdir ${PROCESS_LOCK} 2> /dev/null"
  local LOCK_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __retry_file_operation "${LOCK_OPERATION}" 3 2 "${LOCK_CLEANUP}"; then
   __log_lock_failed "${ID}"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Lock acquisition failed for boundary ${ID}" \
@@ -953,6 +967,8 @@ function __processBoundary_impl {
 
  local IMPORT_CLEANUP="rmdir ${PROCESS_LOCK} 2>/dev/null || true"
 
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
   # Check for specific error types that require different strategies
   local HAS_ROW_TOO_BIG=false
@@ -978,6 +994,8 @@ function __processBoundary_impl {
     IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry --config PG_USE_COPY YES ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
    fi
 
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly
    if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
     __loge "Failed to import boundary ${ID} even without -select geometry"
     if [[ -f "${OGR_ERROR_LOG}" ]]; then
@@ -1026,6 +1044,8 @@ function __processBoundary_impl {
     IMPORT_OPERATION="ogr2ogr -f PostgreSQL PG:dbname=${DBNAME} -nln import -overwrite -skipfailures -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 -lco GEOMETRY_NAME=geometry -select geometry --config PG_USE_COPY NO ${GEOJSON_FILE} 2> ${OGR_ERROR_LOG}"
    fi
 
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly
    if ! __retry_file_operation "${IMPORT_OPERATION}" 2 5 "${IMPORT_CLEANUP}"; then
     __loge "Failed to import boundary ${ID} even with PG_USE_COPY NO"
     # Check for real errors (not just missing field warnings)
@@ -1218,6 +1238,8 @@ function __processBoundary_impl {
 
  # CRITICAL: Validate capital location to prevent cross-contamination
  # This ensures the imported geometry corresponds to the correct country
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __validate_capital_location "${ID}" "${DBNAME}"; then
   __loge "Capital validation failed for boundary ${ID} - rejecting import"
   if [[ "${CONTINUE_ON_OVERPASS_ERROR:-false}" == "true" ]]; then
@@ -1345,6 +1367,8 @@ function __processBoundary_impl {
     fi
    fi
 
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly
    if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
     __loge "Alternative ST_Collect also failed"
     __loge "Skipping boundary ${ID} due to geometry issues"
@@ -1381,6 +1405,8 @@ function __processBoundary_impl {
      PROCESS_OPERATION="psql -d ${DBNAME} -c \"WITH new_geom AS (SELECT ST_SetSRID(ST_Union(ST_Buffer(ST_MakeValid(geometry), 0.0001)), 4326) AS geom FROM import WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon')), new_area AS (SELECT ST_Area(geom::geography) AS area FROM new_geom WHERE geom IS NOT NULL), existing_area AS (SELECT ST_Area(geom::geography) AS area FROM ${COUNTRIES_TABLE} WHERE country_id = ${SANITIZED_ID}) INSERT INTO ${COUNTRIES_TABLE} (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT ${SANITIZED_ID}, '${NAME}', '${NAME_ES}', '${NAME_EN}', new_geom.geom, ${IS_MARITIME_VALUE} FROM new_geom WHERE new_geom.geom IS NOT NULL AND (SELECT area FROM new_area) IS NOT NULL AND ((SELECT area FROM new_area) > 1000 OR (SELECT area FROM existing_area) IS NULL) ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = ${IS_MARITIME_CONFLICT_VALUE}, geom = CASE WHEN (SELECT area FROM new_area) IS NOT NULL AND (SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 THEN ST_SetSRID(EXCLUDED.geom, 4326) ELSE ${COUNTRIES_TABLE}.geom END WHERE (SELECT area FROM new_area) IS NOT NULL AND ((SELECT area FROM new_area) > COALESCE((SELECT area FROM existing_area), 0) * 0.5 OR (SELECT area FROM existing_area) IS NULL);\""
     fi
 
+    # shellcheck disable=SC2310
+    # Intentional: check return value explicitly
     if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
      __loge "Buffer strategy failed"
      __loge "Skipping boundary ${ID} due to geometry issues"
@@ -1478,6 +1504,8 @@ function __processBoundary_impl {
  fi
 
  __logd "Executing insert operation for boundary ${ID} (country: ${NAME}) into ${COUNTRIES_TABLE}"
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __retry_file_operation "${PROCESS_OPERATION}" 2 3 ""; then
   __loge "Failed to insert boundary ${ID} into ${COUNTRIES_TABLE} table"
   __loge "Boundary details: ID=${ID}, Name=${NAME}"
@@ -1511,6 +1539,8 @@ function __compareIdsWithBackup {
 
  # Resolve backup file (handles .geojson and .geojson.gz)
  local RESOLVED_BACKUP=""
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __resolve_geojson_file "${BACKUP_FILE}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logd "Backup file not found, comparison not possible"
   __log_finish
@@ -2018,6 +2048,8 @@ function __downloadMaritimes_parallel_new() {
   PART_NUM=$((PART_NUM + 1))
   (
    # Ensure PATH is inherited from parent (critical for mock commands in test environment)
+   # shellcheck disable=SC2030
+   # Intentional: PATH export is local to subshell for isolation
    export PATH="${PATH}"
    local PART_PID="${BASHPID}"
    local PART_LOG_FILE="${TMP_DIR}/download_maritime_part_${PART_NUM}.log"
@@ -2033,7 +2065,9 @@ function __downloadMaritimes_parallel_new() {
 
    echo "=== MARITIME DOWNLOAD PART ${PART_NUM} (PID: ${PART_PID}) ==="
    echo "Part file: ${PART_NAME}"
-   echo "Started: $(date '+%Y-%m-%d %H:%M:%S')"
+   local START_DATE
+   START_DATE=$(date '+%Y-%m-%d %H:%M:%S' || echo "unknown")
+   echo "Started: ${START_DATE}"
    echo ""
 
    while read -r LINE; do
@@ -2041,6 +2075,8 @@ function __downloadMaritimes_parallel_new() {
     ID=$(echo "${LINE}" | awk '{print $1}')
 
     echo "[PART ${PART_NUM}] Downloading maritime boundary ${ID}..."
+    # shellcheck disable=SC2310
+    # Intentional: check return value explicitly
     if __downloadMaritime_json_geojson_only "${ID}" 2>&1; then
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))
@@ -2061,10 +2097,12 @@ function __downloadMaritimes_parallel_new() {
    echo ""
    echo "=== MARITIME DOWNLOAD PART ${PART_NUM} COMPLETED ==="
    echo "Part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
-   echo "Finished: $(date '+%Y-%m-%d %H:%M:%S')"
+   local FINISH_DATE
+   FINISH_DATE=$(date '+%Y-%m-%d %H:%M:%S' || echo "unknown")
+   echo "Finished: ${FINISH_DATE}"
 
    # Also log to main log (append)
-   echo "$(date '+%Y-%m-%d %H:%M:%S') - Maritime download part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed" >> "${TMP_DIR}/updateCountries.log"
+   echo "${FINISH_DATE} - Maritime download part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed" >> "${TMP_DIR}/updateCountries.log"
   ) &
   JOB_COUNT=$((JOB_COUNT + 1))
   sleep 1
@@ -2131,6 +2169,8 @@ function __importMaritimes_sequential_new() {
    continue
   fi
 
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if __importMaritime_simplified "${ID}" "${GEOJSON_FILE}"; then
    IMPORT_SUCCESS=$((IMPORT_SUCCESS + 1))
   else
@@ -2194,8 +2234,12 @@ function __downloadCountries_parallel_new() {
   PART_NUM=$((PART_NUM + 1))
   (
    # Ensure PATH is inherited from parent (critical for mock commands in test environment)
+   # shellcheck disable=SC2030,SC2031
+   # SC2030/SC2031: Intentional: PATH export is local to subshell for isolation
    export PATH="${PATH}"
    # Export USE_COUNTRIES_NEW for child processes (critical for parallel imports)
+   # shellcheck disable=SC2030
+   # Intentional: USE_COUNTRIES_NEW export is local to subshell
    export USE_COUNTRIES_NEW="${USE_COUNTRIES_NEW:-false}"
    local PART_PID="${BASHPID}"
    local PART_LOG_FILE="${TMP_DIR}/download_part_${PART_NUM}.log"
@@ -2211,12 +2255,18 @@ function __downloadCountries_parallel_new() {
 
    echo "=== DOWNLOAD PART ${PART_NUM} (PID: ${PART_PID}) ==="
    echo "Part file: ${PART_NAME}"
-   echo "Started: $(date '+%Y-%m-%d %H:%M:%S')"
+   local START_DATE
+   START_DATE=$(date '+%Y-%m-%d %H:%M:%S' || echo "unknown")
+   echo "Started: ${START_DATE}"
    echo ""
    echo "[PART ${PART_NUM}] Environment check:"
    echo "[PART ${PART_NUM}] PATH: ${PATH}"
-   echo "[PART ${PART_NUM}] Which curl: $(command -v curl 2>&1 || echo 'curl not found')"
-   echo "[PART ${PART_NUM}] Curl version: $(curl --version 2>&1 | head -1 || echo 'curl failed')"
+   local CURL_CMD
+   CURL_CMD=$(command -v curl 2>&1 || echo 'curl not found')
+   echo "[PART ${PART_NUM}] Which curl: ${CURL_CMD}"
+   local CURL_VERSION
+   CURL_VERSION=$(curl --version 2>&1 | head -1 || echo 'curl failed')
+   echo "[PART ${PART_NUM}] Curl version: ${CURL_VERSION}"
    echo ""
 
    while read -r LINE; do
@@ -2225,7 +2275,11 @@ function __downloadCountries_parallel_new() {
 
     echo "[PART ${PART_NUM}] Downloading boundary ${ID}..."
     echo "[PART ${PART_NUM}] PATH before download: ${PATH}"
-    echo "[PART ${PART_NUM}] Which curl before download: $(command -v curl 2>&1 || echo 'curl not found')"
+    local CURL_CMD_BEFORE
+    CURL_CMD_BEFORE=$(command -v curl 2>&1 || echo 'curl not found')
+    echo "[PART ${PART_NUM}] Which curl before download: ${CURL_CMD_BEFORE}"
+    # shellcheck disable=SC2310
+    # Intentional: check return value explicitly
     if __downloadBoundary_json_geojson_only "${ID}" 2>&1; then
      echo "${ID}" >> "${SUCCESS_FILE}"
      PART_SUCCESS=$((PART_SUCCESS + 1))
@@ -2246,10 +2300,12 @@ function __downloadCountries_parallel_new() {
    echo ""
    echo "=== DOWNLOAD PART ${PART_NUM} COMPLETED ==="
    echo "Part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed"
-   echo "Finished: $(date '+%Y-%m-%d %H:%M:%S')"
+   local FINISH_DATE
+   FINISH_DATE=$(date '+%Y-%m-%d %H:%M:%S' || echo "unknown")
+   echo "Finished: ${FINISH_DATE}"
 
    # Also log to main log (append)
-   echo "$(date '+%Y-%m-%d %H:%M:%S') - Download part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed" >> "${TMP_DIR}/updateCountries.log"
+   echo "${FINISH_DATE} - Download part ${PART_NUM} (PID ${PART_PID}): ${PART_SUCCESS} succeeded, ${PART_FAILED} failed" >> "${TMP_DIR}/updateCountries.log"
   ) &
   JOB_COUNT=$((JOB_COUNT + 1))
   sleep 1
@@ -2292,6 +2348,8 @@ function __importCountries_sequential_new() {
  local SUCCESS_FILE="${1}"
 
  # Ensure USE_COUNTRIES_NEW is exported for this function and child processes
+ # shellcheck disable=SC2031
+ # Intentional: USE_COUNTRIES_NEW is exported for child processes
  export USE_COUNTRIES_NEW="${USE_COUNTRIES_NEW:-false}"
 
  __logi "Starting sequential import of countries"
@@ -2319,6 +2377,8 @@ function __importCountries_sequential_new() {
    continue
   fi
 
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if __importBoundary_simplified "${ID}" "${GEOJSON_FILE}"; then
    IMPORT_SUCCESS=$((IMPORT_SUCCESS + 1))
   else
@@ -2391,6 +2451,8 @@ function __processCountries_impl {
  # COUNTRIES_BOUNDARY_IDS_FILE, COUNTRIES_QUERY_FILE, COUNTRIES_OUTPUT_FILE, and OVERPASS_INTERPRETER are defined earlier in the function
  COUNTRIES_DOWNLOAD_OPERATION="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${COUNTRIES_BOUNDARY_IDS_FILE} --data-binary @${COUNTRIES_QUERY_FILE} ${OVERPASS_INTERPRETER} 2> ${COUNTRIES_OUTPUT_FILE}"
  local COUNTRIES_CLEANUP="rm -f ${COUNTRIES_BOUNDARY_IDS_FILE} ${COUNTRIES_OUTPUT_FILE} 2>/dev/null || true"
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __retry_file_operation "${COUNTRIES_DOWNLOAD_OPERATION}" "${MAX_RETRIES_COUNTRIES}" "${BASE_DELAY_COUNTRIES}" "${COUNTRIES_CLEANUP}" "true" "${OVERPASS_INTERPRETER}"; then
   __loge "ERROR: Country list could not be downloaded after retries."
   # Check if it's a 429 error and suggest waiting
@@ -2438,7 +2500,9 @@ function __processCountries_impl {
  # Validate it's CSV format (should start with @id or have at least one line with numbers)
  if ! head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}" | grep -qE "^@id|^[0-9]+"; then
   __loge "ERROR: Country list file is not in expected CSV format"
-  __loge "First line of file: $(head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}")"
+  local FIRST_LINE
+  FIRST_LINE=$(head -1 "${COUNTRIES_BOUNDARY_IDS_FILE}" || echo "")
+  __loge "First line of file: ${FIRST_LINE}"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}" \
    "Country list file format validation failed" \
    "__preserve_failed_boundary_artifacts '${COUNTRIES_BOUNDARY_IDS_FILE}'"
@@ -2482,8 +2546,12 @@ function __processCountries_impl {
  # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
  # Also skip backup if SKIP_DB_IMPORT is set (download-only mode - need individual GeoJSON files)
  local RESOLVED_BACKUP=""
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -z "${SKIP_DB_IMPORT:-}" ]] && [[ -n "${REPO_COUNTRIES_BACKUP}" ]] && __resolve_geojson_file "${REPO_COUNTRIES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Comparing country IDs with backup..."
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if __compareIdsWithBackup "${COUNTRIES_BOUNDARY_IDS_FILE}" "${RESOLVED_BACKUP}" "countries"; then
    __logi "Country IDs match backup, importing from backup..."
    # Import backup directly using ogr2ogr (don't use __processBoundary as it requires ID variable)
@@ -2509,14 +2577,18 @@ function __processCountries_impl {
      return 0
     else
      __logw "Import succeeded but SRID fix failed (non-critical)"
-     __logd "SRID fix error: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+     local OGR_ERROR_CONTENT
+     OGR_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+     __logd "SRID fix error: ${OGR_ERROR_CONTENT}"
      rm -f "${OGR_ERROR}"
      __log_finish
      return 0
     fi
    else
     __logw "Failed to import from backup, falling back to Overpass download"
-    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+    local OGR_ERROR_CONTENT
+    OGR_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+    __logd "ogr2ogr error output: ${OGR_ERROR_CONTENT}"
     rm -f "${OGR_ERROR}"
    fi
   else
@@ -2584,13 +2656,17 @@ function __processCountries_impl {
        else
         __logw "Failed to filter and insert from backup, will download all from Overpass"
         psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
-        __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+        local SQL_ERROR_CONTENT
+        SQL_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+        __logd "SQL error output: ${SQL_ERROR_CONTENT}"
         rm -f "${OGR_ERROR}"
         unset MISSING_IDS_FILE
        fi
       else
        __logw "Failed to import backup, will download all from Overpass"
-       __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+       local OGR_ERROR_CONTENT
+       OGR_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+       __logd "ogr2ogr error output: ${OGR_ERROR_CONTENT}"
        rm -f "${OGR_ERROR}"
        unset MISSING_IDS_FILE
       fi
@@ -2637,6 +2713,8 @@ function __processCountries_impl {
   __logi "Download threads: ${DOWNLOAD_MAX_THREADS:-4}"
 
   # Phase 1: Download in parallel
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if ! __downloadCountries_parallel_new "${COUNTRIES_BOUNDARY_IDS_FILE}"; then
    __logw "Some downloads failed, but continuing with successful ones"
   fi
@@ -2647,6 +2725,8 @@ function __processCountries_impl {
    local SUCCESS_COUNT
    SUCCESS_COUNT=$(wc -l < "${SUCCESS_FILE}" | tr -d ' ')
    __logi "Importing ${SUCCESS_COUNT} successfully downloaded countries sequentially"
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly
    if ! __importCountries_sequential_new "${SUCCESS_FILE}"; then
     __logw "Some imports failed, but continuing"
    fi
@@ -2681,14 +2761,17 @@ function __processCountries_impl {
  local JOB_STATUS_FILE="${TMP_DIR}/job_status.txt"
  rm -f "${JOB_STATUS_FILE}"
 
+ # Define LOG_FILENAME if not set
+ local LOG_FILENAME="${LOG_FILENAME:-${TMP_DIR}/processCountries.log}"
+
  for I in "${TMP_DIR}"/part_country_??; do
   (
+   # shellcheck disable=SC2030,SC2031
+   # SC2030/SC2031: Intentional: PATH export is local to subshell for isolation
    export PATH="${PATH}"
    local SUBSHELL_PID
    SUBSHELL_PID="${BASHPID}"
    __logi "Starting list ${I} - ${SUBSHELL_PID}."
-   # shellcheck disable=SC2154
-   # LOG_FILENAME is set by the calling script or environment
    local PROCESS_LIST_RET
    if __processList "${I}" >> "${LOG_FILENAME}.${SUBSHELL_PID}" 2>&1; then
     echo "SUCCESS:${SUBSHELL_PID}:${I}" >> "${JOB_STATUS_FILE}"
@@ -2801,7 +2884,9 @@ function __processCountries_impl {
         # Add to failed_boundaries.txt if not already present
         if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
-         __logd "Recorded failed country boundary ID: ${FAILED_ID}"
+         # shellcheck disable=SC2310
+         # Intentional: logging failures should not stop execution
+         __logd "Recorded failed country boundary ID: ${FAILED_ID}" || true
         fi
        fi
       done || true
@@ -2861,6 +2946,8 @@ function __processMaritimes_impl {
  # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
  # Also skip backup if SKIP_DB_IMPORT is set (download-only mode - need individual GeoJSON files)
  local RESOLVED_BACKUP=""
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -z "${SKIP_DB_IMPORT:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_BACKUP" 2> /dev/null; then
   __logi "Using repository backup maritime boundaries from ${REPO_MARITIMES_BACKUP}"
   # Import backup to temporary table first, then insert with is_maritime = TRUE
@@ -2884,7 +2971,9 @@ function __processMaritimes_impl {
     return 0
    else
     __loge "Failed to insert maritime boundaries from temporary table"
-    __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+    local SQL_ERROR_CONTENT
+    SQL_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+    __logd "SQL error output: ${SQL_ERROR_CONTENT}"
     psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
     rm -f "${OGR_ERROR}"
     __log_finish
@@ -2892,7 +2981,9 @@ function __processMaritimes_impl {
    fi
   else
    __logw "Failed to import from backup, falling back to Overpass download"
-   __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+   local OGR_ERROR_CONTENT
+   OGR_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+   __logd "ogr2ogr error output: ${OGR_ERROR_CONTENT}"
    rm -f "${OGR_ERROR}"
   fi
  fi
@@ -2958,7 +3049,9 @@ function __processMaritimes_impl {
  # Validate it's CSV format (should start with @id or have at least one line with numbers)
  if ! head -1 "${MARITIME_BOUNDARY_IDS_FILE}" | grep -qE "^@id|^[0-9]+"; then
   __loge "ERROR: Maritime border list file is not in expected CSV format"
-  __loge "First line of file: $(head -1 "${MARITIME_BOUNDARY_IDS_FILE}")"
+  local FIRST_LINE
+  FIRST_LINE=$(head -1 "${MARITIME_BOUNDARY_IDS_FILE}" || echo "")
+  __loge "First line of file: ${FIRST_LINE}"
   __log_finish
   return "${ERROR_DOWNLOADING_BOUNDARY_ID_LIST}"
  fi
@@ -2970,8 +3063,12 @@ function __processMaritimes_impl {
  # Skip backup if FORCE_OVERPASS_DOWNLOAD is set (update mode detected changes)
  # Also skip backup if SKIP_DB_IMPORT is set (download-only mode - need individual GeoJSON files)
  local RESOLVED_MARITIMES_BACKUP=""
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if [[ -z "${FORCE_OVERPASS_DOWNLOAD:-}" ]] && [[ -z "${SKIP_DB_IMPORT:-}" ]] && [[ -n "${REPO_MARITIMES_BACKUP}" ]] && __resolve_geojson_file "${REPO_MARITIMES_BACKUP}" "RESOLVED_MARITIMES_BACKUP" 2> /dev/null; then
   __logi "Comparing maritime IDs with backup..."
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if __compareIdsWithBackup "${MARITIME_BOUNDARY_IDS_FILE}" "${RESOLVED_MARITIMES_BACKUP}" "maritimes"; then
    __logi "Maritime IDs match backup, importing from backup..."
    # Import backup to temporary table first, then insert with is_maritime = TRUE
@@ -2995,7 +3092,11 @@ function __processMaritimes_impl {
      return 0
     else
      __loge "Failed to insert maritime boundaries from temporary table"
-     __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+     local ERROR_OUTPUT
+     # shellcheck disable=SC2312
+     # Intentional: cat may fail if file doesn't exist, default to message
+     ERROR_OUTPUT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+     __logd "SQL error output: ${ERROR_OUTPUT}"
      psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
      rm -f "${OGR_ERROR}"
      __log_finish
@@ -3003,7 +3104,9 @@ function __processMaritimes_impl {
     fi
    else
     __logw "Failed to import from backup, falling back to Overpass download"
-    __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+    local OGR_ERROR_CONTENT
+    OGR_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+    __logd "ogr2ogr error output: ${OGR_ERROR_CONTENT}"
     rm -f "${OGR_ERROR}"
    fi
   else
@@ -3053,13 +3156,17 @@ function __processMaritimes_impl {
        else
         __logw "Failed to filter and insert from backup, will download all from Overpass"
         psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
-        __logd "SQL error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+        local SQL_ERROR_CONTENT
+        SQL_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+        __logd "SQL error output: ${SQL_ERROR_CONTENT}"
         rm -f "${OGR_ERROR}"
         unset MISSING_IDS_FILE
        fi
       else
        __logw "Failed to import backup, will download all from Overpass"
-       __logd "ogr2ogr error output: $(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')"
+       local OGR_ERROR_CONTENT
+       OGR_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
+       __logd "ogr2ogr error output: ${OGR_ERROR_CONTENT}"
        rm -f "${OGR_ERROR}"
        unset MISSING_IDS_FILE
       fi
@@ -3101,6 +3208,8 @@ function __processMaritimes_impl {
   __logi "Download threads: ${DOWNLOAD_MAX_THREADS:-4}"
 
   # Phase 1: Download in parallel
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly
   if ! __downloadMaritimes_parallel_new "${MARITIME_BOUNDARY_IDS_FILE}"; then
    __logw "Some maritime downloads failed, but continuing with successful ones"
   fi
@@ -3111,6 +3220,8 @@ function __processMaritimes_impl {
    local SUCCESS_COUNT
    SUCCESS_COUNT=$(wc -l < "${SUCCESS_FILE}" | tr -d ' ')
    __logi "Importing ${SUCCESS_COUNT} successfully downloaded maritime boundaries sequentially"
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly
    if ! __importMaritimes_sequential_new "${SUCCESS_FILE}"; then
     __logw "Some maritime imports failed, but continuing"
    fi
@@ -3135,8 +3246,14 @@ function __processMaritimes_impl {
   rmdir "${LOCK_OGR2OGR}"
  fi
  __logw "Starting background process to process maritime boundaries..."
+
+ # Define LOG_FILENAME if not set
+ local LOG_FILENAME="${LOG_FILENAME:-${TMP_DIR}/processMaritimes.log}"
+
  for I in "${TMP_DIR}"/part_maritime_??; do
   (
+   # shellcheck disable=SC2030,SC2031
+   # SC2030/SC2031: Intentional: PATH export is local to subshell for isolation
    export PATH="${PATH}"
    export IS_MARITIME="true"
    __logi "Starting list ${I} - ${BASHPID}."
@@ -3195,7 +3312,9 @@ function __processMaritimes_impl {
         # Add to failed_boundaries.txt if not already present
         if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
-         __logd "Recorded failed maritime boundary ID: ${FAILED_ID}"
+         # shellcheck disable=SC2310
+         # Intentional: logging failures should not stop execution
+         __logd "Recorded failed maritime boundary ID: ${FAILED_ID}" || true
         fi
        fi
       done || true
@@ -3241,7 +3360,9 @@ function __processMaritimes_impl {
         # Only accept IDs >= 1000 to filter out false positives (real OSM relation IDs are much larger)
         if ! grep -q "^${FAILED_ID}$" "${FAILED_BOUNDARIES_FILE}" 2> /dev/null; then
          echo "${FAILED_ID}" >> "${FAILED_BOUNDARIES_FILE}"
-         __logd "Recorded failed maritime boundary ID from error log: ${FAILED_ID}"
+         # shellcheck disable=SC2310
+         # Intentional: logging failures should not stop execution
+         __logd "Recorded failed maritime boundary ID from error log: ${FAILED_ID}" || true
         fi
        fi
       done || true

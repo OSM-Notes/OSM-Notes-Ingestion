@@ -246,12 +246,18 @@ function __generateCheckCsvFiles {
  __logd "Generated CSV files:"
  local NOTES_LINES
  NOTES_LINES=$(wc -l < "${OUTPUT_NOTES_FILE}" 2> /dev/null || echo 0)
+ # shellcheck disable=SC2310
+ # Intentional: logging failures should not stop execution
  __logd "  Notes: ${OUTPUT_NOTES_FILE} (${NOTES_LINES} lines)" || true
  local COMMENTS_LINES
  COMMENTS_LINES=$(wc -l < "${OUTPUT_NOTE_COMMENTS_FILE}" 2> /dev/null || echo 0)
+ # shellcheck disable=SC2310
+ # Intentional: logging failures should not stop execution
  __logd "  Comments: ${OUTPUT_NOTE_COMMENTS_FILE} (${COMMENTS_LINES} lines)" || true
  local TEXT_LINES
  TEXT_LINES=$(wc -l < "${OUTPUT_TEXT_COMMENTS_FILE}" 2> /dev/null || echo 0)
+ # shellcheck disable=SC2310
+ # Intentional: logging failures should not stop execution
  __logd "  Text: ${OUTPUT_TEXT_COMMENTS_FILE} (${TEXT_LINES} lines)" || true
 
  __log_finish
@@ -352,6 +358,8 @@ function __loadCheckNotes {
  if grep -q '\${OUTPUT_NOTES_FILE}\|\${OUTPUT_NOTE_COMMENTS_FILE}\|\${OUTPUT_TEXT_COMMENTS_FILE}' "${TEMP_SQL_FILE}.tmp" 2> /dev/null; then
   __loge "ERROR: Variables were not replaced by envsubst. Check variable export."
   __loge "First 20 lines of generated SQL:"
+  # shellcheck disable=SC2310
+  # Intentional: logging failures should not stop execution
   head -n 20 "${TEMP_SQL_FILE}.tmp" | while IFS= read -r line; do
    __loge "  ${line}" || true
   done || true

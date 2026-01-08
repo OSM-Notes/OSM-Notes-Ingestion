@@ -122,10 +122,18 @@ function __retry_file_operation() {
   # Probe Overpass status before continuing (non-blocking best effort)
   local STATUS_PROBE="0"
   set +e # Allow errors in wait
-  STATUS_PROBE=$(__check_overpass_status 2> /dev/null || echo "0")
+  local STATUS_OUTPUT
+  # shellcheck disable=SC2310,SC2311
+  # SC2310: Intentional: check return value explicitly
+  # SC2311: Intentional: function in command substitution
+  STATUS_OUTPUT=$(__check_overpass_status 2> /dev/null || echo "")
+  STATUS_PROBE=$(echo "${STATUS_OUTPUT}" | tail -1 || echo "0")
   set -e
   __logd "Overpass status probe returned: ${STATUS_PROBE}"
 
+  # shellcheck disable=SC2310,SC2317
+  # SC2310: Intentional: cleanup failures should not stop execution
+  # SC2317: Function is invoked indirectly via trap
   __cleanup_slot() {
    __release_download_slot > /dev/null 2>&1 || true
   }
@@ -143,16 +151,28 @@ function __retry_file_operation() {
    local OUTPUT_DIR_CHECK=""
    if echo "${OPERATION_COMMAND}" | grep -qE '\s-o\s+[^ ]+'; then
     # Extract file after -o
-    OUTPUT_FILE_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s-o\s+[^ ]+' | awk '{print $2}' | head -1)
+    local GREP_RESULT
+    GREP_RESULT=$(echo "${OPERATION_COMMAND}" | grep -oE '\s-o\s+[^ ]+' || echo "")
+    local AWK_RESULT
+    AWK_RESULT=$(echo "${GREP_RESULT}" | awk '{print $2}' || echo "")
+    OUTPUT_FILE_CHECK=$(echo "${AWK_RESULT}" | head -1 || echo "")
     __logd "Extracted output file from -o: ${OUTPUT_FILE_CHECK}"
     # For aria2c, also check for -d option (output directory)
     if echo "${OPERATION_COMMAND}" | grep -qE '\s-d\s+[^ ]+'; then
-     OUTPUT_DIR_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s-d\s+[^ ]+' | awk '{print $2}' | head -1)
+     local GREP_RESULT_DIR
+     GREP_RESULT_DIR=$(echo "${OPERATION_COMMAND}" | grep -oE '\s-d\s+[^ ]+' || echo "")
+     local AWK_RESULT_DIR
+     AWK_RESULT_DIR=$(echo "${GREP_RESULT_DIR}" | awk '{print $2}' || echo "")
+     OUTPUT_DIR_CHECK=$(echo "${AWK_RESULT_DIR}" | head -1 || echo "")
      __logd "Extracted output directory from -d: ${OUTPUT_DIR_CHECK}"
     fi
    elif echo "${OPERATION_COMMAND}" | grep -qE '\s>\s+[^ ]+'; then
     # Extract file after >
-    OUTPUT_FILE_CHECK=$(echo "${OPERATION_COMMAND}" | grep -oE '\s>\s+[^ ]+' | awk '{print $2}' | head -1)
+    local GREP_RESULT_REDIRECT
+    GREP_RESULT_REDIRECT=$(echo "${OPERATION_COMMAND}" | grep -oE '\s>\s+[^ ]+' || echo "")
+    local AWK_RESULT_REDIRECT
+    AWK_RESULT_REDIRECT=$(echo "${GREP_RESULT_REDIRECT}" | awk '{print $2}' || echo "")
+    OUTPUT_FILE_CHECK=$(echo "${AWK_RESULT_REDIRECT}" | head -1 || echo "")
     __logd "Extracted output file from >: ${OUTPUT_FILE_CHECK}"
    fi
 
@@ -185,13 +205,27 @@ function __retry_file_operation() {
      local IS_HTML_ERROR=false
      if [[ "${OPERATION_COMMAND}" == *"/api/interpreter"* ]]; then
       # Check if file contains HTML error page
-      if head -5 "${EXPANDED_OUTPUT_FILE}" 2> /dev/null | grep -qiE "<html|<body|<head|<!DOCTYPE" || false; then
+      local HEAD_RESULT
+      HEAD_RESULT=$(head -5 "${EXPANDED_OUTPUT_FILE}" 2> /dev/null || echo "")
+      if echo "${HEAD_RESULT}" | grep -qiE "<html|<body|<head|<!DOCTYPE" || false; then
        IS_HTML_ERROR=true
        __logw "Overpass returned HTML error page instead of expected format (CSV/JSON)"
        # Extract error message if available
        local ERROR_MSG=""
-       if grep -iE "error|timeout|too busy" "${EXPANDED_OUTPUT_FILE}" 2> /dev/null | head -1 | sed 's/<[^>]*>//g' | tr -d '\n' | cut -c1-100 > /dev/null 2>&1; then
-        ERROR_MSG=$(grep -iE "error|timeout|too busy" "${EXPANDED_OUTPUT_FILE}" 2> /dev/null | head -1 | sed 's/<[^>]*>//g' | tr -d '\n' | cut -c1-100 || echo "")
+       local GREP_ERROR_RESULT
+       GREP_ERROR_RESULT=$(grep -iE "error|timeout|too busy" "${EXPANDED_OUTPUT_FILE}" 2> /dev/null || echo "")
+       local HEAD_ERROR_RESULT
+       HEAD_ERROR_RESULT=$(echo "${GREP_ERROR_RESULT}" | head -1 || echo "")
+       local SED_RESULT
+       # shellcheck disable=SC2001
+       # Using sed for regex pattern matching is necessary here
+       SED_RESULT=$(echo "${HEAD_ERROR_RESULT}" | sed 's/<[^>]*>//g' || echo "")
+       local TR_RESULT
+       TR_RESULT=$(echo "${SED_RESULT}" | tr -d '\n' || echo "")
+       local CUT_RESULT
+       CUT_RESULT=$(echo "${TR_RESULT}" | cut -c1-100 || echo "")
+       if [[ -n "${CUT_RESULT}" ]]; then
+        ERROR_MSG="${CUT_RESULT}"
        fi
        if [[ -n "${ERROR_MSG}" ]]; then
         __logw "Error message: ${ERROR_MSG}"
@@ -207,9 +241,13 @@ function __retry_file_operation() {
       local FILE_SIZE
       # shellcheck disable=SC2012
       # Using ls for human-readable file size is acceptable here
-      FILE_SIZE=$(ls -lh "${EXPANDED_OUTPUT_FILE}" 2> /dev/null | awk '{print $5}' || echo "unknown")
+      local LS_RESULT
+      LS_RESULT=$(ls -lh "${EXPANDED_OUTPUT_FILE}" 2> /dev/null || echo "")
+      FILE_SIZE=$(echo "${LS_RESULT}" | awk '{print $5}' || echo "unknown")
       __logd "File operation succeeded on attempt $((RETRY_COUNT + 1)) (file verified: ${EXPANDED_OUTPUT_FILE}, size: ${FILE_SIZE})"
       if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+       # shellcheck disable=SC2310
+       # Intentional: release failures should not stop execution
        __release_download_slot > /dev/null 2>&1 || true
       fi
       trap - EXIT INT TERM
@@ -232,7 +270,9 @@ function __retry_file_operation() {
     __logw "Overpass API call failed on attempt $((RETRY_COUNT + 1))"
     if [[ -f "${OUTPUT_OVERPASS:-}" ]]; then
      local ERROR_LINE
-     ERROR_LINE=$(grep -i "error" "${OUTPUT_OVERPASS}" | head -1 || echo "")
+     local GREP_ERROR_RESULT
+     GREP_ERROR_RESULT=$(grep -i "error" "${OUTPUT_OVERPASS}" || echo "")
+     ERROR_LINE=$(echo "${GREP_ERROR_RESULT}" | head -1 || echo "")
      if [[ -n "${ERROR_LINE}" ]]; then
       __logw "Overpass error detected: ${ERROR_LINE}"
      fi
@@ -262,6 +302,8 @@ function __retry_file_operation() {
 
  __loge "File operation failed after ${MAX_RETRIES_LOCAL} attempts"
  if [[ "${SMART_WAIT}" == "true" ]] && [[ -n "${EFFECTIVE_OVERPASS_FOR_WAIT}" ]]; then
+  # shellcheck disable=SC2310
+  # Intentional: release failures should not stop execution
   __release_download_slot > /dev/null 2>&1 || true
  fi
  trap - EXIT INT TERM
@@ -291,7 +333,11 @@ function __check_overpass_status() {
   return 0
  fi
 
- AVAILABLE_SLOTS=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' | head -1 | grep -o '[0-9]*' || echo "0")
+ local SLOTS_LINE
+ local GREP_SLOTS_RESULT
+ GREP_SLOTS_RESULT=$(echo "${STATUS_OUTPUT}" | grep -o '[0-9]* slots available now' || echo "")
+ SLOTS_LINE=$(echo "${GREP_SLOTS_RESULT}" | head -1 || echo "")
+ AVAILABLE_SLOTS=$(echo "${SLOTS_LINE}" | grep -o '[0-9]*' || echo "0")
 
  if [[ -n "${AVAILABLE_SLOTS}" ]] && [[ "${AVAILABLE_SLOTS}" -gt 0 ]]; then
   __logd "Overpass API has ${AVAILABLE_SLOTS} slot(s) available now"
@@ -301,10 +347,14 @@ function __check_overpass_status() {
  fi
 
  local ALL_WAIT_TIMES
- ALL_WAIT_TIMES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' | grep -o '[0-9]*' || echo "")
+ local WAIT_LINES
+ WAIT_LINES=$(echo "${STATUS_OUTPUT}" | grep -o 'in [0-9]* seconds' || echo "")
+ ALL_WAIT_TIMES=$(echo "${WAIT_LINES}" | grep -o '[0-9]*' || echo "")
 
  if [[ -n "${ALL_WAIT_TIMES}" ]]; then
-  WAIT_TIME=$(echo "${ALL_WAIT_TIMES}" | sort -n | head -1)
+  local SORTED_TIMES
+  SORTED_TIMES=$(echo "${ALL_WAIT_TIMES}" | sort -n || echo "")
+  WAIT_TIME=$(echo "${SORTED_TIMES}" | head -1 || echo "0")
   if [[ -n "${WAIT_TIME}" ]] && [[ ${WAIT_TIME} -gt 0 ]]; then
    __logd "Overpass API busy, next slot available in ${WAIT_TIME} seconds (from ${RATE_LIMIT:-4} slots)"
    __log_finish
@@ -622,8 +672,11 @@ function __countXmlNotesAPI() {
 
  # Count notes using grep (fast and reliable)
  # Clean output immediately to avoid newline issues
- TOTAL_NOTES=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null | tr -d '[:space:]' || echo "0")
+ local GREP_OUTPUT
+ GREP_OUTPUT=$(grep -c '<note ' "${XML_FILE}" 2> /dev/null)
  local GREP_STATUS=$?
+ TOTAL_NOTES=$(echo "${GREP_OUTPUT}" | tr -d '[:space:]' || echo "0")
+ TOTAL_NOTES="${TOTAL_NOTES:-0}"
 
  # grep returns 0 when matches found or no matches (which is valid)
  # grep returns 1 when no matches found in some versions (also valid)
@@ -636,7 +689,8 @@ function __countXmlNotesAPI() {
  fi
 
  # Remove any remaining whitespace and ensure it's a single integer
- TOTAL_NOTES=$(printf '%s' "${TOTAL_NOTES}" | tr -d '[:space:]' | head -1 || echo "0")
+ TOTAL_NOTES=$(printf '%s' "${TOTAL_NOTES}" | tr -d '[:space:]' | head -1 || true)
+ TOTAL_NOTES="${TOTAL_NOTES:-0}"
 
  # Ensure it's numeric, default to 0 if not
  if [[ -z "${TOTAL_NOTES}" ]] || [[ ! "${TOTAL_NOTES}" =~ ^[0-9]+$ ]]; then
@@ -761,7 +815,8 @@ function __processApiXmlPart() {
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
  # Extract number from api_part_N or planet_part_N format
- PART_NUM=$(echo "${BASENAME_PART}" | sed 's/.*_part_//' | sed 's/^0*//')
+ PART_NUM=$(echo "${BASENAME_PART}" | sed 's/.*_part_//' | sed 's/^0*//' || true)
+ PART_NUM="${PART_NUM:-}"
 
  # Handle case where part number is just "0"
  if [[ -z "${PART_NUM}" ]]; then
@@ -839,14 +894,22 @@ function __processApiXmlPart() {
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files for part ${PART_NUM}:"
+ # shellcheck disable=SC2310
+ # Intentional: logging failures should not stop execution
  __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)" || true
+ # shellcheck disable=SC2310
+ # Intentional: logging failures should not stop execution
  __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)" || true
+ # shellcheck disable=SC2310
+ # Intentional: logging failures should not stop execution
  __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)" || true
 
  # Validate CSV files structure and content before loading
  __logd "Validating CSV files structure and enum compatibility..."
 
  # Validate structure first
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __validate_csv_structure "${OUTPUT_NOTES_PART}" "notes"; then
   __loge "ERROR: Notes CSV structure validation failed for part ${PART_NUM}"
   __log_finish
@@ -854,6 +917,8 @@ function __processApiXmlPart() {
  fi
 
  # Then validate enum values
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_NOTES_PART}" "notes"; then
   __loge "ERROR: Notes CSV enum validation failed for part ${PART_NUM}"
   __log_finish
@@ -861,6 +926,8 @@ function __processApiXmlPart() {
  fi
 
  # Validate comments structure
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __validate_csv_structure "${OUTPUT_COMMENTS_PART}" "comments"; then
   __loge "ERROR: Comments CSV structure validation failed for part ${PART_NUM}"
   __log_finish
@@ -868,6 +935,8 @@ function __processApiXmlPart() {
  fi
 
  # Validate comments enum
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __validate_csv_for_enum_compatibility "${OUTPUT_COMMENTS_PART}" "comments"; then
   __loge "ERROR: Comments CSV enum validation failed for part ${PART_NUM}"
   __log_finish
@@ -875,6 +944,8 @@ function __processApiXmlPart() {
  fi
 
  # Validate text structure (most prone to quote/escape issues)
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly
  if ! __validate_csv_structure "${OUTPUT_TEXT_PART}" "text"; then
   __loge "ERROR: Text CSV structure validation failed for part ${PART_NUM}"
   __log_finish
@@ -928,7 +999,8 @@ function __processPlanetXmlPart() {
 
  BASENAME_PART=$(basename "${XML_PART}" .xml)
  # Extract number from planet_part_N or api_part_N format
- PART_NUM=$(echo "${BASENAME_PART}" | sed 's/.*_part_//' | sed 's/^0*//')
+ PART_NUM=$(echo "${BASENAME_PART}" | sed 's/.*_part_//' | sed 's/^0*//' || true)
+ PART_NUM="${PART_NUM:-}"
 
  # Handle case where part number is just "0"
  if [[ -z "${PART_NUM}" ]]; then
@@ -1006,9 +1078,15 @@ function __processPlanetXmlPart() {
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files for part ${PART_NUM}:"
- __logd "  Notes: ${OUTPUT_NOTES_PART} ($(wc -l < "${OUTPUT_NOTES_PART}" || echo 0) lines)"
- __logd "  Comments: ${OUTPUT_COMMENTS_PART} ($(wc -l < "${OUTPUT_COMMENTS_PART}" || echo 0) lines)"
- __logd "  Text: ${OUTPUT_TEXT_PART} ($(wc -l < "${OUTPUT_TEXT_PART}" || echo 0) lines)"
+ local NOTES_LINES
+ NOTES_LINES=$(wc -l < "${OUTPUT_NOTES_PART}" 2> /dev/null || echo "0")
+ __logd "  Notes: ${OUTPUT_NOTES_PART} (${NOTES_LINES} lines)"
+ local COMMENTS_LINES
+ COMMENTS_LINES=$(wc -l < "${OUTPUT_COMMENTS_PART}" 2> /dev/null || echo "0")
+ __logd "  Comments: ${OUTPUT_COMMENTS_PART} (${COMMENTS_LINES} lines)"
+ local TEXT_LINES
+ TEXT_LINES=$(wc -l < "${OUTPUT_TEXT_PART}" 2> /dev/null || echo "0")
+ __logd "  Text: ${OUTPUT_TEXT_PART} (${TEXT_LINES} lines)"
 
  # Load into database with partition ID and MAX_THREADS
  __logi "=== LOADING PART ${PART_NUM} INTO DATABASE ==="
@@ -1091,6 +1169,8 @@ function __processPlanetXmlPart() {
 
  # Execute PostgreSQL commands
  __logd "Setting PostgreSQL session variables..."
+ # shellcheck disable=SC2312
+ # Intentional: psql output is piped to while loop, return value is checked
  if ! PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "SET app.part_id = '${PART_NUM}'; SET app.max_threads = '${MAX_THREADS}';" 2>&1 | while IFS= read -r line; do
   __logd "psql SET: ${line}"
@@ -1486,6 +1566,8 @@ function __checkPrereqsCommands {
   export PGUSER="${DB_USER}"
  fi
 
+ # shellcheck disable=SC2312
+ # Intentional: pipeline return value is checked by if statement
  if ! psql -lqt 2> /dev/null | cut -d \| -f 1 | grep -qw "${DBNAME}"; then
   __loge "ERROR: Database '${DBNAME}' does not exist."
   __loge "To create the database, run the following commands:"
@@ -1601,6 +1683,8 @@ EOF
   exit "${ERROR_MISSING_LIBRARY}"
  fi
  # Verify mutt has SMTP support compiled in
+ # shellcheck disable=SC2312
+ # Intentional: pipeline return value is checked by if statement
  if ! mutt -v 2>&1 | grep -qi "USE_SMTP\|+USE_SMTP"; then
   __logw "WARNING: mutt may not have SMTP support compiled in."
   __logw "Email alerts to external addresses may not work."
@@ -1645,6 +1729,8 @@ EOF
  # Resolve note location backup file (download from GitHub if not found locally)
  # Note: __resolve_note_location_backup is defined earlier in this file
  if declare -f __resolve_note_location_backup > /dev/null 2>&1; then
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly with if statement
   if ! __resolve_note_location_backup; then
    __logw "Warning: Failed to resolve note location backup file. Will continue without backup."
   fi
@@ -1777,6 +1863,8 @@ EOF
  # Extract version from XML response
  # The /api/versions endpoint returns: <api><version>0.6</version></api>
  local DETECTED_VERSION
+ # shellcheck disable=SC2312
+ # Intentional: grep may not find matches, default to empty string
  DETECTED_VERSION=$(grep -oP '<version>\K[0-9.]+' "${TEMP_API_RESPONSE}" | head -n 1 || echo "")
  rm -f "${TEMP_API_RESPONSE}"
 
@@ -1917,6 +2005,8 @@ function __checkBaseTables {
   # Now verify get_country function exists (non-critical - will be created if missing)
   __logd "All base tables verified successfully"
   local FUNCTION_EXISTS
+  # shellcheck disable=SC2312
+  # Intentional: pipeline may fail, default to "0"
   FUNCTION_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_proc WHERE proname = 'get_country' AND pronamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public');" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
   if [[ "${FUNCTION_EXISTS}" -eq "0" ]]; then
    __logw "get_country function is missing but tables exist - will be created automatically"
@@ -2050,7 +2140,9 @@ function __check_disk_space {
 
  # Get available space in MB (df -BM outputs in MB)
  local AVAILABLE_MB
- AVAILABLE_MB=$(df -BM "${DIRECTORY}" | awk 'NR==2 {print $4}' | sed 's/M//')
+ # shellcheck disable=SC2312
+ # Intentional: pipeline may fail, will be validated below
+ AVAILABLE_MB=$(df -BM "${DIRECTORY}" | awk 'NR==2 {print $4}' | sed 's/M//' || echo "")
 
  # Validate we got a valid number
  if [[ ! "${AVAILABLE_MB}" =~ ^[0-9]+$ ]]; then
@@ -2063,7 +2155,9 @@ function __check_disk_space {
  # Handle decimal values by using bc or awk
  local REQUIRED_MB
  if command -v bc > /dev/null 2>&1; then
-  REQUIRED_MB=$(echo "${REQUIRED_GB} * 1024" | bc | cut -d. -f1)
+  # shellcheck disable=SC2312
+  # Intentional: bc calculation may fail, will be handled by fallback
+  REQUIRED_MB=$(echo "${REQUIRED_GB} * 1024" | bc | cut -d. -f1 || echo "0")
  else
   # Fallback to awk if bc not available
   REQUIRED_MB=$(awk "BEGIN {printf \"%.0f\", ${REQUIRED_GB} * 1024}")
@@ -2087,6 +2181,8 @@ function __check_disk_space {
   __loge "ERROR: Insufficient disk space for ${OPERATION_NAME}"
   __loge "  Required: ${REQUIRED_GB} GB"
   __loge "  Available: ${AVAILABLE_GB} GB"
+  # shellcheck disable=SC2312
+  # Intentional: bc calculation may fail, default to "unknown"
   __loge "  Shortfall: $(echo "scale=2; ${REQUIRED_GB} - ${AVAILABLE_GB}" | bc 2> /dev/null || echo "unknown") GB"
   __loge "Please free up disk space in ${DIRECTORY} before proceeding"
   __log_finish
@@ -2102,6 +2198,8 @@ function __check_disk_space {
  fi
 
  # Warn if we'll use more than 80% of available space
+ # shellcheck disable=SC2312
+ # Intentional: bc calculation may fail, default to 0
  if (($(echo "${USAGE_PERCENT} > 80" | bc -l 2> /dev/null || echo 0))); then
   __logw "WARNING: Operation will use ${USAGE_PERCENT}% of available disk space"
   __logw "Consider freeing up more space for safety margin"
@@ -2125,6 +2223,8 @@ function __downloadPlanetNotes {
  # - Safety margin (20%): ~3.4 GB
  # Total estimated: ~20 GB
  __logi "Validating disk space for Planet notes download..."
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly with if statement
  if ! __check_disk_space "${TMP_DIR}" "20" "Planet notes download and processing"; then
   __loge "Cannot proceed with Planet download due to insufficient disk space"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Insufficient disk space for Planet download" \
@@ -2148,6 +2248,8 @@ function __downloadPlanetNotes {
  local DOWNLOAD_OPERATION="aria2c -d ${TMP_DIR} -o ${PLANET_NOTES_NAME}.bz2 -x 8 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2"
  local DOWNLOAD_CLEANUP="rm -f ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2 2>/dev/null || true"
 
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly with if statement
  if ! __retry_file_operation "${DOWNLOAD_OPERATION}" 3 10 "${DOWNLOAD_CLEANUP}"; then
   __loge "Failed to download Planet notes after retries"
   # shellcheck disable=SC2154
@@ -2164,12 +2266,17 @@ function __downloadPlanetNotes {
   __logi "DEBUG: File exists, moving to: ${PLANET_NOTES_FILE}.bz2"
   mv "${TMP_DIR}/${PLANET_NOTES_NAME}.bz2" "${PLANET_NOTES_FILE}.bz2"
   __logi "Moved downloaded file to expected location: ${PLANET_NOTES_FILE}.bz2"
-  __logi "DEBUG: Verifying moved file exists: $([[ -f "${PLANET_NOTES_FILE}.bz2" ]] && echo "yes" || echo "no")"
+  local FILE_EXISTS_CHECK
+  # shellcheck disable=SC2312
+  # Intentional: test may fail, default to "no"
+  FILE_EXISTS_CHECK=$([[ -f "${PLANET_NOTES_FILE}.bz2" ]] && echo "yes" || echo "no")
+  __logi "DEBUG: Verifying moved file exists: ${FILE_EXISTS_CHECK}"
  else
   __loge "ERROR: Downloaded file not found at expected location: ${TMP_DIR}/${PLANET_NOTES_NAME}.bz2"
   __loge "DEBUG: Listing files in TMP_DIR:"
-  # shellcheck disable=SC2012
-  # Using ls for human-readable directory listing is acceptable here
+  # shellcheck disable=SC2012,SC2312
+  # SC2012: Using ls for human-readable directory listing is acceptable here
+  # SC2312: Intentional: ls may fail if no files found, handled by || clause
   ls -lh "${TMP_DIR}"/*.bz2 2> /dev/null | while IFS= read -r line; do
    __loge "  ${line}"
   done || __loge "  (no .bz2 files found)"
@@ -2182,6 +2289,8 @@ function __downloadPlanetNotes {
  local MD5_OPERATION="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${PLANET_NOTES_FILE}.bz2.md5 ${PLANET}/notes/${PLANET_NOTES_NAME}.bz2.md5"
  local MD5_CLEANUP="rm -f ${PLANET_NOTES_FILE}.bz2.md5 2>/dev/null || true"
 
+ # shellcheck disable=SC2310
+ # Intentional: check return value explicitly with if statement
  if ! __retry_file_operation "${MD5_OPERATION}" 3 5 "${MD5_CLEANUP}"; then
   __loge "Failed to download MD5 file after retries"
   __handle_error_with_cleanup "${ERROR_DOWNLOADING_NOTES}" "MD5 download failed" \
@@ -2221,8 +2330,14 @@ function __downloadPlanetNotes {
 
  # Log file details for debugging
  __logi "BZIP2 file exists: ${BZIP2_FILE}"
- __logi "BZIP2 file size: $(stat -c%s "${BZIP2_FILE}" 2> /dev/null || echo "unknown") bytes"
- __logi "BZIP2 file type: $(file "${BZIP2_FILE}" 2> /dev/null || echo "unknown")"
+ local FILE_SIZE
+ local FILE_TYPE
+ # shellcheck disable=SC2312
+ # Intentional: stat/file may fail, default to "unknown"
+ FILE_SIZE=$(stat -c%s "${BZIP2_FILE}" 2> /dev/null || echo "unknown")
+ FILE_TYPE=$(file "${BZIP2_FILE}" 2> /dev/null || echo "unknown")
+ __logi "BZIP2 file size: ${FILE_SIZE} bytes"
+ __logi "BZIP2 file type: ${FILE_TYPE}"
 
  # Execute bzip2 extraction
  # Use set +e to prevent script exit on bzip2 errors
@@ -2244,7 +2359,11 @@ function __downloadPlanetNotes {
  # bzip2 may return non-zero if file was already extracted, but that's OK
  if [[ ! -f "${PLANET_NOTES_FILE}" ]]; then
   __loge "ERROR: Extracted file not found: ${PLANET_NOTES_FILE}"
-  __loge "BZIP2 file still exists: $([[ -f "${BZIP2_FILE}" ]] && echo "yes" || echo "no")"
+  local BZIP2_EXISTS_CHECK
+  # shellcheck disable=SC2312
+  # Intentional: test may fail, default to "no"
+  BZIP2_EXISTS_CHECK=$([[ -f "${BZIP2_FILE}" ]] && echo "yes" || echo "no")
+  __loge "BZIP2 file still exists: ${BZIP2_EXISTS_CHECK}"
   __loge "BZIP2 exit code was: ${BZIP2_EXIT_CODE}"
   if [[ -n "${BZIP2_OUTPUT}" ]]; then
    __loge "BZIP2 error output: ${BZIP2_OUTPUT}"
@@ -2444,9 +2563,13 @@ function __overpass_download_with_endpoints() {
   __logd "Using User-Agent for Overpass: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}"
   OP="curl -s -H \"User-Agent: ${DOWNLOAD_USER_AGENT:-OSM-Notes-Ingestion/1.0}\" -o ${LOCAL_JSON_FILE} --data-binary @${LOCAL_QUERY_FILE} ${ACTIVE_OVERPASS} 2> ${LOCAL_OUTPUT_FILE}"
   local CL="rm -f ${LOCAL_JSON_FILE} ${LOCAL_OUTPUT_FILE} 2>/dev/null || true"
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly with if statement
   if __retry_file_operation "${OP}" "${LOCAL_MAX_RETRIES}" "${LOCAL_BASE_DELAY}" "${CL}" "true" "${ACTIVE_OVERPASS}"; then
    __logd "Download succeeded from endpoint=${ENDPOINT}"
    # Validate JSON has elements key
+   # shellcheck disable=SC2310
+   # Intentional: check return value explicitly with if statement
    if __validate_json_with_element "${LOCAL_JSON_FILE}" "elements"; then
     __logd "JSON validation succeeded from endpoint=${ENDPOINT}"
     __log_finish
@@ -2494,6 +2617,8 @@ function __processList {
    out;
 EOF
 
+  # shellcheck disable=SC2310
+  # Intentional: check return value explicitly with if statement
   if __processBoundary "${QUERY_FILE_LOCAL}"; then
    PROCESSED_COUNT=$((PROCESSED_COUNT + 1))
    __logd "Successfully processed boundary ${ID}"
@@ -2735,7 +2860,9 @@ function __validate_csv_structure {
    # Check for potential unescaped double quotes (simplified check)
    # Count quotes: should be even (each field starts and ends with quote)
    local QUOTE_COUNT
-   QUOTE_COUNT=$(echo "${line}" | tr -cd '"' | wc -c)
+   # shellcheck disable=SC2312
+   # Intentional: tr/wc may fail, default to 0
+   QUOTE_COUNT=$(echo "${line}" | tr -cd '"' | wc -c || echo "0")
    if [[ $((QUOTE_COUNT % 2)) -ne 0 ]]; then
     __logd "WARNING: Line ${LINE_NUMBER} has odd number of quotes (${QUOTE_COUNT})"
     ((UNESCAPED_QUOTES++))
@@ -2817,7 +2944,9 @@ function __validate_csv_for_enum_compatibility {
 
    # Extract event value (3rd field)
    local EVENT
-   EVENT=$(echo "${line}" | cut -d',' -f3 | tr -d '"' 2> /dev/null)
+   # shellcheck disable=SC2312
+   # Intentional: cut/tr may fail, default to empty string
+   EVENT=$(echo "${line}" | cut -d',' -f3 | tr -d '"' 2> /dev/null || echo "")
 
    # Check if event is empty or invalid
    if [[ -z "${EVENT}" ]]; then
@@ -2853,7 +2982,9 @@ function __validate_csv_for_enum_compatibility {
 
    # Extract status value (5th field)
    local STATUS
-   STATUS=$(echo "${line}" | cut -d',' -f5 | tr -d '"' 2> /dev/null)
+   # shellcheck disable=SC2312
+   # Intentional: cut/tr may fail, default to empty string
+   STATUS=$(echo "${line}" | cut -d',' -f5 | tr -d '"' 2> /dev/null || echo "")
 
    # Check if status is empty or invalid (status can be empty for open notes)
    if [[ -n "${STATUS}" ]] && [[ ! "${STATUS}" =~ ^(open|close|hidden)$ ]]; then

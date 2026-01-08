@@ -212,11 +212,13 @@ __check_threshold() {
 __check_db_activity() {
  local SCRIPT_NAME="$1"
  # Check if there's any activity for this application name
- # shellcheck disable=SC2097,SC2098,SC2154
+ # shellcheck disable=SC2154
  # PGAPPNAME and DBNAME are set in the environment before calling this function
  local ACTIVITY_COUNT
- ACTIVITY_COUNT=$(PGAPPNAME="${PGAPPNAME:-}" psql -d "${DBNAME}" -tAc \
-  "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME:-}' AND state = 'active';" \
+ # Export PGAPPNAME to make it available in the subshell
+ export PGAPPNAME="${PGAPPNAME:-}"
+ ACTIVITY_COUNT=$(psql -d "${DBNAME}" -tAc \
+  "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME}' AND state = 'active';" \
   2> /dev/null || echo "0")
  echo "${ACTIVITY_COUNT}"
 }
@@ -497,7 +499,9 @@ __main() {
  local FIND_RESULT
  FIND_RESULT=$(find "${ANALYSIS_DIR}" -name "analyze_*.sql" -type f 2> /dev/null || echo "")
  if [[ -n "${FIND_RESULT}" ]]; then
-  mapfile -t ANALYSIS_SCRIPTS < <(echo "${FIND_RESULT}" | sort)
+  local SORTED_RESULT
+  SORTED_RESULT=$(echo "${FIND_RESULT}" | sort || echo "")
+  mapfile -t ANALYSIS_SCRIPTS < <(echo "${SORTED_RESULT}")
  else
   ANALYSIS_SCRIPTS=()
  fi
