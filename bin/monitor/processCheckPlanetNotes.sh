@@ -179,6 +179,8 @@ function __checkPrereqs {
  # Validate each SQL file
  set +e
  for SQL_FILE in "${SQL_FILES[@]}"; do
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_sql_structure "${SQL_FILE}"; then
    __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    exit "${ERROR_MISSING_LIBRARY}"
@@ -242,9 +244,15 @@ function __generateCheckCsvFiles {
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files:"
- __logd "  Notes: ${OUTPUT_NOTES_FILE} ($(wc -l < "${OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
- __logd "  Comments: ${OUTPUT_NOTE_COMMENTS_FILE} ($(wc -l < "${OUTPUT_NOTE_COMMENTS_FILE}" || echo 0) lines)" || true
- __logd "  Text: ${OUTPUT_TEXT_COMMENTS_FILE} ($(wc -l < "${OUTPUT_TEXT_COMMENTS_FILE}" || echo 0) lines)" || true
+ local NOTES_LINES
+ NOTES_LINES=$(wc -l < "${OUTPUT_NOTES_FILE}" 2> /dev/null || echo 0)
+ __logd "  Notes: ${OUTPUT_NOTES_FILE} (${NOTES_LINES} lines)" || true
+ local COMMENTS_LINES
+ COMMENTS_LINES=$(wc -l < "${OUTPUT_NOTE_COMMENTS_FILE}" 2> /dev/null || echo 0)
+ __logd "  Comments: ${OUTPUT_NOTE_COMMENTS_FILE} (${COMMENTS_LINES} lines)" || true
+ local TEXT_LINES
+ TEXT_LINES=$(wc -l < "${OUTPUT_TEXT_COMMENTS_FILE}" 2> /dev/null || echo 0)
+ __logd "  Text: ${OUTPUT_TEXT_COMMENTS_FILE} (${TEXT_LINES} lines)" || true
 
  __log_finish
 }
@@ -345,7 +353,7 @@ function __loadCheckNotes {
   __loge "ERROR: Variables were not replaced by envsubst. Check variable export."
   __loge "First 20 lines of generated SQL:"
   head -n 20 "${TEMP_SQL_FILE}.tmp" | while IFS= read -r line; do
-   __loge "  ${line}"
+   __loge "  ${line}" || true
   done || true
   rm -f "${TEMP_SQL_FILE}.tmp" "${TEMP_SQL_FILE}"
   __log_finish
@@ -506,10 +514,12 @@ function main() {
  ONLY_EXECUTION="yes"
 
  # Write lock file content with useful debugging information
+ local START_DATE
+ START_DATE=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
  cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${START_DATE}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}

@@ -1685,6 +1685,8 @@ EOF
 
  # XML Schema file (only required if validation is enabled)
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  # shellcheck disable=SC2154
+  # XMLSCHEMA_PLANET_NOTES is set by the calling script or environment
   if [[ ! -r "${XMLSCHEMA_PLANET_NOTES}" ]]; then
    __loge "ERROR: XML schema file is missing at ${XMLSCHEMA_PLANET_NOTES}."
    __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"

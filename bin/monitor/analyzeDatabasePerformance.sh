@@ -173,15 +173,23 @@ __check_seq_scan() {
 }
 
 # Function to extract performance thresholds from script comments
+# shellcheck disable=SC2317
+# Function is called indirectly from main execution flow
 __extract_thresholds() {
  local SCRIPT_FILE="$1"
  # Extract thresholds from comments like "Expected: < 100ms"
- grep -iE "(Expected|threshold|umbral):" "${SCRIPT_FILE}" \
-  | sed -E 's/.*[<]?[[:space:]]*([0-9.]+)[[:space:]]*ms.*/\1/' \
-  | head -1 || echo ""
+ local THRESHOLD_LINE
+ THRESHOLD_LINE=$(grep -iE "(Expected|threshold|umbral):" "${SCRIPT_FILE}" 2> /dev/null || echo "")
+ if [[ -n "${THRESHOLD_LINE}" ]]; then
+  echo "${THRESHOLD_LINE}" | sed -E 's/.*[<]?[[:space:]]*([0-9.]+)[[:space:]]*ms.*/\1/' | head -1 || echo ""
+ else
+  echo ""
+ fi
 }
 
 # Function to check if performance threshold is met
+# shellcheck disable=SC2317
+# Function is called indirectly from main execution flow
 __check_threshold() {
  local ACTUAL_TIME="$1"
  local THRESHOLD="$2"
@@ -199,14 +207,18 @@ __check_threshold() {
 }
 
 # Function to check database activity for this script
+# shellcheck disable=SC2317
+# Function is called indirectly from main execution flow
 __check_db_activity() {
  local SCRIPT_NAME="$1"
  # Check if there's any activity for this application name
- # shellcheck disable=SC2097,SC2098
- # PGAPPNAME is set in the environment before calling this function
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -tAc \
-  "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME}' AND state = 'active';" \
-  2> /dev/null || echo "0"
+ # shellcheck disable=SC2097,SC2098,SC2154
+ # PGAPPNAME and DBNAME are set in the environment before calling this function
+ local ACTIVITY_COUNT
+ ACTIVITY_COUNT=$(PGAPPNAME="${PGAPPNAME:-}" psql -d "${DBNAME}" -tAc \
+  "SELECT COUNT(*) FROM pg_stat_activity WHERE application_name = '${PGAPPNAME:-}' AND state = 'active';" \
+  2> /dev/null || echo "0")
+ echo "${ACTIVITY_COUNT}"
 }
 
 # Function to run a single analysis script
@@ -226,7 +238,9 @@ __run_analysis_script() {
  local START_TIME
  START_TIME=$(date +%s)
  local DURATION=0
- __logd "Started at: $(date '+%Y-%m-%d %H:%M:%S')"
+ local START_TIME_STR
+ START_TIME_STR=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+ __logd "Started at: ${START_TIME_STR}"
 
  # Run the script with timeout (30 minutes max per script)
  # Use PGAPPNAME to identify this connection in pg_stat_activity
@@ -248,17 +262,23 @@ __run_analysis_script() {
   local END_TIME
   END_TIME=$(date +%s)
   DURATION=$((END_TIME - START_TIME))
-  __logd "Completed in ${DURATION} seconds ($(date '+%Y-%m-%d %H:%M:%S'))"
+  local END_TIME_STR
+  END_TIME_STR=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+  __logd "Completed in ${DURATION} seconds (${END_TIME_STR})"
   # Parse results
   local TIMING
   TIMING=$(__parse_timing "${OUTPUT_FILE}")
   local HAS_INDEX_SCAN=false
   local HAS_SEQ_SCAN=false
 
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if __check_index_scan "${OUTPUT_FILE}"; then
    HAS_INDEX_SCAN=true
   fi
 
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if __check_seq_scan "${OUTPUT_FILE}"; then
    HAS_SEQ_SCAN=true
   fi
@@ -474,7 +494,13 @@ __main() {
  fi
 
  local ANALYSIS_SCRIPTS
- mapfile -t ANALYSIS_SCRIPTS < <(find "${ANALYSIS_DIR}" -name "analyze_*.sql" -type f | sort)
+ local FIND_RESULT
+ FIND_RESULT=$(find "${ANALYSIS_DIR}" -name "analyze_*.sql" -type f 2> /dev/null || echo "")
+ if [[ -n "${FIND_RESULT}" ]]; then
+  mapfile -t ANALYSIS_SCRIPTS < <(echo "${FIND_RESULT}" | sort)
+ else
+  ANALYSIS_SCRIPTS=()
+ fi
 
  if [[ ${#ANALYSIS_SCRIPTS[@]} -eq 0 ]]; then
   __loge "No analysis scripts found in ${ANALYSIS_DIR}"

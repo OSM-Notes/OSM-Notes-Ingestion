@@ -626,10 +626,12 @@ function main() {
  exec 7> "${LOCK}"
 
  # Write lock file content with useful debugging information
+ local START_DATE
+ START_DATE=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
  cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${START_DATE}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}

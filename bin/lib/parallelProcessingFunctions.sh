@@ -133,7 +133,9 @@ function __check_system_resources() {
  if command -v uptime > /dev/null 2>&1; then
   CURRENT_LOAD=$(uptime | awk -F'load average:' '{print $2}' | awk '{print $1}' | sed 's/,//' || true)
   if [[ -n "${CURRENT_LOAD}" ]] && [[ "${CURRENT_LOAD}" != "0.00" ]]; then
-   if [[ $(echo "${CURRENT_LOAD} > ${LOAD_THRESHOLD}" | bc -l 2> /dev/null || echo "0") == "1" ]]; then
+   local LOAD_COMPARE
+   LOAD_COMPARE=$(echo "${CURRENT_LOAD} > ${LOAD_THRESHOLD}" | bc -l 2> /dev/null || echo "0")
+   if [[ "${LOAD_COMPARE}" == "1" ]]; then
     __logw "WARNING: High system load (${CURRENT_LOAD} > ${LOAD_THRESHOLD}), waiting for resources..."
     __log_finish
     return 1
@@ -171,6 +173,8 @@ function __wait_for_resources() {
  __logd "Waiting for system resources to become available (max: ${MAX_WAIT_TIME}s)..."
 
  while [[ ${WAIT_TIME} -lt ${MAX_WAIT_TIME} ]]; do
+  # shellcheck disable=SC2119
+  # __check_system_resources is called without arguments intentionally (uses default values)
   if __check_system_resources; then
    __logd "Resources available after ${WAIT_TIME}s"
    __log_finish
@@ -615,7 +619,7 @@ __divide_xml_file() {
   local NOTE_POSITIONS_FILE="${OUTPUT_DIR}/note_positions.txt"
 
   # Find all note start positions using grep and save to file
-  grep -n "<note" "${INPUT_XML}" | cut -d: -f1 > "${NOTE_POSITIONS_FILE}"
+  grep -n "<note" "${INPUT_XML}" 2> /dev/null | cut -d: -f1 > "${NOTE_POSITIONS_FILE}" || true
 
   # Calculate optimal split points
   local NOTES_PER_PART_OPTIMIZED
@@ -688,7 +692,11 @@ __divide_xml_file() {
 
   # Find the start of the first note (skip header)
   local HEADER_SIZE=0
-  HEADER_SIZE=$(grep -n "<note" "${INPUT_XML}" | head -1 | cut -d: -f1)
+  local FIRST_NOTE_LINE
+  FIRST_NOTE_LINE=$(grep -n "<note" "${INPUT_XML}" 2> /dev/null | head -1 || echo "")
+  if [[ -n "${FIRST_NOTE_LINE}" ]]; then
+   HEADER_SIZE=$(echo "${FIRST_NOTE_LINE}" | cut -d: -f1 2> /dev/null || echo "0")
+  fi
   if [[ -z "${HEADER_SIZE}" ]] || [[ "${HEADER_SIZE}" -eq "0" ]]; then
    HEADER_SIZE=0
   fi
@@ -884,7 +892,7 @@ __divide_xml_file() {
 
  # Count actual parts created and show statistics
  local ACTUAL_PARTS
- ACTUAL_PARTS=$(find "${OUTPUT_DIR}" -name "${PART_PREFIX}_*.xml" | wc -l)
+ ACTUAL_PARTS=$(find "${OUTPUT_DIR}" -name "${PART_PREFIX}_*.xml" -type f 2> /dev/null | wc -l 2> /dev/null || echo "0")
 
  if [[ ${ACTUAL_PARTS} -eq 0 ]]; then
   __loge "ERROR: Failed to create XML parts"
@@ -922,6 +930,8 @@ __divide_xml_file() {
  local MAX_SIZE=0
  local AVG_SIZE=0
 
+ # shellcheck disable=SC2231
+ # Glob pattern expansion is intentional here
  for PART_FILE in "${OUTPUT_DIR}"/${PART_PREFIX}_*.xml; do
   if [[ -f "${PART_FILE}" ]]; then
    local PART_SIZE
@@ -1016,11 +1026,16 @@ function __processXmlPartsParallel() {
 
  # Auto-detect processing type if not provided
  if [[ -z "${PROCESSING_TYPE}" ]]; then
-  if find "${INPUT_DIR}" -name "planet_part_*.xml" -type f | grep -q .; then
+  local PLANET_CHECK
+  PLANET_CHECK=$(find "${INPUT_DIR}" -name "planet_part_*.xml" -type f 2> /dev/null | head -1 || echo "")
+  if [[ -n "${PLANET_CHECK}" ]]; then
    PROCESSING_TYPE="Planet"
    __logd "Auto-detected Planet format from file names"
-  elif find "${INPUT_DIR}" -name "api_part_*.xml" -type f | grep -q .; then
-   PROCESSING_TYPE="API"
+  else
+   local API_CHECK
+   API_CHECK=$(find "${INPUT_DIR}" -name "api_part_*.xml" -type f 2> /dev/null | head -1 || echo "")
+   if [[ -n "${API_CHECK}" ]]; then
+    PROCESSING_TYPE="API"
    __logd "Auto-detected API format from file names"
   else
    __loge "ERROR: Cannot auto-detect processing type. No planet_part_*.xml or api_part_*.xml files found"
@@ -1211,8 +1226,10 @@ function __consolidate_part_logs() {
 
  # Create consolidated log header
  {
+  local LOG_DATE
+  LOG_DATE=$(date 2> /dev/null || echo 'unknown')
   echo "=== CONSOLIDATED ${PROCESSING_TYPE^^} PROCESSING LOG ==="
-  echo "Generated: $(date)"
+  echo "Generated: ${LOG_DATE}"
   echo "Total parts processed: ${#PART_LOGS[@]}"
   echo "Output directory: ${OUTPUT_DIR}"
   echo "================================================"
@@ -1345,7 +1362,7 @@ function __splitXmlForParallelSafe() {
 
  # Verify parts were created
  local CREATED_PARTS
- CREATED_PARTS=$(find "${OUTPUT_DIR}" -name "${FORMAT_TYPE,,}_part_*.xml" -type f | wc -l)
+ CREATED_PARTS=$(find "${OUTPUT_DIR}" -name "${FORMAT_TYPE,,}_part_*.xml" -type f 2> /dev/null | wc -l 2> /dev/null || echo "0")
 
  if [[ "${CREATED_PARTS}" -eq 0 ]]; then
   __loge "ERROR: No parts were created"
@@ -1585,7 +1602,13 @@ function __check_memory_for_xml_processing() {
 
  # Get available system memory in MB
  local AVAILABLE_MEMORY_MB
- AVAILABLE_MEMORY_MB=$(free -m | awk 'NR==2{print $7}' 2> /dev/null || echo "1024")
+ local FREE_OUTPUT
+ FREE_OUTPUT=$(free -m 2> /dev/null || echo "")
+ if [[ -n "${FREE_OUTPUT}" ]]; then
+  AVAILABLE_MEMORY_MB=$(echo "${FREE_OUTPUT}" | awk 'NR==2{print $7}' 2> /dev/null || echo "1024")
+ else
+  AVAILABLE_MEMORY_MB="1024"
+ fi
 
  # Check if we have enough memory (need at least 2x estimated for safety)
  if [[ ${AVAILABLE_MEMORY_MB} -lt $((ESTIMATED_MEMORY_NEEDED * 2)) ]]; then
@@ -1921,6 +1944,8 @@ function __divide_xml_file_binary() {
  }
 
  # Function to create XML part from byte range (kept for compatibility)
+ # shellcheck disable=SC2317
+ # Function is called indirectly from other functions
  __create_xml_part() {
   local PART_NUM="${1}"
   local START_BYTE="${2}"
@@ -2057,7 +2082,8 @@ function __divide_xml_file_binary() {
   local PART_BASENAME
   PART_BASENAME=$(basename "${OUTPUT_FILE}" .xml)
   local PART_NUM
-  PART_NUM=$(echo "${PART_BASENAME}" | sed "s/${PART_PREFIX}_//")
+  # Use parameter expansion instead of sed when possible
+  PART_NUM="${PART_BASENAME#${PART_PREFIX}_}"
 
   if [[ -f "${OUTPUT_FILE}" ]]; then
    local PART_NOTES
@@ -2077,9 +2103,13 @@ function __divide_xml_file_binary() {
     # Show first few lines for debugging
     if [[ ${PART_SIZE_BYTES} -gt 0 ]]; then
      __logd "Debug: First 5 lines of invalid part ${PART_NUM}:"
-     head -5 "${OUTPUT_FILE}" | while IFS= read -r debug_line; do
-      __logd "  ${debug_line}"
-     done
+     local DEBUG_LINES
+     DEBUG_LINES=$(head -5 "${OUTPUT_FILE}" 2> /dev/null || echo "")
+     if [[ -n "${DEBUG_LINES}" ]]; then
+      while IFS= read -r debug_line; do
+       __logd "  ${debug_line}"
+      done <<< "${DEBUG_LINES}"
+     fi
     fi
     rm -f "${OUTPUT_FILE}"
    fi
@@ -2127,6 +2157,8 @@ function __divide_xml_file_binary() {
  local MIN_SIZE=999999999
  local MAX_SIZE=0
 
+ # shellcheck disable=SC2231
+ # Glob pattern expansion is intentional here
  for PART_FILE in "${OUTPUT_DIR}"/${PART_PREFIX}_*.xml; do
   if [[ -f "${PART_FILE}" ]]; then
    local PART_SIZE
@@ -2183,7 +2215,9 @@ function __handle_corrupted_xml_file() {
  local XML_FILENAME
  XML_FILENAME=$(basename "${XML_FILE}")
  local BACKUP_FILE
- BACKUP_FILE="${BACKUP_DIR}/${XML_FILENAME}.corrupted.$(date +%Y%m%d_%H%M%S)"
+ local BACKUP_DATE
+ BACKUP_DATE=$(date +%Y%m%d_%H%M%S 2> /dev/null || echo 'unknown')
+ BACKUP_FILE="${BACKUP_DIR}/${XML_FILENAME}.corrupted.${BACKUP_DATE}"
 
  __logd "Handling corrupted XML file: ${XML_FILE}"
 
@@ -2208,7 +2242,13 @@ function __handle_corrupted_xml_file() {
  # Check for common corruption patterns
  # Check for extra content after closing tags (common in split XML files)
  local LAST_CLOSING_TAG_LINE
- LAST_CLOSING_TAG_LINE=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" | tail -1 | cut -d: -f1)
+ local CLOSING_TAG_LINES
+ CLOSING_TAG_LINES=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null || echo "")
+ if [[ -n "${CLOSING_TAG_LINES}" ]]; then
+  LAST_CLOSING_TAG_LINE=$(echo "${CLOSING_TAG_LINES}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
+ else
+  LAST_CLOSING_TAG_LINE="0"
+ fi
  if [[ -n "${LAST_CLOSING_TAG_LINE}" ]]; then
   local TOTAL_LINES
   TOTAL_LINES=$(wc -l < "${XML_FILE}" 2> /dev/null || echo "0")
@@ -2261,7 +2301,13 @@ function __handle_corrupted_xml_file() {
   __logd "Attempting to recover from extra content corruption..."
   # Try to find the last valid closing tag and truncate
   local LAST_VALID_LINE
-  LAST_VALID_LINE=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" | tail -1 | cut -d: -f1)
+  local CLOSING_TAG_LINES
+  CLOSING_TAG_LINES=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null || echo "")
+  if [[ -n "${CLOSING_TAG_LINES}" ]]; then
+   LAST_VALID_LINE=$(echo "${CLOSING_TAG_LINES}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
+  else
+   LAST_VALID_LINE="0"
+  fi
   if [[ -n "${LAST_VALID_LINE}" ]]; then
    local TEMP_RECOVERY_FILE
    TEMP_RECOVERY_FILE="${XML_FILE}.recovery"
@@ -2366,21 +2412,27 @@ function __validate_xml_integrity() {
   __logd "Using divided XML validation mode - checking only structure boundaries"
 
   # Check XML declaration at beginning
-  if ! head -n 1 "${XML_FILE}" | grep -q "<?xml" 2> /dev/null; then
+  local FIRST_LINE
+  FIRST_LINE=$(head -n 1 "${XML_FILE}" 2> /dev/null || echo "")
+  if ! echo "${FIRST_LINE}" | grep -q "<?xml" 2> /dev/null; then
    __loge "ERROR: Divided XML file missing declaration at beginning: ${XML_FILE}"
    __log_finish
    return 1
   fi
 
   # Check root element opening at beginning
-  if ! head -n 5 "${XML_FILE}" | grep -q "<osm-notes\|<osm" 2> /dev/null; then
+  local FIRST_FIVE_LINES
+  FIRST_FIVE_LINES=$(head -n 5 "${XML_FILE}" 2> /dev/null || echo "")
+  if ! echo "${FIRST_FIVE_LINES}" | grep -q "<osm-notes\|<osm" 2> /dev/null; then
    __loge "ERROR: Divided XML file missing root element opening: ${XML_FILE}"
    __log_finish
    return 1
   fi
 
   # Check root element closing at end
-  if ! tail -n 5 "${XML_FILE}" | grep -q "</osm-notes\|</osm" 2> /dev/null; then
+  local LAST_FIVE_LINES
+  LAST_FIVE_LINES=$(tail -n 5 "${XML_FILE}" 2> /dev/null || echo "")
+  if ! echo "${LAST_FIVE_LINES}" | grep -q "</osm-notes\|</osm" 2> /dev/null; then
    __loge "ERROR: Divided XML file missing root element closing: ${XML_FILE}"
    __log_finish
    return 1

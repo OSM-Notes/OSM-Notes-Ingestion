@@ -66,6 +66,8 @@ function __countXmlNotesAPI() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is set by the calling script
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 
@@ -90,6 +92,8 @@ function __getNewNotesFromApi() {
  # Check network connectivity
  if ! __check_network_connectivity 10; then
   __loge "Network connectivity check failed"
+  # shellcheck disable=SC2154
+  # ERROR_INTERNET_ISSUE is set by the calling script
   __handle_error_with_cleanup "${ERROR_INTERNET_ISSUE}" "Network connectivity failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
   return "${ERROR_INTERNET_ISSUE}"
@@ -97,12 +101,16 @@ function __getNewNotesFromApi() {
 
  # Gets the most recent value on the database
  __logi "Retrieving last update from database..."
+ # shellcheck disable=SC2154
+ # DBNAME is set by the calling script or environment
  __logd "Database: ${DBNAME}"
  local DB_OPERATION="psql -d ${DBNAME} -Atq -c \"SELECT /* Notes-processAPI */ TO_CHAR(timestamp, E'YYYY-MM-DD\\\"T\\\"HH24:MI:SS\\\"Z\\\"') FROM max_note_timestamp\" -v ON_ERROR_STOP=1 > ${TEMP_FILE} 2> /dev/null"
  local CLEANUP_OPERATION="rm -f ${TEMP_FILE} 2>/dev/null || true"
 
  if ! __retry_file_operation "${DB_OPERATION}" 3 2 "${CLEANUP_OPERATION}"; then
   __loge "Failed to retrieve last update from database after retries"
+  # shellcheck disable=SC2154
+  # ERROR_NO_LAST_UPDATE is set by the calling script
   __handle_error_with_cleanup "${ERROR_NO_LAST_UPDATE}" "Database query failed" \
    "rm -f ${TEMP_FILE} 2>/dev/null || true"
   return "${ERROR_NO_LAST_UPDATE}"
@@ -119,7 +127,8 @@ function __getNewNotesFromApi() {
  fi
 
  # Gets the values from OSM API with the correct URL including date filter
- # shellcheck disable=SC2153
+ # shellcheck disable=SC2153,SC2154
+ # OSM_API and MAX_NOTES are set by the calling script or environment
  REQUEST="${OSM_API}/notes/search.xml?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}"
  __logi "API Request URL: ${REQUEST}"
  __logd "Max notes limit: ${MAX_NOTES}"

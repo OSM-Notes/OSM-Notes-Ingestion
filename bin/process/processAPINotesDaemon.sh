@@ -182,10 +182,12 @@ function __acquire_lock {
  # Truncate file after acquiring lock
  : > "${LOCK}"
 
+ local START_DATE
+ START_DATE=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
  cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${START_DATE}
 Temporary directory: ${TMP_DIR}
 Daemon sleep interval: ${DAEMON_SLEEP_INTERVAL}
 Main script: ${0}
@@ -354,7 +356,11 @@ function __validateHistoricalDataAndRecover {
  # that we have at least 30 days of historical data
  set +e
  trap '' ERR
- __checkHistoricalData || true
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __checkHistoricalData; then
+  :
+ fi
  local HIST_VALIDATION_RESULT=$?
  set -E
  trap '{
@@ -380,6 +386,8 @@ function __validateHistoricalDataAndRecover {
  # Recover from gaps (equivalent to __recover_from_gaps in processAPINotes.sh)
  # Note: __recover_from_gaps is defined in processAPINotes.sh and is available
  # since we source that script at line 123
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __recover_from_gaps; then
   __logw "Gap recovery check failed, but continuing in daemon mode"
   __logw "This will be retried on next cycle"
@@ -420,6 +428,8 @@ function __validateApiNotesFile {
  # Skip XML validation if SKIP_XML_VALIDATION is set
  if [[ "${SKIP_XML_VALIDATION:-false}" != "true" ]]; then
   __logd "Validating XML structure..."
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_xml_with_enhanced_error_handling "${API_NOTES_FILE}" "${XMLSCHEMA_API_NOTES}"; then
    __loge "ERROR: XML structure validation failed"
    __log_finish
@@ -504,7 +514,11 @@ function __daemon_init {
  trap '' ERR
  __checkNoProcessPlanet
  export RET_FUNC=0
- __checkBaseTables || true
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __checkBaseTables; then
+  :
+ fi
  local RET_FUNC_FILE="${TMP_DIR}/.ret_func_$$"
  if [[ -f "${RET_FUNC_FILE}" ]]; then
   local FILE_RET_FUNC
@@ -793,7 +807,13 @@ function __process_api_data {
 
  # Download data (only if database is not empty)
  local API_DOWNLOAD_RESULT=0
- __getNewNotesFromApi || API_DOWNLOAD_RESULT=$?
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __getNewNotesFromApi; then
+  API_DOWNLOAD_RESULT=$?
+ else
+  API_DOWNLOAD_RESULT=0
+ fi
 
  if [[ ${API_DOWNLOAD_RESULT} -ne 0 ]]; then
   __loge "Failed to download notes from API (error code: ${API_DOWNLOAD_RESULT})"
@@ -884,8 +904,12 @@ function __process_api_data {
      # Check if lock file permission issue was the cause
      if [[ -f "${PLANET_LOCK_FILE}" ]] && ! [[ -w "${PLANET_LOCK_FILE}" ]]; then
       __loge "Lock file permission issue detected: ${PLANET_LOCK_FILE}"
-      __loge "Lock file owner: $(stat -c '%U:%G' "${PLANET_LOCK_FILE}" 2> /dev/null || echo 'unknown')"
-      __loge "Current user: $(whoami)"
+      local LOCK_OWNER
+      LOCK_OWNER=$(stat -c '%U:%G' "${PLANET_LOCK_FILE}" 2> /dev/null || echo 'unknown')
+      __loge "Lock file owner: ${LOCK_OWNER}"
+      local CURRENT_USER
+      CURRENT_USER=$(whoami 2> /dev/null || echo 'unknown')
+      __loge "Current user: ${CURRENT_USER}"
      fi
      __log_finish
      return 1
@@ -1015,9 +1039,13 @@ function __daemon_loop {
 
   # Check API for updates
   local PROCESSING_SUCCESS=false
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if __check_api_for_updates; then
    HAD_UPDATES=true
    # Process data
+   # shellcheck disable=SC2310
+   # Function is invoked in if condition intentionally
    if __process_api_data; then
     CONSECUTIVE_ERRORS=0
     PROCESSING_SUCCESS=true
@@ -1101,6 +1129,8 @@ function main() {
  fi
 
  # Acquire lock (singleton)
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __acquire_lock; then
   __loge "Failed to acquire lock, daemon may already be running"
   exit 1

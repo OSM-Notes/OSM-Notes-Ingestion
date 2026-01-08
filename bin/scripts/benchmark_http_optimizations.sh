@@ -206,7 +206,11 @@ START_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
 for ((I = 1; I <= NUM_REQUESTS; I++)); do
  TEMP_FILE=$(mktemp)
- __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1 || true
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1; then
+  :
+ fi
  if [[ -f "${TEMP_FILE}" ]] && [[ -s "${TEMP_FILE}" ]]; then
   SUCCESS_WITH=$((SUCCESS_WITH + 1))
  fi
@@ -235,7 +239,11 @@ START_TIME=$(date +%s.%N 2> /dev/null || date +%s)
 
 for ((I = 1; I <= NUM_REQUESTS; I++)); do
  TEMP_FILE=$(mktemp)
- __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1 || true
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if __retry_osm_api "${OSM_API_URL}" "${TEMP_FILE}" 1 1 30 > /dev/null 2>&1; then
+  :
+ fi
  if [[ -f "${TEMP_FILE}" ]] && [[ -s "${TEMP_FILE}" ]]; then
   SUCCESS_WITHOUT=$((SUCCESS_WITHOUT + 1))
  fi

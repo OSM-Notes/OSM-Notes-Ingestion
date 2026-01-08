@@ -1081,11 +1081,14 @@ function __reassignAffectedNotes {
  fi
 
  # Get list of countries that were updated
- local -r UPDATED_COUNTRIES=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "
+ local UPDATED_COUNTRIES
+ # shellcheck disable=SC2154
+ # PGAPPNAME is set by the calling script or environment
+ UPDATED_COUNTRIES=$(PGAPPNAME="${PGAPPNAME:-}" psql -d "${DBNAME}" -Atq -c "
    SELECT country_id
    FROM countries
    WHERE updated = TRUE;
- ")
+ " 2> /dev/null || echo "")
 
  if [[ -z "${UPDATED_COUNTRIES}" ]]; then
   __logi "No countries were updated, skipping re-assignment"
@@ -1093,7 +1096,8 @@ function __reassignAffectedNotes {
   return 0
  fi
 
- local -r COUNT=$(echo "${UPDATED_COUNTRIES}" | wc -l)
+ local COUNT
+ COUNT=$(echo "${UPDATED_COUNTRIES}" | wc -l 2> /dev/null || echo "0")
  __logi "Found ${COUNT} countries with updated geometries"
 
  # Re-assign countries for notes within bounding boxes of updated countries
@@ -1417,8 +1421,10 @@ out;"
  local REPORT_FILE
  REPORT_FILE="${OUTPUT_DIR}/missing_eez_osm_report_$(date +%Y%m%d).txt"
  {
+  local REPORT_DATE
+  REPORT_DATE=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
   echo "Missing Maritime Boundaries Report (OSM Coverage Check)"
-  echo "Generated: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "Generated: ${REPORT_DATE}"
   echo ""
   echo "Method: Verify EEZ centroids against OSM maritime boundaries"
   echo "  - Total EEZ centroids checked: ${TOTAL_CENTROIDS}"
@@ -1438,13 +1444,17 @@ out;"
  if [[ "${MISSING_COUNT}" -gt 0 ]] && [[ "${SEND_ALERT_EMAIL:-true}" == "true" ]] && [[ -n "${ADMIN_EMAIL:-}" ]]; then
   local EMAIL_SUBJECT="Missing Maritime Boundaries Report - ${MISSING_COUNT} EEZ in OSM not in database"
   local EMAIL_BODY
+  local REPORT_DATE
+  REPORT_DATE=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+  local SERVER_NAME
+  SERVER_NAME=$(hostname 2> /dev/null || echo 'unknown')
   EMAIL_BODY=$(
    cat << EOF
 Missing Maritime Boundaries Report
 ==================================
 
-Date: $(date '+%Y-%m-%d %H:%M:%S')
-Server: $(hostname)
+Date: ${REPORT_DATE}
+Server: ${SERVER_NAME}
 
 Summary:
   - Total EEZ centroids from shapefile: ${TOTAL_CENTROIDS}
@@ -1498,6 +1508,8 @@ function main() {
  if [[ "${PROCESS_TYPE}" == "-h" ]] \
   || [[ "${PROCESS_TYPE}" == "--help" ]]; then
   __show_help
+  # shellcheck disable=SC2317
+  # Exit is reachable after help message display
   exit "${ERROR_HELP_MESSAGE}"
  fi
 
@@ -1523,10 +1535,12 @@ function main() {
  ONLY_EXECUTION="yes"
 
  # Write lock file content with useful debugging information
+ local START_DATE
+ START_DATE=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
  cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${START_DATE}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
@@ -1548,8 +1562,12 @@ EOF
   # This allows processPlanet to complete quickly on first run
   __logi "Processing countries and maritimes data into countries_new..."
   __logi "Using backup if available (faster), otherwise downloading from Overpass..."
+  # shellcheck disable=SC2119
+  # __processCountries is called without arguments intentionally
   __processCountries
   # Process maritimes, but don't fail if it errors (countries are more critical)
+  # shellcheck disable=SC2119,SC2310
+  # __processMaritimes is called without arguments intentionally, function is invoked in if condition intentionally
   if ! __processMaritimes; then
    __logw "Maritimes processing failed, but continuing with countries update"
    __logw "Maritimes can be updated separately later if needed"
@@ -1570,8 +1588,12 @@ EOF
 
   if [[ "${COUNTRIES_EXISTS}" == "t" ]]; then
    __logi "Comparing geometries between countries and countries_new..."
+   # shellcheck disable=SC2310
+   # Function is invoked in if condition intentionally
    if __compareCountryGeometries; then
     __logi "Geometry comparison passed, proceeding with swap..."
+    # shellcheck disable=SC2310
+    # Function is invoked in if condition intentionally
     if __swapCountryTables; then
      __logi "Swap completed successfully"
     else
@@ -1584,9 +1606,13 @@ EOF
     __logw "Review changes before swapping manually"
     # In base mode, we still swap if countries_new has data
     local COUNT_NEW
-    COUNT_NEW=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries_new;" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
+    # shellcheck disable=SC2154
+    # PGAPPNAME is set by the calling script or environment
+    COUNT_NEW=$(PGAPPNAME="${PGAPPNAME:-}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries_new;" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
     if [[ "${COUNT_NEW}" -gt 0 ]]; then
      __logi "Proceeding with swap anyway (base mode - countries_new has ${COUNT_NEW} countries)"
+     # shellcheck disable=SC2310
+     # Function is invoked in if condition intentionally
      if __swapCountryTables; then
       __logi "Swap completed"
      else
@@ -1601,6 +1627,8 @@ EOF
   else
    # No existing countries table, just rename countries_new to countries
    __logi "No existing countries table, renaming countries_new to countries..."
+   # shellcheck disable=SC2310
+   # Function is invoked in if condition intentionally
    if __swapCountryTables; then
     __logi "Rename completed successfully"
    else
@@ -1661,8 +1689,12 @@ EOF
   # Force download from Overpass - don't use backup in update mode
   __logi "Processing countries and maritimes from Overpass into countries_new (update mode - always get latest geometries)..."
   export FORCE_OVERPASS_DOWNLOAD="true"
+  # shellcheck disable=SC2119
+  # __processCountries is called without arguments intentionally
   __processCountries
   # Process maritimes, but don't fail if it errors (countries are more critical)
+  # shellcheck disable=SC2119,SC2310
+  # __processMaritimes is called without arguments intentionally, function is invoked in if condition intentionally
   if ! __processMaritimes; then
    __logw "Maritimes processing failed, but continuing with countries update"
    __logw "Maritimes can be updated separately later if needed"
@@ -1674,8 +1706,12 @@ EOF
 
   # Compare geometries before swapping
   __logi "Comparing geometries between countries and countries_new..."
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if __compareCountryGeometries; then
    __logi "Geometry comparison passed, proceeding with swap..."
+   # shellcheck disable=SC2310
+   # Function is invoked in if condition intentionally
    if __swapCountryTables; then
     __logi "Swap completed successfully"
    else
@@ -1690,6 +1726,8 @@ EOF
    # Ask user or use environment variable to force swap
    if [[ "${FORCE_SWAP_ON_WARNING:-false}" == "true" ]]; then
     __logw "FORCE_SWAP_ON_WARNING=true, proceeding with swap anyway..."
+    # shellcheck disable=SC2310
+    # Function is invoked in if condition intentionally
     if __swapCountryTables; then
      __logi "Swap completed (forced)"
     else

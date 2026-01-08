@@ -2688,6 +2688,7 @@ function __processCountries_impl {
    SUBSHELL_PID="${BASHPID}"
    __logi "Starting list ${I} - ${SUBSHELL_PID}."
    # shellcheck disable=SC2154
+   # LOG_FILENAME is set by the calling script or environment
    local PROCESS_LIST_RET
    if __processList "${I}" >> "${LOG_FILENAME}.${SUBSHELL_PID}" 2>&1; then
     echo "SUCCESS:${SUBSHELL_PID}:${I}" >> "${JOB_STATUS_FILE}"

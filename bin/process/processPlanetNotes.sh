@@ -230,7 +230,8 @@ source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
 # Load parallel processing functions (includes __splitXmlForParallelSafe implementation)
 # MUST be loaded AFTER functionsProcess.sh to override wrapper functions
-# shellcheck disable=SC1091
+# shellcheck disable=SC1091,SC1094
+# Source file may have complex parsing but is valid bash
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
 
 # Function to handle cleanup on exit respecting CLEAN flag
@@ -313,7 +314,13 @@ function __checkPrereqs {
 
  # Validate each SQL file
  for SQL_FILE in "${SQL_FILES[@]}"; do
-  __validate_sql_structure "${SQL_FILE}" || VALIDATION_RESULT=$?
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
+  if ! __validate_sql_structure "${SQL_FILE}"; then
+   VALIDATION_RESULT=$?
+  else
+   VALIDATION_RESULT=0
+  fi
   if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -326,7 +333,13 @@ function __checkPrereqs {
  ## Validate XML schema file (only if validation is enabled)
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __logi "Validating XML schema file..."
-  __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file" || VALIDATION_RESULT=$?
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
+  if ! __validate_input_file "${XMLSCHEMA_PLANET_NOTES}" "XML schema file"; then
+   VALIDATION_RESULT=$?
+  else
+   VALIDATION_RESULT=0
+  fi
   if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: XML schema file validation failed: ${XMLSCHEMA_PLANET_NOTES}"
    __loge "To skip validation, set: export SKIP_XML_VALIDATION=true"
@@ -341,7 +354,13 @@ function __checkPrereqs {
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __logi "Validating dates in XML files..."
   if [[ -f "${PLANET_NOTES_FILE}" ]]; then
-   __validate_xml_dates "${PLANET_NOTES_FILE}" || VALIDATION_RESULT=$?
+   # shellcheck disable=SC2310
+   # Function is invoked in if condition intentionally
+   if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
+    VALIDATION_RESULT=$?
+   else
+    VALIDATION_RESULT=0
+   fi
    if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
     __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
     export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -356,7 +375,13 @@ function __checkPrereqs {
 
  ## Validate updateCountries.sh script availability
  __logi "Validating updateCountries.sh script availability..."
- __validate_input_file "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" "updateCountries script" || VALIDATION_RESULT=$?
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __validate_input_file "${SCRIPT_BASE_DIRECTORY}/bin/process/updateCountries.sh" "updateCountries script"; then
+  VALIDATION_RESULT=$?
+ else
+  VALIDATION_RESULT=0
+ fi
  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: updateCountries.sh script validation failed"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -370,7 +395,13 @@ function __checkPrereqs {
 
  ## Validate JSON schema files
  __logi "Validating JSON schema files..."
- __validate_input_file "${JSON_SCHEMA_OVERPASS}" "JSON schema file" || VALIDATION_RESULT=$?
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __validate_input_file "${JSON_SCHEMA_OVERPASS}" "JSON schema file"; then
+  VALIDATION_RESULT=$?
+ else
+  VALIDATION_RESULT=0
+ fi
  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: JSON schema file validation failed: ${JSON_SCHEMA_OVERPASS}"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -379,7 +410,13 @@ function __checkPrereqs {
  fi
  unset VALIDATION_RESULT
 
- __validate_input_file "${JSON_SCHEMA_GEOJSON}" "GeoJSON schema file" || VALIDATION_RESULT=$?
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __validate_input_file "${JSON_SCHEMA_GEOJSON}" "GeoJSON schema file"; then
+  VALIDATION_RESULT=$?
+ else
+  VALIDATION_RESULT=0
+ fi
  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: GeoJSON schema file validation failed: ${JSON_SCHEMA_GEOJSON}"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -390,7 +427,13 @@ function __checkPrereqs {
 
  ## Validate test files
  __logi "Validating JSON schema files..."
- __validate_input_file "${GEOJSON_TEST}" "GeoJSON test file" || VALIDATION_RESULT=$?
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __validate_input_file "${GEOJSON_TEST}" "GeoJSON test file"; then
+  VALIDATION_RESULT=$?
+ else
+  VALIDATION_RESULT=0
+ fi
  if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: GeoJSON test file validation failed: ${GEOJSON_TEST}"
   export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -401,10 +444,22 @@ function __checkPrereqs {
 
  ## Validate backup files if they exist
  # Resolve note location backup file (download from GitHub if not found locally)
- __resolve_note_location_backup 2> /dev/null || RESOLVE_RESULT=$?
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __resolve_note_location_backup 2> /dev/null; then
+  RESOLVE_RESULT=$?
+ else
+  RESOLVE_RESULT=0
+ fi
  if [[ "${RESOLVE_RESULT:-0}" -eq 0 ]] || [[ -f "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" ]]; then
   __logi "Validating backup files..."
-  __validate_input_file "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" "Backup file" || VALIDATION_RESULT=$?
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
+  if ! __validate_input_file "${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}" "Backup file"; then
+   VALIDATION_RESULT=$?
+  else
+   VALIDATION_RESULT=0
+  fi
   if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: Backup file validation failed: ${CSV_BACKUP_NOTE_LOCATION_COMPRESSED}"
    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -416,7 +471,13 @@ function __checkPrereqs {
  unset RESOLVE_RESULT
 
  if [[ -f "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" ]]; then
-  __validate_sql_structure "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || VALIDATION_RESULT=$?
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
+  if ! __validate_sql_structure "${POSTGRES_32_UPLOAD_NOTE_LOCATION}"; then
+   VALIDATION_RESULT=$?
+  else
+   VALIDATION_RESULT=0
+  fi
   if [[ "${VALIDATION_RESULT:-0}" -ne 0 ]]; then
    __loge "ERROR: Upload SQL file validation failed: ${POSTGRES_32_UPLOAD_NOTE_LOCATION}"
    export SCRIPT_EXIT_CODE="${ERROR_MISSING_LIBRARY}"
@@ -646,8 +707,14 @@ function __processPlanetNotesWithParallel {
 
  # Split XML using the implementation from parallelProcessingFunctions.sh
  # (loaded at script startup to override functionsProcess.sh wrapper)
- __splitXmlForParallelSafe "${PLANET_NOTES_FILE}" \
-  "${NUM_PARTS}" "${PARTS_DIR}" "planet" || SPLIT_RESULT=$?
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __splitXmlForParallelSafe "${PLANET_NOTES_FILE}" \
+  "${NUM_PARTS}" "${PARTS_DIR}" "planet"; then
+  SPLIT_RESULT=$?
+ else
+  SPLIT_RESULT=0
+ fi
  if [[ "${SPLIT_RESULT:-0}" -ne 0 ]]; then
   __loge "ERROR: Failed to split XML file"
   __log_finish
@@ -671,7 +738,9 @@ function __processPlanetNotesWithParallel {
   # shellcheck disable=SC2012
   # Using ls for human-readable directory listing is acceptable here
   ls -la "${PARTS_DIR}" 2>&1 | while IFS= read -r line; do
-   __loge "  ${line}"
+   # shellcheck disable=SC2310
+   # Function is invoked in || condition intentionally to prevent exit on error
+   __loge "  ${line}" || true
   done || true
   __log_finish
   export SCRIPT_EXIT_CODE="${ERROR_EXECUTING_PLANET_DUMP}"
@@ -707,7 +776,11 @@ function __processPlanetNotesWithParallel {
   PART_BASENAME=$(basename "${PART_FILE}")
 
   # Setup logging for this worker (appends to shared log file)
-  __set_log_file "${LOG_FILENAME}" 2> /dev/null || true
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
+  if ! __set_log_file "${LOG_FILENAME}" 2> /dev/null; then
+   :
+  fi
 
   # Log worker start
   __logi "[WORKER] Starting processing of part file: ${PART_BASENAME}"
@@ -718,7 +791,13 @@ function __processPlanetNotesWithParallel {
   # Execute the main processing function
   # Output is synchronized by parallel's internal buffering
   __logd "[WORKER] About to call __processPlanetXmlPart for ${PART_BASENAME}"
-  __processPlanetXmlPart "${PART_FILE}" || PROCESS_RESULT=$?
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
+  if ! __processPlanetXmlPart "${PART_FILE}"; then
+   PROCESS_RESULT=$?
+  else
+   PROCESS_RESULT=0
+  fi
   if [[ "${PROCESS_RESULT:-0}" -eq 0 ]]; then
    __logi "[WORKER] Successfully completed processing of ${PART_BASENAME}"
   else
@@ -764,6 +843,8 @@ function __processPlanetNotesWithParallel {
   for PART_FILE in "${PART_FILES[@]}"; do
    # Process part in background
    (
+    # shellcheck disable=SC2310
+    # Function is invoked in || condition intentionally to capture exit code
     __processPlanetXmlPart "${PART_FILE}" || PROCESS_RESULT=$?
     if [[ "${PROCESS_RESULT:-0}" -ne 0 ]]; then
      exit 1
@@ -847,6 +928,8 @@ function __validatePlanetNotesXMLFileComplete {
 
  # Validate XML structure against schema with enhanced error handling
  __logi "Validating XML structure against schema..."
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __validate_xml_with_enhanced_error_handling "${PLANET_NOTES_FILE}" "${XMLSCHEMA_PLANET_NOTES}"; then
   __loge "ERROR: XML structure validation failed: ${PLANET_NOTES_FILE}"
   __cleanup_validation_temp_files
@@ -858,6 +941,8 @@ function __validatePlanetNotesXMLFileComplete {
 
  # Validate dates in XML file
  __logi "Validating dates in XML file..."
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __validate_xml_dates "${PLANET_NOTES_FILE}"; then
   __loge "ERROR: XML date validation failed: ${PLANET_NOTES_FILE}"
   __cleanup_validation_temp_files
@@ -869,6 +954,8 @@ function __validatePlanetNotesXMLFileComplete {
 
  # Validate coordinates in XML file
  __logi "Validating coordinates in XML file..."
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __validate_xml_coordinates "${PLANET_NOTES_FILE}"; then
   __loge "ERROR: XML coordinate validation failed: ${PLANET_NOTES_FILE}"
   __cleanup_validation_temp_files
@@ -1492,6 +1579,8 @@ function __processPlanetBaseMode {
  __dropBaseTables
  __createBaseTables
  __createSyncTables
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __downloadPlanetNotes; then
   __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
    "Failed to download Planet notes" \
@@ -1501,6 +1590,8 @@ function __processPlanetBaseMode {
 
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __logi "Validating Planet XML file (structure, dates, coordinates)..."
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validatePlanetNotesXMLFileComplete; then
    __loge "ERROR: XML validation failed. Stopping process."
    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
@@ -1519,6 +1610,8 @@ function __processPlanetBaseMode {
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "TOTAL_NOTES is greater than 0 (${TOTAL_NOTES}), proceeding to process notes with parallel processing"
   __logi "About to call __processPlanetNotesWithParallel"
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __processPlanetNotesWithParallel; then
    local PARALLEL_EXIT_CODE=$?
    __loge "ERROR: Failed to process Planet notes in parallel (exit code: ${PARALLEL_EXIT_CODE})"
@@ -1548,6 +1641,8 @@ function __processPlanetSyncMode {
  fi
  set -E
  __createSyncTables
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __downloadPlanetNotes; then
   __create_failed_marker "${ERROR_DOWNLOADING_NOTES}" \
    "Failed to download Planet notes" \
@@ -1557,6 +1652,8 @@ function __processPlanetSyncMode {
 
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __logi "Validating Planet XML file (structure, dates, coordinates)..."
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validatePlanetNotesXMLFileComplete; then
    __loge "ERROR: XML validation failed. Stopping process."
    __create_failed_marker "${ERROR_DATA_VALIDATION}" \
@@ -1575,6 +1672,8 @@ function __processPlanetSyncMode {
  if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
   __logi "TOTAL_NOTES is greater than 0 (${TOTAL_NOTES}), proceeding to process notes with parallel processing"
   __logi "About to call __processPlanetNotesWithParallel"
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __processPlanetNotesWithParallel; then
    local PARALLEL_EXIT_CODE=$?
    __loge "ERROR: Failed to process Planet notes in parallel (exit code: ${PARALLEL_EXIT_CODE})"
@@ -1605,7 +1704,7 @@ function __processGeographicDataBaseMode {
  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
  if [[ "${COUNTRIES_COUNT:-0}" -gt 0 ]]; then
   __logi "Processing location notes with get_country() function..."
-  __getLocationNotes
+  __getLocationNotes "$@"
  fi
 
  __logi "Organizing areas after geographic data is loaded..."

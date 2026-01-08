@@ -5,9 +5,11 @@
 #
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-18
+# shellcheck disable=SC2034
+# VERSION is used for version tracking but may not be referenced in code
 VERSION="2025-12-18"
 
-# shellcheck disable=SC2317,SC2155,SC2034
+# shellcheck disable=SC2317,SC2155
 
 # Detect if system is "installed" (production mode)
 # Checks if standard directories exist and are writable
@@ -47,6 +49,8 @@ function __init_log_dir() {
 
  # Determine base log directory
  local BASE_LOG_DIR
+ # shellcheck disable=SC2119
+ # __is_installed is called without arguments intentionally (uses default values)
  if [[ "${FORCE_FALLBACK}" == "true" ]] || ! __is_installed; then
   # Fallback mode: use /tmp (non-persistent, for testing)
   BASE_LOG_DIR="/tmp/osm-notes-ingestion/logs"
@@ -97,6 +101,8 @@ function __init_tmp_dir() {
 
  # Determine base temp directory
  local BASE_TMP_DIR
+ # shellcheck disable=SC2119
+ # __is_installed is called without arguments intentionally (uses default values)
  if [[ "${FORCE_FALLBACK}" == "true" ]] || ! __is_installed; then
   # Fallback mode: use /tmp (non-persistent, for testing)
   BASE_TMP_DIR="/tmp"
@@ -131,6 +137,8 @@ function __init_lock_dir() {
 
  # Determine lock directory
  local LOCK_DIR
+ # shellcheck disable=SC2119
+ # __is_installed is called without arguments intentionally (uses default values)
  if [[ "${FORCE_FALLBACK}" == "true" ]] || ! __is_installed; then
   # Fallback mode: use /tmp
   LOCK_DIR="/tmp/osm-notes-ingestion/locks"
@@ -199,6 +207,8 @@ function __init_directories() {
   __logd "  LOCK_DIR: ${LOCK_DIR}"
   __logd "  LOG_FILENAME: ${LOG_FILENAME}"
   __logd "  LOCK: ${LOCK}"
+  # shellcheck disable=SC2119
+  # __is_installed is called without arguments intentionally (uses default values)
   if __is_installed; then
    __logd "  Mode: INSTALLED (production)"
   else

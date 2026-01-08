@@ -140,6 +140,8 @@ function __splitXmlForParallelPlanet() {
 
  if [[ ! -f "${XML_FILE}" ]]; then
   __loge "ERROR: XML file not found: ${XML_FILE}"
+  # shellcheck disable=SC2154
+  # ERROR_MISSING_LIBRARY is set by the calling script
   exit "${ERROR_MISSING_LIBRARY}"
  fi
 

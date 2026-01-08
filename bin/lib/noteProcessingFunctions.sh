@@ -37,7 +37,9 @@ function __getLocationNotes_impl {
 
   # Get count of notes that need country assignment
   local NOTES_COUNT
-  NOTES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
+  # shellcheck disable=SC2154
+  # PGAPPNAME is set by the calling script or environment
+  NOTES_COUNT=$(PGAPPNAME="${PGAPPNAME:-}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
    <<< "SELECT COUNT(*) FROM notes WHERE (id_country IS NULL OR id_country = -1)" 2> /dev/null || echo "0")
 
   if [[ "${NOTES_COUNT}" -eq "0" ]]; then

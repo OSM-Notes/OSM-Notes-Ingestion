@@ -458,7 +458,9 @@ function __generate_cleanup_summary() {
   TABLES_REMAINING=$(echo "${TABLES_REMAINING}" | tr -d ' ')
 
   __logi "Tables:"
-  __logi "  Before cleanup: $(wc -l < "${BEFORE_TABLES}" 2> /dev/null | tr -d ' ' || echo "0")"
+  local BEFORE_COUNT
+  BEFORE_COUNT=$(wc -l < "${BEFORE_TABLES}" 2> /dev/null | tr -d ' ' || echo "0")
+  __logi "  Before cleanup: ${BEFORE_COUNT}"
   __logi "  Dropped: ${TABLES_DROPPED}"
   __logi "  Remaining: ${TABLES_REMAINING}"
 

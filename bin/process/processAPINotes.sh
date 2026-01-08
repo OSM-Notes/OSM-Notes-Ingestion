@@ -375,6 +375,8 @@ function __checkPrereqs {
  __logi "Validating required files..."
 
  # Validate sync script
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __validate_input_file "${NOTES_SYNC_SCRIPT}" "Notes sync script"; then
   __loge "ERROR: Notes sync script validation failed: ${NOTES_SYNC_SCRIPT}"
   exit "${ERROR_MISSING_LIBRARY}"
@@ -396,6 +398,8 @@ function __checkPrereqs {
 
  # Validate each SQL file
  for SQL_FILE in "${SQL_FILES[@]}"; do
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_sql_structure "${SQL_FILE}"; then
    __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
    exit "${ERROR_MISSING_LIBRARY}"
@@ -406,6 +410,8 @@ function __checkPrereqs {
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __logi "Validating dates in API notes file..."
   if [[ -f "${API_NOTES_FILE}" ]]; then
+   # shellcheck disable=SC2310
+   # Function is invoked in if condition intentionally
    if ! __validate_xml_dates "${API_NOTES_FILE}"; then
     __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
     exit "${ERROR_MISSING_LIBRARY}"
@@ -522,6 +528,8 @@ function __validateApiNotesXMLFileComplete {
 
  # Validate XML structure against schema with enhanced error handling
  __logi "Validating XML structure against schema..."
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __validate_xml_with_enhanced_error_handling "${API_NOTES_FILE}" "${XMLSCHEMA_API_NOTES}"; then
   __loge "ERROR: XML structure validation failed: ${API_NOTES_FILE}"
   __create_failed_marker "${ERROR_DATA_VALIDATION}" \
@@ -532,6 +540,8 @@ function __validateApiNotesXMLFileComplete {
 
  # Validate dates in XML file
  __logi "Validating dates in XML file..."
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __validate_xml_dates "${API_NOTES_FILE}"; then
   __loge "ERROR: XML date validation failed: ${API_NOTES_FILE}"
   __create_failed_marker "${ERROR_DATA_VALIDATION}" \
@@ -632,21 +642,37 @@ function __processApiXmlSequential {
 
  # Debug: Show generated CSV files and their sizes
  __logd "Generated CSV files:"
- __logd "  Notes: ${SEQ_OUTPUT_NOTES_FILE} ($(wc -l < "${SEQ_OUTPUT_NOTES_FILE}" || echo 0) lines)" || true
- __logd "  Comments: ${SEQ_OUTPUT_COMMENTS_FILE} ($(wc -l < "${SEQ_OUTPUT_COMMENTS_FILE}" || echo 0) lines)" || true
- __logd "  Text: ${SEQ_OUTPUT_TEXT_FILE} ($(wc -l < "${SEQ_OUTPUT_TEXT_FILE}" || echo 0) lines)" || true
+ local NOTES_LINES
+ NOTES_LINES=$(wc -l < "${SEQ_OUTPUT_NOTES_FILE}" 2> /dev/null || echo 0)
+ # shellcheck disable=SC2310
+ # Function is invoked in || condition intentionally to prevent exit on error
+ __logd "  Notes: ${SEQ_OUTPUT_NOTES_FILE} (${NOTES_LINES} lines)" || true
+ local COMMENTS_LINES
+ COMMENTS_LINES=$(wc -l < "${SEQ_OUTPUT_COMMENTS_FILE}" 2> /dev/null || echo 0)
+ # shellcheck disable=SC2310
+ # Function is invoked in || condition intentionally to prevent exit on error
+ __logd "  Comments: ${SEQ_OUTPUT_COMMENTS_FILE} (${COMMENTS_LINES} lines)" || true
+ local TEXT_LINES
+ TEXT_LINES=$(wc -l < "${SEQ_OUTPUT_TEXT_FILE}" 2> /dev/null || echo 0)
+ # shellcheck disable=SC2310
+ # Function is invoked in || condition intentionally to prevent exit on error
+ __logd "  Text: ${SEQ_OUTPUT_TEXT_FILE} (${TEXT_LINES} lines)" || true
 
  # Validate CSV files structure and content before loading (optional)
  if [[ "${SKIP_CSV_VALIDATION:-true}" != "true" ]]; then
   __logd "Validating CSV files structure and enum compatibility..."
 
   # Validate notes
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_csv_structure "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
    __loge "ERROR: Notes CSV structure validation failed"
    __log_finish
    return 1
   fi
 
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_NOTES_FILE}" "notes"; then
    __loge "ERROR: Notes CSV enum validation failed"
    __log_finish
@@ -654,12 +680,16 @@ function __processApiXmlSequential {
   fi
 
   # Validate comments
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_csv_structure "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
    __loge "ERROR: Comments CSV structure validation failed"
    __log_finish
    return 1
   fi
 
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_csv_for_enum_compatibility "${SEQ_OUTPUT_COMMENTS_FILE}" "comments"; then
    __loge "ERROR: Comments CSV enum validation failed"
    __log_finish
@@ -667,6 +697,8 @@ function __processApiXmlSequential {
   fi
 
   # Validate text
+  # shellcheck disable=SC2310
+  # Function is invoked in if condition intentionally
   if ! __validate_csv_structure "${SEQ_OUTPUT_TEXT_FILE}" "text"; then
    __loge "ERROR: Text CSV structure validation failed"
    __log_finish
@@ -940,6 +972,8 @@ function __validateHistoricalDataAndRecover {
  fi
  __logi "Historical data validation passed. ProcessAPI can continue safely."
 
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
  if ! __recover_from_gaps; then
   __loge "Gap recovery check failed, aborting processing"
   __handle_error_with_cleanup "${ERROR_GENERAL}" "Gap recovery failed" \
@@ -1037,7 +1071,7 @@ Started: ${PROCESS_START_TIME}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}
-Lock re-acquired: $(date '+%Y-%m-%d %H:%M:%S')
+Lock re-acquired: ${PROCESS_START_TIME}
 EOF
  __logd "Lock file content updated after child processes: ${LOCK}"
  __log_finish
@@ -1166,6 +1200,8 @@ function main() {
   if grep -q "Network connectivity\|API download failed\|Internet issues" "${FAILED_EXECUTION_FILE}" 2> /dev/null; then
    __logw "Previous execution failed due to network issues. Verifying connectivity..."
    # Verify network connectivity before blocking
+   # shellcheck disable=SC2310
+   # Function is invoked in if condition intentionally
    if __check_network_connectivity 10; then
     __logi "Network connectivity restored. Removing failed execution marker and continuing..."
     rm -f "${FAILED_EXECUTION_FILE}"
@@ -1200,7 +1236,11 @@ function main() {
  __checkNoProcessPlanet
  export RET_FUNC=0
  __logd "Before calling __checkBaseTables, RET_FUNC=${RET_FUNC}"
- __checkBaseTables || true
+ # shellcheck disable=SC2310
+ # Function is invoked in if condition intentionally
+ if ! __checkBaseTables; then
+  :
+ fi
  local CHECK_BASE_TABLES_EXIT_CODE=$?
  # CRITICAL: Immediately re-read RET_FUNC from environment after function call
  # The function exports RET_FUNC, but we need to ensure we're reading the updated value
