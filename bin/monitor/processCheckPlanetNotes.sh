@@ -540,6 +540,18 @@ EOF
 # Allows to other user read the directory.
 chmod go+x "${TMP_DIR}"
 
+# Function to clean up temporary directory
+# This ensures all temporary files are removed, not just empty directories
+function __cleanup_temp_dir() {
+ local LAST_EXIT_CODE=$?
+ if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
+  # Use rm -rf to recursively remove all contents, not just empty directories
+  # This prevents accumulation of temporary files if main() leaves files behind
+  rm -rf "${TMP_DIR}" 2> /dev/null || true
+ fi
+ exit "${LAST_EXIT_CODE}"
+}
+
 # Only execute main if this script is being run directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
  if [[ ! -t 1 ]]; then
@@ -548,6 +560,9 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   # This is needed because processPlanetNotes.sh sets a trap EXIT that uses SCRIPT_EXIT_CODE
   # The trap was set when we sourced processPlanetNotes.sh above
   trap - EXIT
+  # Set our own cleanup trap to ensure temporary directory is always cleaned up
+  # Use rm -rf instead of rmdir to ensure all temporary files are removed
+  trap '__cleanup_temp_dir' EXIT
   # Initialize SCRIPT_EXIT_CODE before main execution so trap handlers can use it
   export SCRIPT_EXIT_CODE=0
   # Execute main function in a subshell to capture exit code correctly
@@ -569,12 +584,25 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   # Clean up temporary directory and all its contents
   # Use rm -rf instead of rmdir to ensure all temporary files are removed
   # This matches the cleanup behavior from processPlanetNotes.sh
+  # The trap will also clean up on exit, but we do it here explicitly too
   if [[ -d "${TMP_DIR}" ]]; then
    rm -rf "${TMP_DIR}" 2> /dev/null || true
   fi
+  # Disable trap before exit since we've already cleaned up
+  trap - EXIT
   exit "${FINAL_EXIT_CODE}"
  else
+  # Interactive mode: disable trap from processPlanetNotes.sh and set our own
+  # The trap from processPlanetNotes.sh only cleans up on error, we need to
+  # clean up always to prevent temporary file accumulation
+  trap - EXIT
+  trap '__cleanup_temp_dir' EXIT
   __start_logger
   main
+  # Explicit cleanup after main completes successfully
+  if [[ -n "${TMP_DIR:-}" ]] && [[ -d "${TMP_DIR}" ]]; then
+   rm -rf "${TMP_DIR}" 2> /dev/null || true
+  fi
+  trap - EXIT
  fi
 fi
