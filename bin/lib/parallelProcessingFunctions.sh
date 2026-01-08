@@ -2201,8 +2201,6 @@ function __divide_xml_file_binary() {
 }
 
 # Function to handle corrupted XML files and attempt recovery
-# Author: Andres Gomez
-# Version: 2025-08-18
 # Parameters:
 #   $1: XML file path
 #   $2: Backup directory for corrupted files
@@ -2241,35 +2239,41 @@ function __handle_corrupted_xml_file() {
  local CORRUPTION_DETAILS=""
 
  # Check for common corruption patterns
- # Check for extra content after closing tags (common in split XML files)
- local LAST_CLOSING_TAG_LINE
- local CLOSING_TAG_LINES
- CLOSING_TAG_LINES=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null || echo "")
- if [[ -n "${CLOSING_TAG_LINES}" ]]; then
-  LAST_CLOSING_TAG_LINE=$(echo "${CLOSING_TAG_LINES}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
+ # First check if closing tag is missing (must be checked before extra_content)
+ if ! grep -q "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null; then
+  CORRUPTION_TYPE="missing_closing_tag"
+  CORRUPTION_DETAILS="Missing closing tag for root element"
  else
-  LAST_CLOSING_TAG_LINE="0"
- fi
- if [[ -n "${LAST_CLOSING_TAG_LINE}" ]]; then
-  local TOTAL_LINES
-  TOTAL_LINES=$(wc -l < "${XML_FILE}" 2> /dev/null || echo "0")
-
-  # Check if there are lines after the closing tag
-  if [[ "${TOTAL_LINES}" -gt "${LAST_CLOSING_TAG_LINE}" ]]; then
-   CORRUPTION_TYPE="extra_content"
-   CORRUPTION_DETAILS="Extra content after closing tags detected (${TOTAL_LINES} total lines, closing tag at line ${LAST_CLOSING_TAG_LINE})"
+  # Check for extra content after closing tags (common in split XML files)
+  local LAST_CLOSING_TAG_LINE
+  local CLOSING_TAG_LINES
+  CLOSING_TAG_LINES=$(grep -n "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null || echo "")
+  if [[ -n "${CLOSING_TAG_LINES}" ]]; then
+   LAST_CLOSING_TAG_LINE=$(echo "${CLOSING_TAG_LINES}" | tail -1 | cut -d: -f1 2> /dev/null || echo "0")
   else
-   # Check if the closing tag line itself contains extra content
-   local CLOSING_TAG_LINE_CONTENT
-   CLOSING_TAG_LINE_CONTENT=$(sed -n "${LAST_CLOSING_TAG_LINE}p" "${XML_FILE}" 2> /dev/null)
-   # Check if line contains only closing tag (with optional whitespace)
-   if echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm-notes>[[:space:]]*$" 2> /dev/null || echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm>[[:space:]]*$" 2> /dev/null; then
-    # Line contains only the closing tag, no extra content
-    :
-   else
-    # Line contains closing tag plus extra content
+   LAST_CLOSING_TAG_LINE="0"
+  fi
+  if [[ -n "${LAST_CLOSING_TAG_LINE}" ]] && [[ "${LAST_CLOSING_TAG_LINE}" != "0" ]]; then
+   local TOTAL_LINES
+   TOTAL_LINES=$(wc -l < "${XML_FILE}" 2> /dev/null || echo "0")
+
+   # Check if there are lines after the closing tag
+   if [[ "${TOTAL_LINES}" -gt "${LAST_CLOSING_TAG_LINE}" ]]; then
     CORRUPTION_TYPE="extra_content"
-    CORRUPTION_DETAILS="Extra content on same line as closing tag detected (line ${LAST_CLOSING_TAG_LINE})"
+    CORRUPTION_DETAILS="Extra content after closing tags detected (${TOTAL_LINES} total lines, closing tag at line ${LAST_CLOSING_TAG_LINE})"
+   else
+    # Check if the closing tag line itself contains extra content
+    local CLOSING_TAG_LINE_CONTENT
+    CLOSING_TAG_LINE_CONTENT=$(sed -n "${LAST_CLOSING_TAG_LINE}p" "${XML_FILE}" 2> /dev/null)
+    # Check if line contains only closing tag (with optional whitespace)
+    if echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm-notes>[[:space:]]*$" 2> /dev/null || echo "${CLOSING_TAG_LINE_CONTENT}" | grep -q "^[[:space:]]*</osm>[[:space:]]*$" 2> /dev/null; then
+     # Line contains only the closing tag, no extra content
+     :
+    else
+     # Line contains closing tag plus extra content
+     CORRUPTION_TYPE="extra_content"
+     CORRUPTION_DETAILS="Extra content on same line as closing tag detected (line ${LAST_CLOSING_TAG_LINE})"
+    fi
    fi
   fi
  fi
@@ -2285,9 +2289,6 @@ function __handle_corrupted_xml_file() {
   elif grep -q "parser error" "${XML_FILE}" 2> /dev/null; then
    CORRUPTION_TYPE="parser_error"
    CORRUPTION_DETAILS="XML parser error detected"
-  elif ! grep -q "</osm-notes\|</osm" "${XML_FILE}" 2> /dev/null; then
-   CORRUPTION_TYPE="missing_closing_tag"
-   CORRUPTION_DETAILS="Missing closing tag for root element"
   elif ! grep -q "<?xml" "${XML_FILE}" 2> /dev/null; then
    CORRUPTION_TYPE="missing_xml_declaration"
    CORRUPTION_DETAILS="Missing XML declaration"
