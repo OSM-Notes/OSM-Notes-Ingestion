@@ -1046,30 +1046,38 @@ function __monitor_xmllint_resources {
 
  __logi "Starting resource monitoring for xmllint PID: ${XMLLINT_PID}"
 
- {
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - Starting resource monitoring for PID ${XMLLINT_PID}"
+  {
+   local DATE_START
+   DATE_START=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+   echo "${DATE_START} - Starting resource monitoring for PID ${XMLLINT_PID}"
 
-  while kill -0 "${XMLLINT_PID}" 2> /dev/null; do
-   if ps -p "${XMLLINT_PID}" > /dev/null 2>&1; then
-    local CPU_USAGE
-    local MEM_USAGE
-    local RSS_KB
-    CPU_USAGE=$(ps -p "${XMLLINT_PID}" -o %cpu --no-headers 2> /dev/null | tr -d ' ')
-    MEM_USAGE=$(ps -p "${XMLLINT_PID}" -o %mem --no-headers 2> /dev/null | tr -d ' ')
-    RSS_KB=$(ps -p "${XMLLINT_PID}" -o rss --no-headers 2> /dev/null | tr -d ' ')
+   while kill -0 "${XMLLINT_PID}" 2> /dev/null; do
+    if ps -p "${XMLLINT_PID}" > /dev/null 2>&1; then
+     local CPU_USAGE
+     local MEM_USAGE
+     local RSS_KB
+     CPU_USAGE=$(ps -p "${XMLLINT_PID}" -o %cpu --no-headers 2> /dev/null | tr -d ' ')
+     MEM_USAGE=$(ps -p "${XMLLINT_PID}" -o %mem --no-headers 2> /dev/null | tr -d ' ')
+     RSS_KB=$(ps -p "${XMLLINT_PID}" -o rss --no-headers 2> /dev/null | tr -d ' ')
 
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - PID: ${XMLLINT_PID}, CPU: ${CPU_USAGE}%, Memory: ${MEM_USAGE}%, RSS: ${RSS_KB}KB"
+     local DATE_NOW
+     DATE_NOW=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+     echo "${DATE_NOW} - PID: ${XMLLINT_PID}, CPU: ${CPU_USAGE}%, Memory: ${MEM_USAGE}%, RSS: ${RSS_KB}KB"
 
-    # Check if memory usage is too high
-    if [[ -n "${RSS_KB}" ]] && [[ "${RSS_KB}" -gt 2097152 ]]; then # 2GB in KB
-     echo "$(date '+%Y-%m-%d %H:%M:%S') - WARNING: Memory usage exceeds 2GB (${RSS_KB}KB)"
+     # Check if memory usage is too high
+     if [[ -n "${RSS_KB}" ]] && [[ "${RSS_KB}" -gt 2097152 ]]; then # 2GB in KB
+      local DATE_WARN
+      DATE_WARN=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+      echo "${DATE_WARN} - WARNING: Memory usage exceeds 2GB (${RSS_KB}KB)"
+     fi
     fi
-   fi
-   sleep "${INTERVAL}"
-  done
+    sleep "${INTERVAL}"
+   done
 
-  echo "$(date '+%Y-%m-%d %H:%M:%S') - Process ${XMLLINT_PID} finished or terminated"
- } >> "${MONITOR_LOG}" 2>&1 &
+   local DATE_END
+   DATE_END=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
+   echo "${DATE_END} - Process ${XMLLINT_PID} finished or terminated"
+  } >> "${MONITOR_LOG}" 2>&1 &
 
  local MONITOR_PID=$!
  echo "${MONITOR_PID}"
@@ -1405,9 +1413,15 @@ function __setupLockFile {
  # Try to create/open lock file, handle permission errors explicitly
  if ! exec 7> "${LOCK}" 2> /dev/null; then
   __loge "Failed to create lock file: ${LOCK}"
-  __loge "Lock file owner: $(stat -c '%U:%G' "${LOCK}" 2> /dev/null || echo 'unknown')"
-  __loge "Current user: $(whoami)"
-  __loge "Lock file permissions: $(stat -c '%a' "${LOCK}" 2> /dev/null || echo 'unknown')"
+  local LOCK_OWNER
+  LOCK_OWNER=$(stat -c '%U:%G' "${LOCK}" 2> /dev/null || echo 'unknown')
+  __loge "Lock file owner: ${LOCK_OWNER}"
+  local CURRENT_USER
+  CURRENT_USER=$(whoami 2> /dev/null || echo 'unknown')
+  __loge "Current user: ${CURRENT_USER}"
+  local LOCK_PERMS
+  LOCK_PERMS=$(stat -c '%a' "${LOCK}" 2> /dev/null || echo 'unknown')
+  __loge "Lock file permissions: ${LOCK_PERMS}"
   __loge "This may be a permission issue. Try removing the lock file manually:"
   __loge "  rm -f ${LOCK}"
   __loge "Or run this script with appropriate permissions."
@@ -1427,10 +1441,12 @@ function __setupLockFile {
  fi
  ONLY_EXECUTION="yes"
 
+ local START_DATE
+ START_DATE=$(date '+%Y-%m-%d %H:%M:%S' 2> /dev/null || echo 'unknown')
  cat > "${LOCK}" << EOF
 PID: $$
 Process: ${BASENAME}
-Started: $(date '+%Y-%m-%d %H:%M:%S')
+Started: ${START_DATE}
 Temporary directory: ${TMP_DIR}
 Process type: ${PROCESS_TYPE}
 Main script: ${0}

@@ -90,9 +90,13 @@ main() {
 
  # Get file sizes
  local CSV_SIZE
- CSV_SIZE=$(stat -c%s "${OUTPUT_FILE}" 2> /dev/null | numfmt --to=iec-i --suffix=B || echo "unknown")
+ local CSV_SIZE_BYTES
+ CSV_SIZE_BYTES=$(stat -c%s "${OUTPUT_FILE}" 2> /dev/null || echo "0")
+ CSV_SIZE=$(echo "${CSV_SIZE_BYTES}" | numfmt --to=iec-i --suffix=B 2> /dev/null || echo "unknown")
  local ZIP_SIZE
- ZIP_SIZE=$(stat -c%s "${COMPRESSED_FILE}" 2> /dev/null | numfmt --to=iec-i --suffix=B || echo "unknown")
+ local ZIP_SIZE_BYTES
+ ZIP_SIZE_BYTES=$(stat -c%s "${COMPRESSED_FILE}" 2> /dev/null || echo "0")
+ ZIP_SIZE=$(echo "${ZIP_SIZE_BYTES}" | numfmt --to=iec-i --suffix=B 2> /dev/null || echo "unknown")
 
  __logi "CSV file size: ${CSV_SIZE}"
  __logi "Compressed size: ${ZIP_SIZE}"
