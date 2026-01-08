@@ -1793,7 +1793,7 @@ function __retry_osm_api() {
   local HTTP_CODE
   local CURL_OUTPUT
   CURL_OUTPUT=$(curl "${CURL_OPTS[@]}" -w "%{http_code}" -o "${TEMP_OUTPUT}" "${URL}" 2> /dev/null || echo "")
-  HTTP_CODE=$(echo "${CURL_OUTPUT}" | tail -c 3 || echo "")
+  HTTP_CODE=$(echo -n "${CURL_OUTPUT}" | tail -c 3 || echo "")
 
   # Handle 304 Not Modified (cached response is still valid)
   if [[ "${HTTP_CODE}" == "304" ]]; then

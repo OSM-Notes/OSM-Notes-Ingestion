@@ -204,12 +204,37 @@ EOF
  local MOCK_CURL="${TEST_DIR}/curl"
  cat > "${MOCK_CURL}" << 'EOF'
 #!/bin/bash
-# Find the output file argument (-o) and handle -w flag for HTTP code
-local OUTPUT_FILE=""
-local HTTP_CODE_OUTPUT=""
-local NEXT_IS_OUTPUT=false
-local NEXT_IS_HTTP_CODE=false
+# Mock curl that handles both HTTP/2 check and real API calls
+OUTPUT_FILE=""
+HTTP_CODE_OUTPUT=""
+NEXT_IS_OUTPUT=false
+NEXT_IS_HTTP_CODE=false
+HAS_W_FLAG=false
 
+# Check if this is an HTTP/2 check: --http2 with --max-time 5 and no -w flag
+HAS_HTTP2=false
+HAS_MAX_TIME_5=false
+HAS_W=false
+PREV_ARG=""
+for arg in "$@"; do
+ if [[ "${arg}" == "--http2" ]]; then
+  HAS_HTTP2=true
+ fi
+ if [[ "${arg}" == "-w" ]]; then
+  HAS_W=true
+ fi
+ if [[ "${PREV_ARG}" == "--max-time" ]] && [[ "${arg}" == "5" ]]; then
+  HAS_MAX_TIME_5=true
+ fi
+ PREV_ARG="${arg}"
+done
+
+# If HTTP/2 check (has --http2, --max-time 5, but no -w), return success
+if [[ "${HAS_HTTP2}" == "true" ]] && [[ "${HAS_MAX_TIME_5}" == "true" ]] && [[ "${HAS_W}" == "false" ]]; then
+ exit 0
+fi
+
+# Parse arguments for -o and -w
 for arg in "$@"; do
  if [[ "${NEXT_IS_OUTPUT}" == "true" ]]; then
   OUTPUT_FILE="${arg}"
@@ -221,6 +246,7 @@ for arg in "$@"; do
   NEXT_IS_OUTPUT=true
  elif [[ "${arg}" == "-w" ]]; then
   NEXT_IS_HTTP_CODE=true
+  HAS_W_FLAG=true
  fi
 done
 
@@ -229,9 +255,12 @@ if [[ -n "${OUTPUT_FILE}" ]] && [[ "${OUTPUT_FILE}" != "/dev/null" ]]; then
  echo "<osm><note id=\"1\"/></osm>" > "${OUTPUT_FILE}"
 fi
 
-# Output HTTP code if -w was used (to stdout, before file content)
-if [[ -n "${HTTP_CODE_OUTPUT}" ]]; then
- echo -n "200"
+# Output HTTP code if -w was used (to stdout, after file content)
+# curl writes HTTP code to stdout when using -w, even with -o
+if [[ "${HAS_W_FLAG}" == "true" ]] && [[ -n "${HTTP_CODE_OUTPUT}" ]]; then
+ # Write HTTP code to stdout (this is what curl does with -w)
+ # Must be exactly 3 characters for tail -c 3 to work correctly
+ printf "200"
 fi
 
 exit 0
