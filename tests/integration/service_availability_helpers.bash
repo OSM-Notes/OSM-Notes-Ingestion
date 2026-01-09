@@ -3,7 +3,7 @@
 # Service Availability Helpers
 # Check if external services are available before running tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-27
+# Version: 2026-01-23
 
 # =============================================================================
 # Service Availability Check Functions
@@ -261,24 +261,32 @@ __skip_if_network_unavailable() {
 # Skip test if external services are not required
 # Usage: __skip_if_external_services_not_required [MESSAGE] [SERVICE_CHECK_FUNCTION]
 # Behavior:
+#   - If REQUIRE_EXTERNAL_SERVICES=false: Skip test (explicitly disabled)
 #   - If REQUIRE_EXTERNAL_SERVICES=true: Always run (force execution)
-#   - If REQUIRE_EXTERNAL_SERVICES=false or unset: Check service availability automatically
-#     - If available: Run test
+#   - If REQUIRE_EXTERNAL_SERVICES unset (default): Check service availability automatically
+#     - If available: Run test (normal case with internet connectivity)
 #     - If unavailable: Skip test
+# Version: 2026-01-23
 __skip_if_external_services_not_required() {
  local MESSAGE="${1:-External services not required}"
  local SERVICE_CHECK_FUNCTION="${2:-__check_network_connectivity}"
  
+ # If explicitly disabled, skip the test
+ if [[ "${REQUIRE_EXTERNAL_SERVICES:-}" == "false" ]]; then
+  skip "${MESSAGE} (set REQUIRE_EXTERNAL_SERVICES=true to enable)"
+  return 1
+ fi
+ 
  # If explicitly required, always run (don't skip)
- if [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" == "true" ]]; then
+ if [[ "${REQUIRE_EXTERNAL_SERVICES:-}" == "true" ]]; then
   return 0
  fi
  
- # Otherwise, check if service is available
+ # Default behavior: Check if service is available
  # If service check function is provided and available, use it
  if declare -f "${SERVICE_CHECK_FUNCTION}" > /dev/null 2>&1; then
   if "${SERVICE_CHECK_FUNCTION}" > /dev/null 2>&1; then
-   # Service is available, run the test
+   # Service is available, run the test (normal case with internet)
    return 0
   else
    # Service is not available, skip the test
