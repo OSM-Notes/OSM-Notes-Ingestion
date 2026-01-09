@@ -188,7 +188,7 @@ teardown() {
    COUNTRIES_COUNT=$(psql -d "${DB_TO_CHECK}" -Atq -c "SELECT COUNT(*) FROM countries WHERE is_maritime = false;" 2> /dev/null || echo "0")
   fi
   if [[ "${COUNTRIES_COUNT}" == "0" ]]; then
-   skip "Countries table is empty or does not exist"
+   skip "Countries table is empty or does not exist - run updateCountries.sh first to populate the table"
   fi
  fi
 

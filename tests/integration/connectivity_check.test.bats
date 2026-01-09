@@ -6,6 +6,7 @@
 # Version: 2025-12-27
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
+# Note: service_availability_helpers.bash is automatically loaded by test_helper.bash
 
 # =============================================================================
 # Setup and Teardown
@@ -73,8 +74,11 @@ teardown() {
  # Purpose: Check if OSM API is accessible for integration tests
  # Expected: API responds with valid XML
 
- # Skip if external services are not required
- if [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
+ # Skip if external services are not required AND not available
+ # If REQUIRE_EXTERNAL_SERVICES=true, force execution even if unavailable
+ if declare -f __skip_if_external_services_not_required > /dev/null 2>&1; then
+  __skip_if_external_services_not_required "OSM API not available" "__check_osm_api_available"
+ elif [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
   skip "External services not required (set REQUIRE_EXTERNAL_SERVICES=true to enable)"
  fi
 
@@ -97,7 +101,10 @@ teardown() {
  # Purpose: Ensure API version matches expected version
  # Expected: API returns version 0.6
 
- if [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
+ # Skip if external services are not required AND not available
+ if declare -f __skip_if_external_services_not_required > /dev/null 2>&1; then
+  __skip_if_external_services_not_required "OSM API not available" "__check_osm_api_available"
+ elif [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
   skip "External services not required"
  fi
 
@@ -134,7 +141,10 @@ teardown() {
  # Purpose: Check if Overpass API is accessible for boundary downloads
  # Expected: API responds to minimal query
 
- if [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
+ # Skip if external services are not required AND not available
+ if declare -f __skip_if_external_services_not_required > /dev/null 2>&1; then
+  __skip_if_external_services_not_required "Overpass API not available" "__check_overpass_api_available"
+ elif [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
   skip "External services not required"
  fi
 
@@ -160,7 +170,10 @@ teardown() {
  # Purpose: Check Overpass API availability without executing query
  # Expected: Status endpoint responds
 
- if [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
+ # Skip if external services are not required AND not available
+ if declare -f __skip_if_external_services_not_required > /dev/null 2>&1; then
+  __skip_if_external_services_not_required "Overpass API status not available" "__check_overpass_api_status"
+ elif [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
   skip "External services not required"
  fi
 
@@ -180,7 +193,10 @@ teardown() {
  # Purpose: Check if Planet server is accessible for full data downloads
  # Expected: Server responds to HEAD request
 
- if [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
+ # Skip if external services are not required AND not available
+ if declare -f __skip_if_external_services_not_required > /dev/null 2>&1; then
+  __skip_if_external_services_not_required "Planet server not available" "__check_planet_server_available"
+ elif [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
   skip "External services not required"
  fi
 
@@ -202,7 +218,10 @@ teardown() {
  # Purpose: Ensure system has internet access
  # Expected: Can reach a reliable external host
 
- if [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
+ # Skip if external services are not required AND not available
+ if declare -f __skip_if_external_services_not_required > /dev/null 2>&1; then
+  __skip_if_external_services_not_required "Network not available" "__check_network_connectivity"
+ elif [[ "${REQUIRE_EXTERNAL_SERVICES:-false}" != "true" ]]; then
   skip "External services not required"
  fi
 

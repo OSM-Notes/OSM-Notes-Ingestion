@@ -250,17 +250,21 @@ for arg in "$@"; do
  fi
 done
 
-# Create output file if specified (and not /dev/null)
+# Create output file if specified (and not /dev/null or a temp file)
+# When using -o with -w, curl writes content to file first, then HTTP code to stdout
 if [[ -n "${OUTPUT_FILE}" ]] && [[ "${OUTPUT_FILE}" != "/dev/null" ]]; then
+ # Write content to the output file (this is what curl does with -o)
  echo "<osm><note id=\"1\"/></osm>" > "${OUTPUT_FILE}"
 fi
 
 # Output HTTP code if -w was used (to stdout, after file content)
 # curl writes HTTP code to stdout when using -w, even with -o
-if [[ "${HAS_W_FLAG}" == "true" ]] && [[ -n "${HTTP_CODE_OUTPUT}" ]]; then
+# The HTTP code is written AFTER the file content when using -o
+if [[ "${HAS_W_FLAG}" == "true" ]]; then
  # Write HTTP code to stdout (this is what curl does with -w)
  # Must be exactly 3 characters for tail -c 3 to work correctly
- printf "200"
+ # Note: curl writes HTTP code AFTER writing file content when using -o
+ printf "200" >&1
 fi
 
 exit 0

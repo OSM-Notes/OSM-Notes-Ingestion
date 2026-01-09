@@ -132,6 +132,11 @@ if [[ -f "${TEST_BASE_DIR}/tests/test_helpers_common.bash" ]]; then
  source "${TEST_BASE_DIR}/tests/test_helpers_common.bash"
 fi
 
+# Load service availability helpers if available (for integration tests)
+if [[ -f "${TEST_BASE_DIR}/tests/integration/service_availability_helpers.bash" ]]; then
+ source "${TEST_BASE_DIR}/tests/integration/service_availability_helpers.bash"
+fi
+
 # Initialize logging system
 __start_logger
 
