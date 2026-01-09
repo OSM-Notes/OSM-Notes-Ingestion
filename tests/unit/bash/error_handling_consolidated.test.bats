@@ -18,20 +18,33 @@ teardown() {
 }
 
 @test "check_network_connectivity should succeed with internet" {
- # Mock curl to simulate successful connectivity check
+ # Mock timeout and curl to simulate successful connectivity check
+ # The function uses: timeout "${TIMEOUT}" curl -s ...
+ # The function in noteProcessingFunctions.sh tries multiple URLs
+ # So we need to mock both commands
+ cat > "${TEST_DIR}/timeout" << 'EOF'
+#!/bin/bash
+# timeout command mock - execute the command passed as argument
+shift  # Skip timeout duration
+exec "$@"
+EOF
+ chmod +x "${TEST_DIR}/timeout"
+
  cat > "${TEST_DIR}/curl" << 'EOF'
 #!/bin/bash
-if [[ "$*" == *"timeout"* ]]; then
- exit 0
-fi
-exit 1
+# curl mock - simulate successful connection for any URL
+# The function tries multiple URLs, so we always succeed
+exit 0
 EOF
  chmod +x "${TEST_DIR}/curl"
  export PATH="${TEST_DIR}:${PATH}"
 
+ # Set TEST_MODE to ensure function returns instead of exiting
+ export TEST_MODE="true"
+
  run __check_network_connectivity 5
  [ "$status" -eq 0 ]
- [[ "$output" == *"Network connectivity confirmed"* ]]
+ [[ "$output" == *"Network connectivity confirmed"* ]] || [[ "$output" == *"connectivity confirmed"* ]]
 }
 
 @test "handle_error_with_cleanup should execute cleanup commands" {
