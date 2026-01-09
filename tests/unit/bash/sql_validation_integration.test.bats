@@ -28,19 +28,8 @@ teardown() {
  rm -rf "${TMP_DIR}"
 }
 
-# Test that VACUUM and ANALYZE SQL statements are recognized
-@test "VACUUM and ANALYZE SQL statements should be valid" {
- # This SQL functionality is integrated into other scripts, no separate file needed
- # Skip this test as it references a non-existent file
- skip "VACUUM and ANALYZE are integrated into other SQL files, no separate analyzeVacuum.sql file exists"
- 
- # Test SQL validation
- run bash -c "
-   source '${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh' > /dev/null 2>&1
-   __validate_sql_structure '$sql_file'
- "
- [ "$status" -eq 0 ]
-}
+# Test removed: VACUUM and ANALYZE functionality is integrated into other SQL files
+# No separate analyzeVacuum.sql file exists - functionality tested in other tests
 
 # Test that all SQL files in the project are valid
 @test "all SQL files should pass validation" {

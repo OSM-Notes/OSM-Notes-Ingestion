@@ -27,6 +27,14 @@ setup() {
    source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
   fi
  fi
+ 
+ # Ensure __retry_file_operation is loaded
+ if ! declare -f __retry_file_operation > /dev/null 2>&1; then
+  # Try loading from noteProcessingFunctions if not in functionsProcess
+  if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" ]; then
+   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" > /dev/null 2>&1 || true
+  fi
+ fi
 }
 
 teardown() {

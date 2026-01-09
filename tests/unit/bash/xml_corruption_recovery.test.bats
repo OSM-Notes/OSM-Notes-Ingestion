@@ -20,6 +20,14 @@ setup() {
 
  # Source the functions
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/parallelProcessingFunctions.sh"
+ 
+ # Ensure __validate_xml_integrity is available
+ if ! declare -f __validate_xml_integrity > /dev/null 2>&1; then
+  # Try loading from functionsProcess if not in parallelProcessingFunctions
+  if [[ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]]; then
+   source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
+  fi
+ fi
 
  # Create test XML files
  create_test_xml_files

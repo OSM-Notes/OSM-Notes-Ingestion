@@ -148,11 +148,8 @@ teardown() {
  echo "✓ Text comments CSV generated successfully: ${line_count} lines"
 }
 
-@test "Mock XML can be processed with robust AWK function" {
- # This function has been consolidated into __processLargeXmlFile
- # Skip this test as the original function no longer exists
- skip "Robust AWK processing function consolidated into __processLargeXmlFile"
-}
+# Test removed: Robust AWK processing function has been consolidated into __processLargeXmlFile
+# Functionality is tested in tests for __processLargeXmlFile
 
 @test "Mock XML can be manually divided into parts for testing" {
  local output_dir="${TEST_OUTPUT_DIR}/manual_parts"

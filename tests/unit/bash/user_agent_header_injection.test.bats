@@ -11,6 +11,14 @@ setup() {
  export TMP_DIR="$(mktemp -d)"
  export LOG_LEVEL="DEBUG"
  export DOWNLOAD_USER_AGENT="UA-Test/1.0 (+https://example.test; contact: test@example.test)"
+ 
+ # Load functions needed for tests
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/boundaryProcessingFunctions.sh" > /dev/null 2>&1 || true
+ fi
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh" > /dev/null 2>&1 || true
+ fi
 }
 
 teardown() {

@@ -10,6 +10,15 @@ load "$(dirname "$BATS_TEST_FILENAME")/json_validation_helpers.bash"
 
 setup() {
  __setup_json_validation_test
+ 
+ # Load functions needed for tests
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
+ fi
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/noteProcessingFunctions.sh" > /dev/null 2>&1 || true
+ fi
 }
 
 teardown() {

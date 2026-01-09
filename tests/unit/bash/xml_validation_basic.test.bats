@@ -8,6 +8,12 @@
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
 setup() {
+ # Load functions needed for tests
+ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
+ if [ -f "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" ]; then
+  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" > /dev/null 2>&1 || true
+ fi
+ 
  # Create a simple test script with just the functions we need
  cat > /tmp/test_xml_functions.sh << 'EOF'
 #!/bin/bash
