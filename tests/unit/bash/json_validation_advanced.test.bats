@@ -114,12 +114,12 @@ EOF
   # If jq is still found, temporarily rename it or use a wrapper that fails
   if PATH="${restricted_path}" command -v jq &> /dev/null; then
    # Create a temporary wrapper that simulates jq not being available
-   local temp_jq_wrapper="${TMP_DIR}/jq"
+   local temp_jq_wrapper="${TEST_DIR}/jq"
    echo '#!/bin/bash' > "${temp_jq_wrapper}"
    echo 'exit 127' >> "${temp_jq_wrapper}"
    chmod +x "${temp_jq_wrapper}"
    # Use the wrapper in PATH
-   restricted_path="${TMP_DIR}:${restricted_path}"
+   restricted_path="${TEST_DIR}:${restricted_path}"
   fi
  fi
 
