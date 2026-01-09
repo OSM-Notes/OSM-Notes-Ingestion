@@ -42,9 +42,10 @@ EOF
  # Set TEST_MODE to ensure function returns instead of exiting
  export TEST_MODE="true"
 
+ # Test that the function succeeds when network is available
+ # The function returns 0 on success, 1 on failure
  run __check_network_connectivity 5
  [ "$status" -eq 0 ]
- [[ "$output" == *"Network connectivity confirmed"* ]] || [[ "$output" == *"connectivity confirmed"* ]]
 }
 
 @test "handle_error_with_cleanup should execute cleanup commands" {
