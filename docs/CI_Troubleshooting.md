@@ -153,41 +153,99 @@ When running GitHub Actions workflows locally using `act`, multiple jobs try to 
 
 ```
 failed to start container: Error response from daemon: driver failed programming external connectivity on endpoint act-CI-CD-Pipeline-Unit-Tests-1-...: Bind for 0.0.0.0:5432 failed: port is already allocated
+Error starting userland proxy: listen tcp4 0.0.0.0:5432: bind: address already in use
 ```
 
-#### Solution
-
-This is a known limitation when running GitHub Actions workflows locally with `act`. The issue occurs because:
+This issue occurs because:
 
 1. Multiple matrix jobs run in parallel
 2. Each job tries to start a PostgreSQL service on port 5432
 3. Only one container can bind to a port at a time
+4. Additionally, if you have a local PostgreSQL instance running on port 5432, it will conflict
 
-**Options to resolve:**
+#### Solution
+
+**Immediate Fix - Stop Local PostgreSQL:**
+
+If you have PostgreSQL running locally on port 5432, stop it before running `act`:
+
+```bash
+# Check if PostgreSQL is running
+sudo systemctl status postgresql
+# or
+ps aux | grep postgres
+
+# Stop PostgreSQL service (choose the appropriate command for your system)
+sudo systemctl stop postgresql
+# or
+sudo service postgresql stop
+# or if running in Docker
+docker ps | grep postgres
+docker stop <postgres_container_id>
+```
+
+**Long-term Solutions:**
 
 1. **Run jobs sequentially** (not recommended for CI/CD, but works for local testing):
    ```bash
+   # Run one job at a time
    act -j unit-tests --matrix test-group:process-api-planet
    act -j unit-tests --matrix test-group:boundary-overpass
    # ... run each job separately
    ```
 
-2. **Use different ports for each job** (requires modifying the workflow):
-   ```yaml
-   services:
-     postgres:
-       ports:
-         - ${{ matrix.test-group.port }}:5432  # Use dynamic ports
-   ```
-
-3. **Run only specific test groups** instead of the full matrix:
+2. **Run only specific test groups** instead of the full matrix:
    ```bash
+   # Run only one test group
    act -j unit-tests --matrix test-group:process-api-planet
    ```
 
-4. **Use GitHub Actions runners** instead of local execution for full test suite validation.
+3. **Use act with specific job filtering**:
+   ```bash
+   # Run only quick-checks job (no PostgreSQL needed)
+   act -j quick-checks
+   
+   # Run only security scan (no PostgreSQL needed)
+   act -j security-scan
+   ```
 
-**Note:** This issue does not occur in GitHub Actions runners because each job runs in an isolated environment. It's specific to local execution with `act`.
+4. **Configure act to use different port mapping** (requires act configuration):
+   ```bash
+   # Create .actrc file in your home directory
+   echo "--container-architecture linux/amd64" > ~/.actrc
+   # Note: act doesn't support dynamic port mapping per job yet
+   ```
+
+5. **Use GitHub Actions runners** instead of local execution for full test suite validation:
+   - Push your changes to GitHub
+   - Let GitHub Actions run the full test suite
+   - This is the recommended approach for comprehensive testing
+
+6. **Use Docker Compose for local testing** instead of act:
+   ```bash
+   cd tests/docker
+   docker-compose -f docker-compose.yml up -d
+   # Run tests manually
+   cd ../..
+   ./tests/run_tests.sh
+   ```
+
+**Verification:**
+
+After stopping local PostgreSQL, verify the port is free:
+
+```bash
+# Check if port 5432 is in use
+sudo lsof -i :5432
+# or
+sudo netstat -tulpn | grep 5432
+# or
+sudo ss -tulpn | grep 5432
+
+# If nothing is listening on 5432, you're good to go
+```
+
+**Note:** This issue does not occur in GitHub Actions runners because each job runs in an isolated environment. It's specific to local execution with `act`. The workflow is designed for GitHub Actions infrastructure, not for local execution with multiple parallel jobs.
 
 ### 7. Test Execution Failures
 
