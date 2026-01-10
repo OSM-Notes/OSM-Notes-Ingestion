@@ -881,7 +881,7 @@ jobs:
         echo "- ✅ File permissions verified" >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
-  # STAGE 6: Performance Tests (scheduled or manual only)
+  # STAGE 6: Performance Tests (main/develop/schedule/manual)
   # ============================================================================
   performance-tests:
     name: Performance Tests
@@ -889,6 +889,8 @@ jobs:
     needs: unit-tests
     if: |
       github.event_name == 'schedule' ||
+      github.ref == 'refs/heads/main' ||
+      github.ref == 'refs/heads/develop' ||
       github.event.inputs.run_full_suite == 'true'
     
     services:
