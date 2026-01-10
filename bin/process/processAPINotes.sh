@@ -876,8 +876,8 @@ function __cleanNotesFiles {
 }
 
 # Validates that the API notes file was downloaded successfully.
-# Checks file existence and non-empty content.
-# Exits with error if validation fails.
+# Checks file existence and handles empty files gracefully (0 notes is valid).
+# Exits with error only if file was not downloaded.
 function __validateApiNotesFile {
  __log_start
  __logd "Validating API notes file: ${API_NOTES_FILE}"
@@ -890,12 +890,13 @@ function __validateApiNotesFile {
   exit "${ERROR_INTERNET_ISSUE}"
  fi
 
+ # Empty file is valid when API returns 0 notes (no new notes scenario)
+ # This is a normal case and should be handled gracefully, not as an error
  if [[ ! -s "${API_NOTES_FILE}" ]]; then
-  __loge "ERROR: API notes file is empty: ${API_NOTES_FILE}"
-  __create_failed_marker "${ERROR_INTERNET_ISSUE}" \
-   "API notes file is empty - no data received from OSM API" \
-   "This may indicate API issues or no new notes. Check OSM API status. If temporary, delete this file and retry: ${FAILED_EXECUTION_FILE}. File: ${API_NOTES_FILE}"
-  exit "${ERROR_INTERNET_ISSUE}"
+  __logi "API notes file is empty (0 notes) - this is valid when no new notes are available"
+  __logi "API notes file downloaded successfully: ${API_NOTES_FILE} (empty - no new notes)"
+  __log_finish
+  return 0
  fi
 
  __logi "API notes file downloaded successfully: ${API_NOTES_FILE}"
@@ -904,26 +905,37 @@ function __validateApiNotesFile {
 
 # Validates and processes the API notes XML file.
 # Performs XML validation (if enabled), counts notes, and processes them.
+# Handles empty files gracefully (0 notes is a valid scenario).
 function __validateAndProcessApiXml {
  __log_start
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
- if [[ "${RESULT}" -ne 0 ]]; then
-  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
-   __validateApiNotesXMLFileComplete
-  else
-   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
-  fi
-  __countXmlNotesAPI "${API_NOTES_FILE}"
-  __processXMLorPlanet
-  # Only insert notes if there are notes to process (TOTAL_NOTES > 0)
-  # TOTAL_NOTES is exported by __countXmlNotesAPI
-  if [[ "${TOTAL_NOTES:-0}" -gt 0 ]]; then
-   __insertNewNotesAndComments
-   __loadApiTextComments
-  else
-   __logi "No notes to insert, skipping insertion"
-  fi
+ 
+ # Handle empty file case (0 notes scenario)
+ if [[ "${RESULT}" -eq 0 ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
+  __logi "API notes file is empty - no new notes to process"
+  TOTAL_NOTES=0
+  export TOTAL_NOTES
+  __logi "No notes to insert, skipping insertion"
+  __log_finish
+  return 0
+ fi
+ 
+ # File has content, process it
+ if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
+  __validateApiNotesXMLFileComplete
+ else
+  __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
+ fi
+ __countXmlNotesAPI "${API_NOTES_FILE}"
+ __processXMLorPlanet
+ # Only insert notes if there are notes to process (TOTAL_NOTES > 0)
+ # TOTAL_NOTES is exported by __countXmlNotesAPI
+ if [[ "${TOTAL_NOTES:-0}" -gt 0 ]]; then
+  __insertNewNotesAndComments
+  __loadApiTextComments
+ else
+  __logi "No notes to insert, skipping insertion"
  fi
  __log_finish
 }
