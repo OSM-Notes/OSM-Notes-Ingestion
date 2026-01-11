@@ -108,6 +108,13 @@ EOF
    
    if [[ -n "${ACT_JOB_NAME}" ]] && [[ "${ACT_JOB_NAME}" != "all" ]]; then
     ACT_CMD_ARRAY+=(--job "${ACT_JOB_NAME}")
+   else
+    # Warning: Running all jobs may cause port conflicts with PostgreSQL
+    # Multiple Unit Tests jobs will try to use port 5432 simultaneously
+    log_warning "Running all jobs - this may cause PostgreSQL port conflicts"
+    log_warning "Multiple Unit Tests jobs will try to use port 5432 simultaneously"
+    log_info "To avoid conflicts, run specific jobs: --job quick-checks"
+    log_info "Or use USE_ACT=false to run tests without act simulation"
    fi
    
    # Add any additional arguments
