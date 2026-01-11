@@ -1,7 +1,7 @@
 # CI/CD Pipeline - OSM-Notes-Ingestion
 # Consolidated workflow combining quality tests, unit tests, and integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-07
+# Version: 2026-01-11
 
 name: CI/CD Pipeline
 
@@ -141,6 +141,9 @@ jobs:
     timeout-minutes: 45  # Increased timeout for sequential execution of many tests
     strategy:
       fail-fast: false
+      # WARNING: Multiple test groups will run in parallel
+      # Each matrix job runs in a separate container with its own PostgreSQL instance
+      # Tests within each group run sequentially to avoid database conflicts
       matrix:
         test-group:
           - name: "process-api-planet"
@@ -336,8 +339,16 @@ jobs:
 
     - name: Run unit tests (group ${{ matrix.test-group.name }})
       run: |
+        echo "=========================================="
         echo "Running unit tests group: ${{ matrix.test-group.name }}"
+        echo "=========================================="
         echo "Pattern: ${{ matrix.test-group.pattern }}"
+        echo ""
+        echo "⚠️  NOTE: Multiple test groups run in parallel"
+        echo "   Each group uses a separate PostgreSQL container"
+        echo "   Tests within this group run sequentially"
+        echo "=========================================="
+        echo ""
         
         # Ensure results directory exists and create log file
         mkdir -p tests/results
@@ -397,6 +408,7 @@ jobs:
           echo "Running ${TEST_COUNT} test file(s) sequentially to avoid database conflicts..." >> "${LOG_FILE}"
           
           TEST_EXIT_CODE=0
+          FAILED_TESTS=()
           # Sequential execution prevents database conflicts when multiple tests
           # share the same PostgreSQL database instance
           for test_file in ${TEST_FILES}; do
@@ -408,7 +420,11 @@ jobs:
             set -o pipefail
             if [[ ${FILE_EXIT_CODE} -ne 0 ]]; then
               TEST_EXIT_CODE=${FILE_EXIT_CODE}
-              echo "Test ${test_file} failed with exit code ${FILE_EXIT_CODE}" >> "${LOG_FILE}"
+              FAILED_TESTS+=("${test_file}")
+              echo "❌ Test ${test_file} failed with exit code ${FILE_EXIT_CODE}" >> "${LOG_FILE}"
+              echo "❌ Test ${test_file} failed with exit code ${FILE_EXIT_CODE}"
+            else
+              echo "✅ Test ${test_file} passed" >> "${LOG_FILE}"
             fi
           done
           
@@ -416,8 +432,27 @@ jobs:
           echo "Test execution completed at $(date)" >> "${LOG_FILE}"
           echo "Exit code: ${TEST_EXIT_CODE}" >> "${LOG_FILE}"
           
+          # Show summary
+          echo ""
+          echo "=========================================="
+          echo "Test Summary for group: ${{ matrix.test-group.name }}"
+          echo "=========================================="
+          echo "Total test files: ${TEST_COUNT}"
+          if [[ ${#FAILED_TESTS[@]} -eq 0 ]]; then
+            echo "✅ All tests passed"
+          else
+            echo "❌ Failed tests: ${#FAILED_TESTS[@]}"
+            for failed_test in "${FAILED_TESTS[@]}"; do
+              echo "   - ${failed_test}"
+            done
+            echo ""
+            echo "Check the log file for details: ${LOG_FILE}"
+          fi
+          echo "=========================================="
+          
           # Exit with test result code (0 if all passed, non-zero if any failed)
           if [[ ${TEST_EXIT_CODE} -ne 0 ]]; then
+            echo "❌ Test group '${{ matrix.test-group.name }}' failed"
             exit ${TEST_EXIT_CODE}
           fi
         else
