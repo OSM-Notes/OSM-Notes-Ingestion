@@ -910,7 +910,7 @@ function __validateAndProcessApiXml {
  __log_start
  declare -i RESULT
  RESULT=$(wc -l < "${API_NOTES_FILE}")
- 
+
  # Handle empty file case (0 notes scenario)
  if [[ "${RESULT}" -eq 0 ]] || [[ ! -s "${API_NOTES_FILE}" ]]; then
   __logi "API notes file is empty - no new notes to process"
@@ -920,14 +920,24 @@ function __validateAndProcessApiXml {
   __log_finish
   return 0
  fi
- 
- # File has content, process it
+
+ # Count notes FIRST before validation to handle XML files with structure but no notes
+ # This prevents validation errors when MOCK_NOTES_COUNT=0 generates valid but empty XML
+ __countXmlNotesAPI "${API_NOTES_FILE}"
+
+ # If no notes found, skip validation and processing
+ if [[ "${TOTAL_NOTES:-0}" -eq 0 ]]; then
+  __logi "No notes found in XML file (file has structure but no <note> elements) - skipping validation and processing"
+  __log_finish
+  return 0
+ fi
+
+ # File has content with notes, process it
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]]; then
   __validateApiNotesXMLFileComplete
  else
   __logw "WARNING: XML validation SKIPPED (SKIP_XML_VALIDATION=true)"
  fi
- __countXmlNotesAPI "${API_NOTES_FILE}"
  __processXMLorPlanet
  # Only insert notes if there are notes to process (TOTAL_NOTES > 0)
  # TOTAL_NOTES is exported by __countXmlNotesAPI

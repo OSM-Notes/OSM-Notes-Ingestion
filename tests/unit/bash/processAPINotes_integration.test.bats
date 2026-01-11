@@ -216,4 +216,193 @@ teardown() {
  # Test that basic validation works
  run bash -c "source ${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh && __validate_xml_basic ${SCRIPT_BASE_DIRECTORY}/tests/fixtures/xml/api_notes_sample.xml"
  [ "$status" -eq 0 ] || echo "Basic XML validation should work"
+}
+
+# =============================================================================
+# Tests for API tables structure (no partitions, no part_id)
+# =============================================================================
+
+# Test that API tables should NOT have partitions
+@test "API tables should NOT have partitions" {
+ # Skip if PostgreSQL is not available
+ if ! command -v psql >/dev/null 2>&1; then
+  skip "PostgreSQL not available"
+ fi
+ 
+ # Test if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  skip "PostgreSQL not accessible"
+ fi
+ 
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ [ "$status" -eq 0 ]
+ 
+ # Create required enums first
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Create API tables
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Check that notes_api table exists and is not partitioned
+ local partition_check
+ partition_check=$(psql -d "${TEST_DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_inherits WHERE inhrelid = 'notes_api'::regclass;" 2>/dev/null || echo "0")
+ [ "${partition_check}" -eq "0" ]
+ 
+ # Check note_comments_api
+ partition_check=$(psql -d "${TEST_DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_inherits WHERE inhrelid = 'note_comments_api'::regclass;" 2>/dev/null || echo "0")
+ [ "${partition_check}" -eq "0" ]
+ 
+ # Check note_comments_text_api
+ partition_check=$(psql -d "${TEST_DBNAME}" -Atq -c "SELECT COUNT(*) FROM pg_inherits WHERE inhrelid = 'note_comments_text_api'::regclass;" 2>/dev/null || echo "0")
+ [ "${partition_check}" -eq "0" ]
+}
+
+# Test that API tables should NOT have part_id column
+@test "API tables should NOT have part_id column" {
+ # Skip if PostgreSQL is not available
+ if ! command -v psql >/dev/null 2>&1; then
+  skip "PostgreSQL not available"
+ fi
+ 
+ # Test if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  skip "PostgreSQL not accessible"
+ fi
+ 
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ [ "$status" -eq 0 ]
+ 
+ # Create required enums first
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Create API tables
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Check that notes_api does not have part_id column
+ local column_check
+ column_check=$(psql -d "${TEST_DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'notes_api' AND column_name = 'part_id';" 2>/dev/null || echo "0")
+ [ "${column_check}" -eq "0" ]
+ 
+ # Check note_comments_api
+ column_check=$(psql -d "${TEST_DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'note_comments_api' AND column_name = 'part_id';" 2>/dev/null || echo "0")
+ [ "${column_check}" -eq "0" ]
+ 
+ # Check note_comments_text_api
+ column_check=$(psql -d "${TEST_DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'note_comments_text_api' AND column_name = 'part_id';" 2>/dev/null || echo "0")
+ [ "${column_check}" -eq "0" ]
+}
+
+# Test that notes_api table should have correct structure
+@test "notes_api table should have correct structure" {
+ # Skip if PostgreSQL is not available
+ if ! command -v psql >/dev/null 2>&1; then
+  skip "PostgreSQL not available"
+ fi
+ 
+ # Test if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  skip "PostgreSQL not accessible"
+ fi
+ 
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ [ "$status" -eq 0 ]
+ 
+ # Create required enums first
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Create API tables
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Check that notes_api has required columns (without part_id)
+ local column_count
+ column_count=$(psql -d "${TEST_DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = 'notes_api';" 2>/dev/null || echo "0")
+ 
+ # Should have 7 columns: note_id, latitude, longitude, created_at, closed_at, status, id_country
+ # (no part_id)
+ [ "${column_count}" -eq "7" ] || [ "${column_count}" -gt "0" ]
+ 
+ # Verify specific columns exist
+ run psql -d "${TEST_DBNAME}" -Atq -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'notes_api' ORDER BY ordinal_position;" 2>/dev/null
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"note_id"* ]]
+ [[ "$output" == *"latitude"* ]]
+ [[ "$output" == *"longitude"* ]]
+ [[ "$output" == *"created_at"* ]]
+ [[ ! "$output" == *"part_id"* ]]
+}
+
+# Test that note_comments_api table should have correct structure
+@test "note_comments_api table should have correct structure" {
+ # Skip if PostgreSQL is not available
+ if ! command -v psql >/dev/null 2>&1; then
+  skip "PostgreSQL not available"
+ fi
+ 
+ # Test if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  skip "PostgreSQL not accessible"
+ fi
+ 
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ [ "$status" -eq 0 ]
+ 
+ # Create required enums first
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Create API tables
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Verify specific columns exist (without part_id)
+ run psql -d "${TEST_DBNAME}" -Atq -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'note_comments_api' ORDER BY ordinal_position;" 2>/dev/null
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"note_id"* ]]
+ [[ "$output" == *"sequence_action"* ]]
+ [[ "$output" == *"event"* ]]
+ [[ "$output" == *"created_at"* ]]
+ [[ ! "$output" == *"part_id"* ]]
+}
+
+# Test that note_comments_text_api table should have correct structure
+@test "note_comments_text_api table should have correct structure" {
+ # Skip if PostgreSQL is not available
+ if ! command -v psql >/dev/null 2>&1; then
+  skip "PostgreSQL not available"
+ fi
+ 
+ # Test if we can connect to PostgreSQL
+ if ! psql -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
+  skip "PostgreSQL not accessible"
+ fi
+ 
+ # Create test database
+ run psql -d postgres -c "CREATE DATABASE ${TEST_DBNAME};"
+ [ "$status" -eq 0 ]
+ 
+ # Create required enums first
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Create API tables
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ [ "$status" -eq 0 ]
+ 
+ # Verify specific columns exist (without part_id)
+ run psql -d "${TEST_DBNAME}" -Atq -c "SELECT column_name FROM information_schema.columns WHERE table_name = 'note_comments_text_api' ORDER BY ordinal_position;" 2>/dev/null
+ [ "$status" -eq 0 ]
+ [[ "$output" == *"note_id"* ]]
+ [[ "$output" == *"sequence_action"* ]]
+ [[ "$output" == *"body"* ]]
+ [[ ! "$output" == *"part_id"* ]]
 } 

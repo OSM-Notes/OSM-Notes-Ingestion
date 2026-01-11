@@ -102,10 +102,9 @@ __run_process_api_tests() {
 
  local TEST_RESULT=0
 
- # shellcheck disable=SC2310
- __run_test_suite \
-  "${SCRIPT_DIR}/integration/processAPINotes_parallel_error_integration.test.bats" \
-  "processAPINotes parallel error integration" || TEST_RESULT=1
+ # Note: processAPINotes_parallel_error_integration.test.bats removed
+ # because parallel processing was eliminated from processAPINotes.sh
+ # (sequential processing only now)
 
  # shellcheck disable=SC2310
  __run_test_suite \

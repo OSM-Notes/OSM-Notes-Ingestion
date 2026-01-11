@@ -244,7 +244,8 @@ __run_level3_tests() {
  local -a test_files=(
   "tests/integration/end_to_end.test.bats"
   "tests/integration/boundary_processing_error_integration.test.bats"
-  "tests/integration/processAPINotes_parallel_error_integration.test.bats"
+  # Note: processAPINotes_parallel_error_integration.test.bats removed
+  # because parallel processing was eliminated from processAPINotes.sh
  )
 
  for test_file in "${test_files[@]}"; do

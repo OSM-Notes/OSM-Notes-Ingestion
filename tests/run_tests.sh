@@ -136,11 +136,10 @@ run_host_tests() {
   ;;
  "integration")
   log_info "Running integration tests..."
-  # Parallel processing integration tests (run first)
-  log_info "Running parallel processing integration tests..."
-  bats tests/integration/processAPINotes_parallel_error_integration.test.bats
-  # All other integration tests
-  log_info "Running remaining integration tests..."
+  # Note: processAPINotes_parallel_error_integration.test.bats removed
+  # because parallel processing was eliminated from processAPINotes.sh
+  # All integration tests
+  log_info "Running integration tests..."
   bats tests/integration/*.bats
   ;;
  "quality")
