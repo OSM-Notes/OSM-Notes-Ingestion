@@ -74,7 +74,8 @@ __get_function_calls() {
  
  local SCRIPT_HAS_VALIDATION=0
  if [[ -n "${SCRIPT_VALIDATE_START}" ]]; then
-  SCRIPT_HAS_VALIDATION=$(sed -n "${SCRIPT_VALIDATE_START},$((SCRIPT_VALIDATE_START + 20))p" "${SCRIPT_FILE}" | \
+  # Function is approximately 42 lines, so search 50 lines to be safe
+  SCRIPT_HAS_VALIDATION=$(sed -n "${SCRIPT_VALIDATE_START},$((SCRIPT_VALIDATE_START + 50))p" "${SCRIPT_FILE}" | \
    grep -c "__validateApiNotesFile\|__validateApiNotesXMLFileComplete\|__countXmlNotesAPI" 2>/dev/null | tr -d '[:space:]' || echo "0")
  fi
  
