@@ -192,6 +192,15 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 2  # Need history for test selection
 
+    - name: Configure submodule URL for GitHub Actions
+      run: |
+        # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
+        if grep -q "git@github.com" .gitmodules 2>/dev/null; then
+          echo "Converting submodule URL from SSH to HTTPS..."
+          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+          git submodule sync || true
+        fi
+
     - name: Verify submodule initialization
       run: |
         echo "Verifying submodule initialization..."
@@ -552,6 +561,15 @@ jobs:
         submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Configure submodule URL for GitHub Actions
+      run: |
+        # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
+        if grep -q "git@github.com" .gitmodules 2>/dev/null; then
+          echo "Converting submodule URL from SSH to HTTPS..."
+          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+          git submodule sync || true
+        fi
+
     - name: Verify submodule initialization
       run: |
         echo "Verifying submodule initialization..."
@@ -679,6 +697,15 @@ jobs:
       with:
         submodules: recursive
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Configure submodule URL for GitHub Actions
+      run: |
+        # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
+        if grep -q "git@github.com" .gitmodules 2>/dev/null; then
+          echo "Converting submodule URL from SSH to HTTPS..."
+          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+          git submodule sync || true
+        fi
 
     - name: Verify submodule initialization
       run: |
