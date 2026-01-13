@@ -1219,7 +1219,8 @@ function main() {
   __show_help
  fi
  # Check for failed execution file, but verify if it's still a real problem
- if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
+ # Only check when script is executed directly, not when sourced (for testing)
+ if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
   # Check if the failure was due to network issues
   if grep -q "Network connectivity\|API download failed\|Internet issues" "${FAILED_EXECUTION_FILE}" 2> /dev/null; then
    __logw "Previous execution failed due to network issues. Verifying connectivity..."
