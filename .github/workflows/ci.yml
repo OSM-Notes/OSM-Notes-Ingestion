@@ -188,45 +188,23 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: recursive
+        submodules: false
         token: ${{ secrets.GITHUB_TOKEN }}
         fetch-depth: 2  # Need history for test selection
 
-    - name: Configure submodule URL for GitHub Actions
+    - name: Configure and initialize submodule
       run: |
+        echo "Configuring submodule URL for GitHub Actions..."
         # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        if grep -q "git@github.com" .gitmodules 2>/dev/null; then
-          echo "Converting submodule URL from SSH to HTTPS..."
-          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
-          git submodule sync || true
-        fi
-
-    - name: Verify submodule initialization
-      run: |
+        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+        git submodule sync
+        
+        echo "Initializing submodule..."
+        git submodule update --init --recursive
+        
         echo "Verifying submodule initialization..."
         if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "WARNING: Submodule lib/osm-common not initialized correctly"
-          echo "Submodule status:"
-          git submodule status || true
-          echo "Attempting to initialize submodule..."
-          git submodule update --init --recursive || {
-            echo "Failed to initialize submodule with recursive update"
-            echo "Attempting manual initialization..."
-            git submodule init || true
-            git submodule update || {
-              echo "ERROR: Failed to update submodule"
-              echo "Trying to fix submodule URL..."
-              git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git || true
-              git submodule sync || true
-              git submodule update --init --recursive || {
-                echo "ERROR: All submodule initialization attempts failed"
-                exit 1
-              }
-            }
-          }
-        fi
-        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "ERROR: commonFunctions.sh not found after initialization"
+          echo "ERROR: Submodule initialization failed"
           echo "Submodule status:"
           git submodule status
           echo "Contents of lib/osm-common/:"
@@ -558,44 +536,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: recursive
+        submodules: false
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Configure submodule URL for GitHub Actions
+    - name: Configure and initialize submodule
       run: |
+        echo "Configuring submodule URL for GitHub Actions..."
         # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        if grep -q "git@github.com" .gitmodules 2>/dev/null; then
-          echo "Converting submodule URL from SSH to HTTPS..."
-          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
-          git submodule sync || true
-        fi
-
-    - name: Verify submodule initialization
-      run: |
+        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+        git submodule sync
+        
+        echo "Initializing submodule..."
+        git submodule update --init --recursive
+        
         echo "Verifying submodule initialization..."
         if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "WARNING: Submodule lib/osm-common not initialized correctly"
-          echo "Submodule status:"
-          git submodule status || true
-          echo "Attempting to initialize submodule..."
-          git submodule update --init --recursive || {
-            echo "Failed to initialize submodule with recursive update"
-            echo "Attempting manual initialization..."
-            git submodule init || true
-            git submodule update || {
-              echo "ERROR: Failed to update submodule"
-              echo "Trying to fix submodule URL..."
-              git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git || true
-              git submodule sync || true
-              git submodule update --init --recursive || {
-                echo "ERROR: All submodule initialization attempts failed"
-                exit 1
-              }
-            }
-          }
-        fi
-        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "ERROR: commonFunctions.sh not found after initialization"
+          echo "ERROR: Submodule initialization failed"
           echo "Submodule status:"
           git submodule status
           echo "Contents of lib/osm-common/:"
@@ -695,44 +651,22 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        submodules: recursive
+        submodules: false
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Configure submodule URL for GitHub Actions
+    - name: Configure and initialize submodule
       run: |
+        echo "Configuring submodule URL for GitHub Actions..."
         # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        if grep -q "git@github.com" .gitmodules 2>/dev/null; then
-          echo "Converting submodule URL from SSH to HTTPS..."
-          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
-          git submodule sync || true
-        fi
-
-    - name: Verify submodule initialization
-      run: |
+        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+        git submodule sync
+        
+        echo "Initializing submodule..."
+        git submodule update --init --recursive
+        
         echo "Verifying submodule initialization..."
         if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "WARNING: Submodule lib/osm-common not initialized correctly"
-          echo "Submodule status:"
-          git submodule status || true
-          echo "Attempting to initialize submodule..."
-          git submodule update --init --recursive || {
-            echo "Failed to initialize submodule with recursive update"
-            echo "Attempting manual initialization..."
-            git submodule init || true
-            git submodule update || {
-              echo "ERROR: Failed to update submodule"
-              echo "Trying to fix submodule URL..."
-              git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git || true
-              git submodule sync || true
-              git submodule update --init --recursive || {
-                echo "ERROR: All submodule initialization attempts failed"
-                exit 1
-              }
-            }
-          }
-        fi
-        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "ERROR: commonFunctions.sh not found after initialization"
+          echo "ERROR: Submodule initialization failed"
           echo "Submodule status:"
           git submodule status
           echo "Contents of lib/osm-common/:"
