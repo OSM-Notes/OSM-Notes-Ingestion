@@ -6,11 +6,27 @@ This directory contains SQL scripts for performance analysis and validation of d
 
 These scripts help validate that performance optimizations are working correctly by checking query execution plans, timing, and index usage. They focus on validating **CURRENT performance** rather than comparing with old implementations, making them useful long-term for performance monitoring.
 
+## ⚠️ Resource-Intensive Scripts
+
+Some scripts are **very resource-intensive** and should be run **monthly** (not daily or weekly):
+
+| Script | Execution Time | Resource Usage | Reason |
+|--------|---------------|----------------|--------|
+| `analyze_integrity_verification_performance.sql` | **15-30+ minutes** | ⚠️ **HIGH** | Uses `ST_Contains` on complex geometries with millions of notes |
+| `analyze_country_reassignment_performance.sql` | **5-15 minutes** | ⚠️ **MEDIUM-HIGH** | Uses `ST_Intersects` spatial queries on large datasets |
+| Other scripts | < 1 minute each | ✅ **LOW** | Fast queries, minimal resource usage |
+
+**Recommendation**: Run `analyzeDatabasePerformance.sh` **monthly** (first day of month, 2-4 AM) to avoid impacting production performance.
+
 ## Scripts
 
 ### `analyze_integrity_verification_performance.sql`
 
 **Purpose**: Validates performance of integrity verification queries.
+
+**⚠️ WARNING: RESOURCE INTENSIVE SCRIPT**
+
+This script is **very resource-intensive** and can take **15-30+ minutes** to execute on large databases. It performs expensive spatial operations (`ST_Contains`) on complex geometries.
 
 **What it analyzes:**
 - Integrity verification query performance (validates that coordinates belong to assigned country)
@@ -34,6 +50,12 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.s
 **Performance Thresholds:**
 - 5000 notes: < 1ms execution time
 - 100000 notes: < 10ms execution time
+
+**⚠️ Performance Considerations:**
+- **Execution time**: Can take 15-30+ minutes on production databases with millions of notes
+- **Resource usage**: High CPU and memory consumption due to spatial geometry operations
+- **Recommendation**: Run only during low-traffic periods (e.g., 2-4 AM)
+- **Frequency**: Monthly execution is sufficient for monitoring purposes
 
 ---
 
@@ -291,17 +313,26 @@ Results Summary:
 
 #### Regular Scheduling
 
-For continuous monitoring, you can schedule regular execution:
+**⚠️ IMPORTANT: Monthly Execution Recommended**
+
+Due to resource-intensive scripts (especially `analyze_integrity_verification_performance.sql`), **monthly execution is recommended** rather than daily or weekly. The script can take 30+ minutes and consume significant database resources.
+
+For continuous monitoring, schedule monthly execution:
 
 ```bash
-# Crontab to run daily at 2 AM
+# Crontab to run monthly (first day of month at 2 AM)
 # Note: Script creates its own log. Redirection is optional.
 # Use logs directory in home (no special permissions required)
-0 2 * * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes >> ~/logs/db_performance.log 2>&1
+0 2 1 * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes >> ~/logs/db_performance_monthly_$(date +\%Y\%m\%d).log 2>&1
 
 # Alternative: Without redirection (script creates its own log)
-0 2 * * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes >/dev/null 2>&1
+0 2 1 * * /path/to/project/bin/monitor/analyzeDatabasePerformance.sh --db osm_notes >/dev/null 2>&1
 ```
+
+**⚠️ Not Recommended:**
+- Daily execution: Too resource-intensive, unnecessary for monitoring
+- Weekly execution: Still too frequent for the value provided
+- During peak hours: Can impact production performance
 
 #### Monitoring Integration
 
@@ -526,12 +557,19 @@ Run after:
    - `analyze_country_assignment_performance.sql` is used in multiple processes
 
 2. **Most critical analyses**:
-   - `analyze_integrity_verification_performance.sql`: Process that takes hours, critical to optimize
+   - `analyze_integrity_verification_performance.sql`: ⚠️ **VERY RESOURCE INTENSIVE** - Process that takes 15-30+ minutes, critical to optimize
    - `analyze_country_assignment_performance.sql`: Runs frequently, affects overall performance
+   - `analyze_country_reassignment_performance.sql`: Uses spatial queries, can be slow on large datasets
 
 3. **Recommended frequency**:
+   - **Monthly execution**: Recommended for all analyses (first day of month, 2-4 AM)
    - **Planet**: After each complete load (weeks/months)
-   - **API**: After each synchronization or daily
-   - **Countries**: After each boundary update
+   - **API**: Monthly monitoring sufficient (not after each sync)
+   - **Countries**: After each boundary update (if needed, but monthly is sufficient)
+
+**⚠️ Resource-Intensive Scripts:**
+- `analyze_integrity_verification_performance.sql`: Uses `ST_Contains` on complex geometries - **15-30+ minutes**
+- `analyze_country_reassignment_performance.sql`: Uses `ST_Intersects` spatial queries - **5-15 minutes**
+- Other scripts are generally fast (< 1 minute each)
 
 

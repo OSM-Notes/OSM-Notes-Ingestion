@@ -55,10 +55,14 @@
 
 # Database performance analysis: Monthly (first day at 3 AM, after updateCountries)
 # Analyzes database performance and generates reports
+# ⚠️ WARNING: This script is resource-intensive and can take 30+ minutes to execute.
+# Monthly execution is recommended. Do NOT run daily or weekly.
 # NOTE: Create logs directory first: mkdir -p /home/notes/logs
 0 3 1 * * /home/notes/OSM-Notes-Ingestion/bin/monitor/analyzeDatabasePerformance.sh --db notes > /home/notes/logs/db_performance_monthly_$(date +\%Y\%m\%d).log 2>&1
 
-# Alternative: Weekly performance analysis (Sunday at 3 AM)
+# Alternative: Weekly performance analysis (NOT RECOMMENDED - too resource-intensive)
+# ⚠️ This is commented out because weekly execution consumes too many resources.
+# Monthly execution is sufficient for performance monitoring.
 # 0 3 * * 0 /home/notes/OSM-Notes-Ingestion/bin/monitor/analyzeDatabasePerformance.sh --db notes > /home/notes/logs/db_performance_weekly_$(date +\%Y\%m\%d).log 2>&1
 
 
@@ -86,7 +90,9 @@
 #   It's normal for this script to do nothing if tables are already correct.
 #   Only sends email if differences are found.
 #
-# - analyzeDatabasePerformance.sh: Monthly/weekly performance analysis.
+# - analyzeDatabasePerformance.sh: Monthly performance analysis (NOT weekly - too resource-intensive).
+#   ⚠️ WARNING: This script can take 30+ minutes and consumes significant resources.
+#   Recommended: Run monthly (first day of month) during low-traffic hours (2-4 AM).
 #   Safe to run on production (uses ROLLBACK, doesn't modify data).
 
 

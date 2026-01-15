@@ -473,12 +473,18 @@ Analyzes database performance and provides optimization recommendations.
 grep -i "recommendation\|warning\|error" performance_report.txt
 ```
 
-**Weekly Performance Monitoring:**
+**Monthly Performance Monitoring (Recommended):**
+
+⚠️ **IMPORTANT**: This script is resource-intensive and can take 30+ minutes. Monthly execution is recommended.
 
 ```bash
-# Add to crontab for weekly analysis (Sundays at 4 AM)
-0 4 * * 0 cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/analyzeDatabasePerformance.sh >> /var/log/osm-notes-performance.log 2>&1
+# Add to crontab for monthly analysis (first day of month at 3 AM)
+0 3 1 * * cd /path/to/OSM-Notes-Ingestion && ./bin/monitor/analyzeDatabasePerformance.sh --db notes >> /var/log/osm-notes-performance.log 2>&1
 ```
+
+**Not Recommended:**
+- Daily or weekly execution: Too resource-intensive
+- Peak hours: Can impact production performance
 
 **Exit Codes:**
 
