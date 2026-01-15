@@ -4,30 +4,36 @@
 # Independent test configuration - separate from production properties
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-08-18
+# Version: 2026-01-15
 
 # Database configuration for tests
+# Respect environment variables already set (e.g., by GitHub Actions)
+# Only set defaults if variables are not already configured
 # Detect if running in CI/CD environment
 if [[ -f "/app/bin/functionsProcess.sh" ]]; then
  # Running in Docker container
  if [[ "${TEST_DEBUG:-}" == "true" ]]; then
   echo "DEBUG: Detected Docker environment" >&2
  fi
- export TEST_DBNAME="osm_notes_test"
- export TEST_DBUSER="testuser"
- export TEST_DBPASSWORD="testpass"
- export TEST_DBHOST="postgres"
- export TEST_DBPORT="5432"
+ export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
+ export TEST_DBUSER="${TEST_DBUSER:-testuser}"
+ export TEST_DBPASSWORD="${TEST_DBPASSWORD:-testpass}"
+ export TEST_DBHOST="${TEST_DBHOST:-postgres}"
+ export TEST_DBPORT="${TEST_DBPORT:-5432}"
 elif [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
  # Running in GitHub Actions CI
+ # Respect variables already set by GitHub Actions workflow
+ # Only set defaults if not already configured
  if [[ "${TEST_DEBUG:-}" == "true" ]]; then
   echo "DEBUG: Detected CI environment" >&2
  fi
- export TEST_DBNAME="osm_notes_test"
- export TEST_DBUSER="testuser"
- export TEST_DBPASSWORD="testpass"
- export TEST_DBHOST="postgres"
- export TEST_DBPORT="5432"
+ export TEST_DBNAME="${TEST_DBNAME:-osm_notes_test}"
+ export TEST_DBUSER="${TEST_DBUSER:-postgres}"
+ export TEST_DBPASSWORD="${TEST_DBPASSWORD:-postgres}"
+ export TEST_DBHOST="${TEST_DBHOST:-localhost}"
+ export TEST_DBPORT="${TEST_DBPORT:-5432}"
+ # Set PGPASSWORD for PostgreSQL client tools
+ export PGPASSWORD="${TEST_DBPASSWORD}"
 else
  # Running on host - use local PostgreSQL with peer authentication
  if [[ "${TEST_DEBUG:-}" == "true" ]]; then
@@ -51,15 +57,6 @@ else
  unset DB_PORT 2> /dev/null || true
  unset DB_USER 2> /dev/null || true
  unset DB_PASSWORD 2> /dev/null || true
-fi
-
-# Force override if variables are already set
-if [[ "${CI:-}" == "true" ]] || [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
- unset TEST_DBUSER TEST_DBPASSWORD 2> /dev/null || true
- TEST_DBUSER="testuser"
- export TEST_DBUSER
- TEST_DBPASSWORD="testpass"
- export TEST_DBPASSWORD
 fi
 
 # Test application configuration
@@ -89,13 +86,13 @@ export CI_MAX_THREADS="2"  # Conservative threading for CI
 # In CI, reduce sleep times by 90% to speed up tests
 # Local tests use realistic delays, CI uses minimal delays
 export TEST_SLEEP_MULTIPLIER="${TEST_SLEEP_MULTIPLIER:-1}"
-export CI_TEST_SLEEP_MULTIPLIER="${CI_TEST_SLEEP_MULTIPLIER:-0.1}"  # 10x faster in CI
+export CI_TEST_SLEEP_MULTIPLIER="${CI_TEST_SLEEP_MULTIPLIER:-0.1}" # 10x faster in CI
 
 # Determine which multiplier to use
 if [[ "${CI:-false}" == "true" ]] || [[ "${GITHUB_ACTIONS:-false}" == "true" ]]; then
-  export ACTIVE_SLEEP_MULTIPLIER="${CI_TEST_SLEEP_MULTIPLIER}"
+ export ACTIVE_SLEEP_MULTIPLIER="${CI_TEST_SLEEP_MULTIPLIER}"
 else
-  export ACTIVE_SLEEP_MULTIPLIER="${TEST_SLEEP_MULTIPLIER}"
+ export ACTIVE_SLEEP_MULTIPLIER="${TEST_SLEEP_MULTIPLIER}"
 fi
 
 # Test Docker configuration
