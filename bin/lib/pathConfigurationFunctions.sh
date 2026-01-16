@@ -4,10 +4,10 @@
 # Centralized directory initialization with installation detection and fallback
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-18
+# Version: 2026-01-16
 # shellcheck disable=SC2034
 # VERSION is used for version tracking but may not be referenced in code
-VERSION="2025-12-18"
+VERSION="2026-01-16"
 
 # shellcheck disable=SC2317,SC2155
 
@@ -18,10 +18,12 @@ VERSION="2025-12-18"
 function __is_installed() {
  local INSTALLED_LOG_DIR="${1:-/var/log/osm-notes-ingestion}"
  local INSTALLED_TMP_DIR="${2:-/var/tmp/osm-notes-ingestion}"
+ local INSTALLED_LOCK_DIR="${3:-/var/run/osm-notes-ingestion}"
 
  # Check if directories exist and are writable
  if [[ -d "${INSTALLED_LOG_DIR}" ]] && [[ -w "${INSTALLED_LOG_DIR}" ]] \
-  && [[ -d "${INSTALLED_TMP_DIR}" ]] && [[ -w "${INSTALLED_TMP_DIR}" ]]; then
+  && [[ -d "${INSTALLED_TMP_DIR}" ]] && [[ -w "${INSTALLED_TMP_DIR}" ]] \
+  && [[ -d "${INSTALLED_LOCK_DIR}" ]] && [[ -w "${INSTALLED_LOCK_DIR}" ]]; then
   return 0
  fi
  return 1
@@ -126,32 +128,39 @@ function __init_tmp_dir() {
 
 # Initialize lock directory
 # Returns: LOCK_DIR (via echo, capture with: LOCK_DIR=$(__init_lock_dir))
+# Exits with error if directory cannot be created or is not writable
+# Note: FORCE_FALLBACK parameter is ignored - always uses /var/run/osm-notes-ingestion
 function __init_lock_dir() {
  local FORCE_FALLBACK="${1:-false}"
+ # FORCE_FALLBACK is ignored - kept for API compatibility but has no effect
 
  # Allow override via environment variable
- if [[ -n "${LOCK_DIR:-}" ]] && [[ "${FORCE_FALLBACK}" != "true" ]]; then
+ if [[ -n "${LOCK_DIR:-}" ]]; then
+  # Verify the override directory exists and is writable
+  if [[ ! -d "${LOCK_DIR}" ]] || [[ ! -w "${LOCK_DIR}" ]]; then
+   echo "ERROR: LOCK_DIR override '${LOCK_DIR}' does not exist or is not writable" >&2
+   exit "${ERROR_MISSING_LIBRARY:-241}"
+  fi
   echo "${LOCK_DIR}"
   return 0
  fi
 
- # Determine lock directory
- local LOCK_DIR
- # shellcheck disable=SC2119
- # __is_installed is called without arguments intentionally (uses default values)
- if [[ "${FORCE_FALLBACK}" == "true" ]] || ! __is_installed; then
-  # Fallback mode: use /tmp
-  LOCK_DIR="/tmp/osm-notes-ingestion/locks"
- else
-  # Installed mode: use /var/run (standard for lock files)
-  LOCK_DIR="/var/run/osm-notes-ingestion"
+ # Production mode: use /var/run (standard for lock files)
+ # No fallback - directory must exist and be writable
+ local LOCK_DIR="/var/run/osm-notes-ingestion"
+
+ # Verify directory exists and is writable
+ if [[ ! -d "${LOCK_DIR}" ]]; then
+  echo "ERROR: Lock directory '${LOCK_DIR}' does not exist" >&2
+  echo "ERROR: Please run 'sudo bin/scripts/install_directories.sh' to create it" >&2
+  exit "${ERROR_MISSING_LIBRARY:-241}"
  fi
 
- mkdir -p "${LOCK_DIR}" 2> /dev/null || {
-  # If creation fails, fallback to /tmp
-  LOCK_DIR="/tmp/osm-notes-ingestion/locks"
-  mkdir -p "${LOCK_DIR}" 2> /dev/null || true
- }
+ if [[ ! -w "${LOCK_DIR}" ]]; then
+  echo "ERROR: Lock directory '${LOCK_DIR}' is not writable" >&2
+  echo "ERROR: Please check permissions (should be 775) and ownership (should be notes:maptimebogota)" >&2
+  exit "${ERROR_MISSING_LIBRARY:-241}"
+ fi
 
  echo "${LOCK_DIR}"
 }
