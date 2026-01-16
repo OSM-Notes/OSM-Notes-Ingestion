@@ -1,7 +1,7 @@
 # CI/CD Pipeline - OSM-Notes-Ingestion
 # Consolidated workflow combining quality tests, unit tests, and integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-11
+# Version: 2026-01-15
 
 name: CI/CD Pipeline
 
@@ -171,7 +171,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -519,7 +519,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -634,7 +634,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
@@ -891,7 +891,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:16
+        image: postgis/postgis:16-3.4
         env:
           POSTGRES_DB: osm_notes_test
           POSTGRES_USER: postgres
