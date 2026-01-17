@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Version: 2025-12-16
+# Version: 2026-01-16
 
 # Require minimum BATS version for run flags
 bats_require_minimum_version 1.5.0
@@ -18,6 +18,14 @@ setup() {
  export BASENAME="test_update_countries"
  export LOG_LEVEL="INFO"
  export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
+ 
+ # Force fallback mode for tests (use /tmp instead of /var directories)
+ export FORCE_FALLBACK_MODE="true"
+ 
+ # Create lock directory in fallback location
+ local FALLBACK_LOCK_DIR="/tmp/osm-notes-ingestion/locks"
+ mkdir -p "${FALLBACK_LOCK_DIR}" 2>/dev/null || true
+ export LOCK_DIR="${FALLBACK_LOCK_DIR}"
  
  # Ensure TMP_DIR exists and is writable
  if [[ ! -d "${TMP_DIR}" ]]; then
