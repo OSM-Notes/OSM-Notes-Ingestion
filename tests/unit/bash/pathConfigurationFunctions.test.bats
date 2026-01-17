@@ -3,7 +3,7 @@
 # Path Configuration Functions Tests
 # Tests for directory initialization with installation detection and fallback
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-18
+# Version: 2026-01-16
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -14,12 +14,18 @@ setup() {
 
   # Set up test environment variables
   export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
+  
+  # Force fallback mode for all tests (use /tmp instead of /var directories)
+  export FORCE_FALLBACK_MODE="true"
 
   # Load path configuration functions
   source "${TEST_BASE_DIR}/bin/lib/pathConfigurationFunctions.sh"
 
   # Clean up any existing test directories
   rm -rf /tmp/osm-notes-ingestion /var/log/osm-notes-ingestion /var/tmp/osm-notes-ingestion /var/run/osm-notes-ingestion 2>/dev/null || true
+  
+  # Ensure fallback directories exist
+  mkdir -p /tmp/osm-notes-ingestion/locks 2>/dev/null || true
 }
 
 teardown() {
@@ -167,6 +173,8 @@ teardown() {
 
 @test "__init_lock_dir should use fallback mode when not installed" {
   # Should use /tmp/osm-notes-ingestion/locks in fallback mode
+  # Ensure FORCE_FALLBACK_MODE is set
+  export FORCE_FALLBACK_MODE="true"
   local result
   result=$(__init_lock_dir "true")
   [[ "${result}" == /tmp/osm-notes-ingestion/locks ]]
@@ -181,12 +189,15 @@ teardown() {
 
   # Set LOCK_DIR environment variable
   export LOCK_DIR="${custom_lock_dir}"
+  # Ensure FORCE_FALLBACK is false so LOCK_DIR override is respected
+  unset FORCE_FALLBACK_MODE
 
   local result
   result=$(__init_lock_dir "false")
   [[ "${result}" == "${custom_lock_dir}" ]]
 
   unset LOCK_DIR
+  export FORCE_FALLBACK_MODE="true"
 }
 
 # =============================================================================

@@ -3,7 +3,7 @@
 # Connectivity Check Tests
 # Verify external service availability before running integration tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-27
+# Version: 2026-01-16
 
 load "$(dirname "$BATS_TEST_FILENAME")/../test_helper.bash"
 # Note: service_availability_helpers.bash is automatically loaded by test_helper.bash
@@ -87,13 +87,38 @@ teardown() {
  fi
 
  # Test with minimal query (limit=1)
- run timeout 10 curl -s --max-time 10 \
+ # Use curl directly with timeout flag instead of timeout command
+ # to avoid issues with timeout exit codes
+ local TEMP_RESPONSE
+ TEMP_RESPONSE=$(mktemp)
+ 
+ run curl -s --max-time 10 --connect-timeout 5 \
   -H "User-Agent: OSM-Notes-Ingestion-Test/1.0" \
-  "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1" 2>&1
+  "https://api.openstreetmap.org/api/0.6/notes/search.xml?limit=1" \
+  -o "${TEMP_RESPONSE}" 2>&1
 
- [ "$status" -eq 0 ]
- [[ -n "${output}" ]]
- [[ "${output}" == *"<osm"* ]] || [[ "${output}" == *"<?xml"* ]]
+ # If curl fails, skip the test (it's optional)
+ if [ "$status" -ne 0 ]; then
+  rm -f "${TEMP_RESPONSE}"
+  skip "OSM API not reachable (connection failed or timeout)"
+ fi
+
+ # Verify we got a response
+ if [[ ! -f "${TEMP_RESPONSE}" ]] || [[ ! -s "${TEMP_RESPONSE}" ]]; then
+  rm -f "${TEMP_RESPONSE}"
+  skip "OSM API returned empty response"
+ fi
+
+ # Check if response contains XML
+ local RESPONSE_CONTENT
+ RESPONSE_CONTENT=$(cat "${TEMP_RESPONSE}" 2>/dev/null || echo "")
+ rm -f "${TEMP_RESPONSE}"
+
+ if [[ -z "${RESPONSE_CONTENT}" ]]; then
+  skip "OSM API returned empty content"
+ fi
+
+ [[ "${RESPONSE_CONTENT}" == *"<osm"* ]] || [[ "${RESPONSE_CONTENT}" == *"<?xml"* ]]
 }
 
 @test "Connectivity: OSM API version should be 0.6 (optional)" {

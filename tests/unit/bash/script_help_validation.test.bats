@@ -8,7 +8,7 @@ bats_require_minimum_version 1.5.0
 # without errors, ensuring basic functionality and variable loading works correctly
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-31
+# Version: 2026-01-16
 
 # Load test helper to get setup_test_properties
 load "${BATS_TEST_DIRNAME}/../../test_helper"
