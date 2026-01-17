@@ -146,7 +146,7 @@ function __init_lock_dir() {
  # Determine base lock directory
  local BASE_LOCK_DIR
  # shellcheck disable=SC2119
-  # __is_installed is called without arguments intentionally (uses default values)
+ # __is_installed is called without arguments intentionally (uses default values)
  if [[ "${FORCE_FALLBACK}" == "true" ]] || ! __is_installed; then
   # Fallback mode: use /tmp (non-persistent, for testing)
   BASE_LOCK_DIR="/tmp/osm-notes-ingestion/locks"
