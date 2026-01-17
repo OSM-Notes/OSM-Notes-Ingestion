@@ -37,8 +37,9 @@ setup() {
  fi
 
  # Source required functions
+ # Note: processAPIFunctions.sh is loaded automatically by processAPINotes.sh
+ # Don't load it here to avoid readonly variable conflicts
  source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh" || true
- source "${SCRIPT_BASE_DIRECTORY}/bin/lib/processAPIFunctions.sh" || true
  source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh" || true
 
  # Initialize TOTAL_NOTES if not already set (prevents unbound variable errors)
@@ -97,7 +98,8 @@ __load_process_api_script() {
 
  # Ensure TMP_DIR is still set after sourcing (script might have changed it)
  export TMP_DIR="${TMP_DIR:-$(mktemp -d)}"
- export POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
+ # POSTGRES_31_LOAD_API_NOTES is declared as readonly in processAPIFunctions.sh
+ # Don't try to export it - it's already set when the script is sourced
 
  # Verify function is defined
  if ! declare -f __processApiXmlSequential > /dev/null 2>&1; then
