@@ -39,8 +39,8 @@
 # For contributing: shellcheck -x -o all processAPINotes.sh && shfmt -w -i 1 -sr -bn processAPINotes.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
-VERSION="2025-12-13"
+# Version: 2026-01-17
+VERSION="2026-01-17"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -54,7 +54,11 @@ set -E
 
 # Auto-restart with setsid if not already in a new session
 # This protects against SIGHUP when terminal closes or session ends
-if [[ -z "${RUNNING_IN_SETSID:-}" ]] && command -v setsid > /dev/null 2>&1; then
+# Skip setsid re-execution if script is being sourced (not executed directly)
+# When sourced, ${BASH_SOURCE[0]} != ${0}
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && \
+   [[ -z "${RUNNING_IN_SETSID:-}" ]] && \
+   command -v setsid > /dev/null 2>&1; then
  # Only show message if there's a TTY (not from cron)
  if [[ -t 1 ]]; then
   RESTART_MESSAGE=$(date '+%Y%m%d_%H:%M:%S' || true)

@@ -83,7 +83,13 @@ __load_process_api_script() {
   export TOTAL_NOTES=-1
  fi
 
+ # Set required variables that the script expects
+ export BASENAME="test_process_api"
+ export LOG_LEVEL="${LOG_LEVEL:-ERROR}"
+ export FORCE_FALLBACK_MODE="true"
+
  # Source the function from processAPINotes.sh
+ # The script now detects when it's being sourced and won't re-execute with setsid
  # Redirect stderr to prevent property loading errors from failing the test
  set +e
  source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" 2> /dev/null || true
