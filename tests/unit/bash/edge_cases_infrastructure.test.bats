@@ -127,6 +127,9 @@ EOF
 # Test with invalid configuration
 @test "Edge case: Invalid configuration should be handled gracefully" {
  # Test with invalid database connection
- run bash -c "DBNAME=invalid_db DBHOST=invalid_host DBUSER=invalid_user DBPASSWORD=invalid_pass source ${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh"
+ # Use RUNNING_IN_SETSID to prevent auto-restart, and execute script directly
+ # The script should fail when trying to connect to invalid database
+ run bash -c "RUNNING_IN_SETSID=1 DBNAME=invalid_db DBHOST=invalid_host DBUSER=invalid_user DBPASSWORD=invalid_pass SKIP_XML_VALIDATION=true SKIP_CSV_VALIDATION=true ${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" 2>&1 || true
+ # Script should fail gracefully (non-zero exit code) when database connection fails
  [[ "${status}" -ne 0 ]] # Should fail gracefully
 }
