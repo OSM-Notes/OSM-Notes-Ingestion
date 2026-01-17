@@ -3,7 +3,7 @@
 # Unit tests for __processApiXmlSequential function
 # Tests sequential processing of API XML files
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
+# Version: 2026-01-17
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -15,6 +15,7 @@ setup() {
  export SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BATS_TEST_FILENAME}")/../../.." && pwd)"
  export TMP_DIR="$(mktemp -d)"
  export TEST_XML_FILE="${TMP_DIR}/test_api_notes.xml"
+ export TEST_BASE_DIR="${SCRIPT_BASE_DIRECTORY}"
 
  # Set test mode to prevent issues with properties.sh loading
  export TEST_MODE="true"
@@ -24,6 +25,11 @@ setup() {
  # Remove failed execution marker files that could prevent script loading
  rm -f /tmp/processAPINotes_failed_execution
  rm -f /tmp/processPlanetNotes_failed_execution
+
+ # Setup test properties so scripts can load properties.sh
+ if declare -f setup_test_properties > /dev/null 2>&1; then
+  setup_test_properties
+ fi
 
  # Copy single note fixture for testing
  if [[ -f "${SCRIPT_BASE_DIRECTORY}/tests/fixtures/special_cases/single_note.xml" ]]; then
@@ -39,9 +45,17 @@ setup() {
  if [[ -z "${TOTAL_NOTES:-}" ]]; then
   export TOTAL_NOTES=-1
  fi
+
+ # Set DBNAME to prevent errors when loading properties.sh
+ export DBNAME="${TEST_DBNAME:-osm_notes_test}"
 }
 
 teardown() {
+ # Restore original properties if needed
+ if declare -f restore_properties > /dev/null 2>&1; then
+  restore_properties
+ fi
+
  rm -rf "${TMP_DIR:-}"
  # Clean up failed execution marker files created during tests
  rm -f /tmp/processAPINotes_failed_execution
@@ -49,13 +63,12 @@ teardown() {
 }
 
 # =============================================================================
-# Tests for __processApiXmlSequential function
+# Helper Functions
 # =============================================================================
 
-@test "__processApiXmlSequential should process XML file correctly" {
- # Skip if fixture doesn't exist
- [ -f "${TEST_XML_FILE}" ] || skip "Test XML file not found"
-
+# Loads the processAPINotes.sh script and verifies the function is defined
+# Returns 0 if function is loaded, 1 otherwise
+__load_process_api_script() {
  # Ensure all required variables are set and exported before sourcing script
  # Don't export BASENAME - let the script declare it as readonly
  export TMP_DIR="${TMP_DIR}"
@@ -63,8 +76,6 @@ teardown() {
  export TEST_MODE="true"
  export SKIP_XML_VALIDATION="true"
  export SKIP_CSV_VALIDATION="true"
-
- # Set DBNAME to prevent errors when loading properties.sh
  export DBNAME="${TEST_DBNAME:-osm_notes_test}"
 
  # Initialize TOTAL_NOTES if not already set (prevents unbound variable errors)
@@ -80,9 +91,26 @@ teardown() {
 
  # Ensure TMP_DIR is still set after sourcing (script might have changed it)
  export TMP_DIR="${TMP_DIR:-$(mktemp -d)}"
+ export POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 
  # Verify function is defined
  if ! declare -f __processApiXmlSequential > /dev/null 2>&1; then
+  return 1
+ fi
+
+ return 0
+}
+
+# =============================================================================
+# Tests for __processApiXmlSequential function
+# =============================================================================
+
+@test "__processApiXmlSequential should process XML file correctly" {
+ # Skip if fixture doesn't exist
+ [ -f "${TEST_XML_FILE}" ] || skip "Test XML file not found"
+
+ # Load the script and verify function is defined
+ if ! __load_process_api_script; then
   skip "Function __processApiXmlSequential not defined (script loading failed)"
  fi
 
@@ -97,28 +125,10 @@ teardown() {
  # Skip if fixture doesn't exist
  [ -f "${TEST_XML_FILE}" ] || skip "Test XML file not found"
 
- # Ensure all required variables are set before sourcing script
- # Don't export BASENAME - let the script declare it as readonly
- export TMP_DIR="${TMP_DIR}"
- export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY}"
- export TEST_MODE="true"
- export SKIP_XML_VALIDATION="true"
- export SKIP_CSV_VALIDATION="true"
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
-
- # Initialize TOTAL_NOTES if not already set (prevents unbound variable errors)
- if [[ -z "${TOTAL_NOTES:-}" ]]; then
-  export TOTAL_NOTES=-1
+ # Load the script and verify function is defined
+ if ! __load_process_api_script; then
+  skip "Function __processApiXmlSequential not defined (script loading failed)"
  fi
-
- # Source the function (suppress errors from properties.sh loading)
- set +e
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" 2> /dev/null || true
- set -e
-
- # Ensure TMP_DIR is still set after sourcing
- export TMP_DIR="${TMP_DIR:-$(mktemp -d)}"
- export POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 
  # Call the function
  __processApiXmlSequential "${TEST_XML_FILE}" || true
@@ -185,31 +195,10 @@ teardown() {
 </osm>
 EOF
 
- # Ensure variables are set before sourcing
- # Don't export BASENAME - let the script declare it as readonly
- export TMP_DIR="${TMP_DIR}"
- export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY}"
- export TEST_MODE="true"
- export SKIP_XML_VALIDATION="true"
- export SKIP_CSV_VALIDATION="true"
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
-
- # Initialize TOTAL_NOTES if not already set (prevents unbound variable errors)
- if [[ -z "${TOTAL_NOTES:-}" ]]; then
-  export TOTAL_NOTES=-1
+ # Load the script and verify function is defined
+ if ! __load_process_api_script; then
+  skip "Function __processApiXmlSequential not defined (script loading failed)"
  fi
-
- # Source the function (suppress errors from properties.sh loading)
- set +e
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" 2> /dev/null || true
- set -e
-
- # Ensure TMP_DIR is still set after sourcing
- export TMP_DIR="${TMP_DIR:-$(mktemp -d)}"
-
- # Set required variables
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
- export POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 
  # Call the function - should handle empty file gracefully
  run __processApiXmlSequential "${TEST_XML_FILE}"
@@ -261,31 +250,12 @@ EOF
   skip "PostgreSQL not available"
  fi
 
- # Ensure variables are set before sourcing
- # Don't export BASENAME - let the script declare it as readonly
- export TMP_DIR="${TMP_DIR}"
- export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY}"
- export TEST_MODE="true"
- export SKIP_XML_VALIDATION="true"
- export SKIP_CSV_VALIDATION="true"
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
-
- # Initialize TOTAL_NOTES if not already set (prevents unbound variable errors)
- if [[ -z "${TOTAL_NOTES:-}" ]]; then
-  export TOTAL_NOTES=-1
+ # Load the script and verify function is defined
+ if ! __load_process_api_script; then
+  skip "Function __processApiXmlSequential not defined (script loading failed)"
  fi
 
- # Source the function (suppress errors from properties.sh loading)
- set +e
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" 2> /dev/null || true
- set -e
-
- # Ensure TMP_DIR is still set after sourcing
- export TMP_DIR="${TMP_DIR:-$(mktemp -d)}"
-
- # Set required variables
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
- export POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
+ # Set CSV validation to enabled
  export SKIP_CSV_VALIDATION="false"
 
  # Call the function - validation may fail if database not set up, but function should handle it
@@ -299,31 +269,12 @@ EOF
  # Skip if fixture doesn't exist
  [ -f "${TEST_XML_FILE}" ] || skip "Test XML file not found"
 
- # Ensure variables are set before sourcing
- # Don't export BASENAME - let the script declare it as readonly
- export TMP_DIR="${TMP_DIR}"
- export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY}"
- export TEST_MODE="true"
- export SKIP_XML_VALIDATION="true"
- export SKIP_CSV_VALIDATION="true"
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
-
- # Initialize TOTAL_NOTES if not already set (prevents unbound variable errors)
- if [[ -z "${TOTAL_NOTES:-}" ]]; then
-  export TOTAL_NOTES=-1
+ # Load the script and verify function is defined
+ if ! __load_process_api_script; then
+  skip "Function __processApiXmlSequential not defined (script loading failed)"
  fi
 
- # Source the function (suppress errors from properties.sh loading)
- set +e
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" 2> /dev/null || true
- set -e
-
- # Ensure TMP_DIR is still set after sourcing
- export TMP_DIR="${TMP_DIR:-$(mktemp -d)}"
-
- # Set required variables
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
- export POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
+ # Set CSV validation to skip
  export SKIP_CSV_VALIDATION="true"
 
  # Call the function - should skip validation
@@ -337,31 +288,10 @@ EOF
  # Skip if fixture doesn't exist
  [ -f "${TEST_XML_FILE}" ] || skip "Test XML file not found"
 
- # Ensure variables are set before sourcing
- # Don't export BASENAME - let the script declare it as readonly
- export TMP_DIR="${TMP_DIR}"
- export SCRIPT_BASE_DIRECTORY="${SCRIPT_BASE_DIRECTORY}"
- export TEST_MODE="true"
- export SKIP_XML_VALIDATION="true"
- export SKIP_CSV_VALIDATION="true"
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
-
- # Initialize TOTAL_NOTES if not already set (prevents unbound variable errors)
- if [[ -z "${TOTAL_NOTES:-}" ]]; then
-  export TOTAL_NOTES=-1
+ # Load the script and verify function is defined
+ if ! __load_process_api_script; then
+  skip "Function __processApiXmlSequential not defined (script loading failed)"
  fi
-
- # Source the function (suppress errors from properties.sh loading)
- set +e
- source "${SCRIPT_BASE_DIRECTORY}/bin/process/processAPINotes.sh" 2> /dev/null || true
- set -e
-
- # Ensure TMP_DIR is still set after sourcing
- export TMP_DIR="${TMP_DIR:-$(mktemp -d)}"
-
- # Set required variables
- export DBNAME="${TEST_DBNAME:-osm_notes_test}"
- export POSTGRES_31_LOAD_API_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
 
  # Call the function
  __processApiXmlSequential "${TEST_XML_FILE}" || true
