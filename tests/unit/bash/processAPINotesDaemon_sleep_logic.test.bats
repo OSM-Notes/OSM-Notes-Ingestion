@@ -4,7 +4,7 @@
 # Tests the adaptive sleep functionality based on processing duration
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
+# Version: 2026-01-16
 
 load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 
@@ -176,15 +176,16 @@ __calculate_sleep_time() {
  # Test that script shows help with -h or --help
  # The script exits with code 1 after showing help (standard behavior)
  run bash "${TEST_BASE_DIR}/bin/process/processAPINotesDaemon.sh" -h 2>&1 || true
+ # Verify exit code is 1 (expected for help)
+ [ "$status" -eq 1 ]
  # Help should be displayed (check for help content)
  # The script may output to stderr, so we check for various possible help indicators
  [[ "$output" == *"Usage"* ]] || \
- [[ "$output" == *"help"* ]] || \
- [[ "$output" == *"daemon"* ]] || \
- [[ "$output" == *"OSM Notes API"* ]] || \
- [[ "$output" == *"Processing Daemon"* ]] || \
- [[ "$output" == *"DAEMON_SLEEP_INTERVAL"* ]] || \
- [[ "$status" -eq 1 ]]  # Exit code 1 is expected for help
+[[ "$output" == *"help"* ]] || \
+[[ "$output" == *"daemon"* ]] || \
+[[ "$output" == *"OSM Notes API"* ]] || \
+[[ "$output" == *"Processing Daemon"* ]] || \
+[[ "$output" == *"DAEMON_SLEEP_INTERVAL"* ]]
 }
 
 # =============================================================================

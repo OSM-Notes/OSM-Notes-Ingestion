@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-ingestion-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-30
-VERSION="2025-12-30"
+# Version: 2026-01-16
+VERSION="2026-01-16"
 
 # IMPORTANT: This daemon sources processAPINotes.sh to reuse all its functions
 # The daemon adds daemon-specific functionality (looping, signal handling, etc.)
@@ -1151,6 +1151,11 @@ function main() {
  __logw "Daemon finished."
  __log_finish
 }
+
+# Check for help option before starting logger (so help output is visible)
+if [[ "${1:-}" == "-h" ]] || [[ "${1:-}" == "--help" ]]; then
+ __show_help
+fi
 
 # Start logger
 if [[ ! -t 1 ]]; then
