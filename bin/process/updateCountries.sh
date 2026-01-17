@@ -52,8 +52,8 @@
 # For contributing: shellcheck -x -o all updateCountries.sh && shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-23
-VERSION="2025-12-16"
+# Version: 2026-01-16
+VERSION="2026-01-16"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -104,6 +104,35 @@ readonly BASENAME
 # Set PostgreSQL application name for monitoring
 # This allows monitoring tools to identify which script is using the database
 export PGAPPNAME="${BASENAME}"
+
+# Check for help option before initializing directories (so help output is visible)
+if [[ "${1:-}" == "-h" ]] || [[ "${1:-}" == "--help" ]]; then
+ # Load minimal functions needed for help
+ # shellcheck disable=SC1091
+ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/commonFunctions.sh"
+ # Show help and exit
+ echo "${BASENAME} version ${VERSION}"
+ echo "Updates the country and maritime boundaries."
+ echo
+ echo "This script handles the complete lifecycle of countries and maritimes:"
+ echo "  - Creates and manages table structures (--base mode drops and recreates)"
+ echo "  - Downloads and processes geographic data"
+ echo "  - Updates boundaries and verifies note locations"
+ echo "  - Re-assigns countries for notes affected by boundary changes"
+ echo
+ echo "Usage:"
+ echo "  ${BASENAME}.sh              # Update boundaries in normal mode"
+ echo "  ${BASENAME}.sh --base       # Drop and recreate base tables"
+ echo "  ${BASENAME}.sh --help       # Show this help message"
+ echo "  ${BASENAME}.sh -h           # Show this help message"
+ echo
+ echo "Environment variables:"
+ echo "  CLEAN=true|false            # Control cleanup of temporary files"
+ echo
+ echo "Written by: Andres Gomez (AngocA)"
+ echo "OSM-LatAm, OSM-Colombia, MaptimeBogota."
+ exit "${ERROR_HELP_MESSAGE:-1}"
+fi
 
 # Load path configuration functions
 # shellcheck disable=SC1091
