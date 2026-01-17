@@ -56,9 +56,9 @@ set -E
 # This protects against SIGHUP when terminal closes or session ends
 # Skip setsid re-execution if script is being sourced (not executed directly)
 # When sourced, ${BASH_SOURCE[0]} != ${0}
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]] && \
-   [[ -z "${RUNNING_IN_SETSID:-}" ]] && \
-   command -v setsid > /dev/null 2>&1; then
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]] \
+ && [[ -z "${RUNNING_IN_SETSID:-}" ]] \
+ && command -v setsid > /dev/null 2>&1; then
  # Only show message if there's a TTY (not from cron)
  if [[ -t 1 ]]; then
   RESTART_MESSAGE=$(date '+%Y%m%d_%H:%M:%S' || true)
