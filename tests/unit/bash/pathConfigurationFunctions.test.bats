@@ -174,12 +174,17 @@ teardown() {
 }
 
 @test "__init_lock_dir should respect LOCK_DIR environment variable" {
+  # Create custom lock directory
+  local custom_lock_dir="${TEST_DIR}/custom/lock/dir"
+  mkdir -p "${custom_lock_dir}"
+  chmod 755 "${custom_lock_dir}"
+
   # Set LOCK_DIR environment variable
-  export LOCK_DIR="/custom/lock/dir"
+  export LOCK_DIR="${custom_lock_dir}"
 
   local result
   result=$(__init_lock_dir "false")
-  [[ "${result}" == /custom/lock/dir ]]
+  [[ "${result}" == "${custom_lock_dir}" ]]
 
   unset LOCK_DIR
 }

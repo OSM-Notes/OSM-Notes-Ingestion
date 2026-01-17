@@ -128,41 +128,50 @@ function __init_tmp_dir() {
 
 # Initialize lock directory
 # Returns: LOCK_DIR (via echo, capture with: LOCK_DIR=$(__init_lock_dir))
-# Exits with error if directory cannot be created or is not writable
-# Note: FORCE_FALLBACK parameter is ignored - always uses /var/run/osm-notes-ingestion
+# Uses fallback mode when FORCE_FALLBACK=true or when installed directories don't exist
 function __init_lock_dir() {
  local FORCE_FALLBACK="${1:-false}"
- # FORCE_FALLBACK is ignored - kept for API compatibility but has no effect
 
  # Allow override via environment variable
- if [[ -n "${LOCK_DIR:-}" ]]; then
+ if [[ -n "${LOCK_DIR:-}" ]] && [[ "${FORCE_FALLBACK}" != "true" ]]; then
   # Verify the override directory exists and is writable
   if [[ ! -d "${LOCK_DIR}" ]] || [[ ! -w "${LOCK_DIR}" ]]; then
    echo "ERROR: LOCK_DIR override '${LOCK_DIR}' does not exist or is not writable" >&2
-   exit "${ERROR_MISSING_LIBRARY:-241}"
+   return "${ERROR_MISSING_LIBRARY:-241}"
   fi
   echo "${LOCK_DIR}"
   return 0
  fi
 
- # Production mode: use /var/run (standard for lock files)
- # No fallback - directory must exist and be writable
- local LOCK_DIR="/var/run/osm-notes-ingestion"
-
- # Verify directory exists and is writable
- if [[ ! -d "${LOCK_DIR}" ]]; then
-  echo "ERROR: Lock directory '${LOCK_DIR}' does not exist" >&2
-  echo "ERROR: Please run 'sudo bin/scripts/install_directories.sh' to create it" >&2
-  exit "${ERROR_MISSING_LIBRARY:-241}"
+ # Determine base lock directory
+ local BASE_LOCK_DIR
+ # shellcheck disable=SC2119
+  # __is_installed is called without arguments intentionally (uses default values)
+ if [[ "${FORCE_FALLBACK}" == "true" ]] || ! __is_installed; then
+  # Fallback mode: use /tmp (non-persistent, for testing)
+  BASE_LOCK_DIR="/tmp/osm-notes-ingestion/locks"
+  mkdir -p "${BASE_LOCK_DIR}" 2> /dev/null || {
+   # If creation fails, return error
+   echo "ERROR: Cannot create fallback lock directory '${BASE_LOCK_DIR}'" >&2
+   return "${ERROR_MISSING_LIBRARY:-241}"
+  }
+ else
+  # Installed mode: use /var/run (standard for lock files)
+  BASE_LOCK_DIR="/var/run/osm-notes-ingestion"
+  # Verify directory exists and is writable
+  if [[ ! -d "${BASE_LOCK_DIR}" ]]; then
+   echo "ERROR: Lock directory '${BASE_LOCK_DIR}' does not exist" >&2
+   echo "ERROR: Please run 'sudo bin/scripts/install_directories.sh' to create it" >&2
+   return "${ERROR_MISSING_LIBRARY:-241}"
+  fi
+  if [[ ! -w "${BASE_LOCK_DIR}" ]]; then
+   echo "ERROR: Lock directory '${BASE_LOCK_DIR}' is not writable" >&2
+   echo "ERROR: Please check permissions (should be 775) and ownership (should be notes:maptimebogota)" >&2
+   return "${ERROR_MISSING_LIBRARY:-241}"
+  fi
  fi
 
- if [[ ! -w "${LOCK_DIR}" ]]; then
-  echo "ERROR: Lock directory '${LOCK_DIR}' is not writable" >&2
-  echo "ERROR: Please check permissions (should be 775) and ownership (should be notes:maptimebogota)" >&2
-  exit "${ERROR_MISSING_LIBRARY:-241}"
- fi
-
- echo "${LOCK_DIR}"
+ echo "${BASE_LOCK_DIR}"
 }
 
 # Initialize all directories at once
@@ -192,10 +201,24 @@ function __init_directories() {
  # Initialize directories
  local LOG_DIR_VAL
  LOG_DIR_VAL=$(__init_log_dir "${BASENAME_VALUE}" "${FORCE_FALLBACK}")
+ if [[ -z "${LOG_DIR_VAL}" ]]; then
+  echo "ERROR: Failed to initialize log directory" >&2
+  return "${ERROR_MISSING_LIBRARY:-241}"
+ fi
+
  local TMP_DIR_VAL
  TMP_DIR_VAL=$(__init_tmp_dir "${BASENAME_VALUE}" "${FORCE_FALLBACK}")
+ if [[ -z "${TMP_DIR_VAL}" ]]; then
+  echo "ERROR: Failed to initialize temporary directory" >&2
+  return "${ERROR_MISSING_LIBRARY:-241}"
+ fi
+
  local LOCK_DIR_VAL
  LOCK_DIR_VAL=$(__init_lock_dir "${FORCE_FALLBACK}")
+ if [[ -z "${LOCK_DIR_VAL}" ]]; then
+  echo "ERROR: Failed to initialize lock directory" >&2
+  return "${ERROR_MISSING_LIBRARY:-241}"
+ fi
 
  # Export for use in scripts
  export LOG_DIR="${LOG_DIR_VAL}"
