@@ -324,6 +324,13 @@ jobs:
           sleep 2
         done
 
+    - name: Setup PostGIS extensions
+      run: |
+        echo "Setting up PostGIS extensions in test database..."
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+        echo "PostGIS extensions setup completed"
+
     - name: Run unit tests (group ${{ matrix.test-group.name }})
       run: |
         echo "=========================================="
@@ -589,6 +596,13 @@ jobs:
           sleep 2
         done
 
+    - name: Setup PostGIS extensions
+      run: |
+        echo "Setting up PostGIS extensions in test database..."
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+        echo "PostGIS extensions setup completed"
+
     - name: Run critical integration tests
       run: |
         echo "Running critical integration tests..."
@@ -742,6 +756,13 @@ jobs:
           echo "Waiting for PostgreSQL..."
           sleep 2
         done
+
+    - name: Setup PostGIS extensions
+      run: |
+        echo "Setting up PostGIS extensions in test database..."
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+        echo "PostGIS extensions setup completed"
 
     - name: Run all integration tests
       run: |
@@ -960,6 +981,13 @@ jobs:
           echo "Waiting for PostgreSQL..."
           sleep 2
         done
+
+    - name: Setup PostGIS extensions
+      run: |
+        echo "Setting up PostGIS extensions in test database..."
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+        echo "PostGIS extensions setup completed"
 
     - name: Download baseline (if exists)
       uses: dawidd6/action-download-artifact@v3
