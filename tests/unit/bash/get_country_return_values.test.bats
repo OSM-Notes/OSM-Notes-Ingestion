@@ -12,7 +12,7 @@
 # Author: Andres Gomez (AngocA)
 # Version: 2025-01-19
 
-load test_helper
+load ../../test_helper
 
 setup() {
  # Use test database

@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `tests/unit/sql/get_country_return_values.test.sql` (validates return value semantics)
     - `tests/unit/sql/get_country_partial_failures.test.sql` (detects partial failures)
     - `tests/unit/bash/get_country_return_values.test.bats` (BATS integration tests)
-  - **Documentation**: See `docs/PARTIAL_FAILURE_BUG_EXPLANATION.md`, `docs/WHY_TESTS_DIDNT_DETECT_COUNTRY_ASSIGNMENT_BUG.md`, and `docs/Country_Assignment_Migration_Guide.md`
+    - `tests/setup_test_countries_for_get_country.sh` (automatic test data setup)
 
 #### Daemon Multiple Planet Executions Fix (2025-12-15)
 

@@ -284,7 +284,7 @@ BEGIN
       SELECT 13.4050, 52.5200, 'Germany - Berlin' UNION ALL
       SELECT 2.3522, 48.8566, 'France - Paris' UNION ALL
       SELECT -0.1276, 51.5074, 'UK - London' UNION ALL
-      SELECT 40.7128, -74.0060, 'USA - New York' UNION ALL
+      SELECT -74.0060, 40.7128, 'USA - New York' UNION ALL
       SELECT 139.6917, 35.6895, 'Japan - Tokyo' UNION ALL
       SELECT 116.4074, 39.9042, 'China - Beijing'
     LOOP

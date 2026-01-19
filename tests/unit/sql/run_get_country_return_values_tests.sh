@@ -18,13 +18,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
-# Source library functions if available
-if [[ -f "${PROJECT_ROOT}/bin/lib/functionsProcess.sh" ]]; then
- source "${PROJECT_ROOT}/bin/lib/functionsProcess.sh"
-fi
+# Source library functions if available (don't fail if not found)
+# Note: We skip loading functionsProcess.sh as it may have dependencies
+# that aren't available in test environments
+# if [[ -f "${PROJECT_ROOT}/bin/lib/functionsProcess.sh" ]]; then
+ # shellcheck source=/dev/null
+ # source "${PROJECT_ROOT}/bin/lib/functionsProcess.sh" 2>/dev/null || true
+# fi
 
-# Default database name
-readonly DBNAME="${DBNAME:-notes}"
+# Default database name (not readonly to allow override via command line)
+DBNAME="${DBNAME:-notes}"
 
 # Test file
 readonly TEST_FILE="${SCRIPT_DIR}/get_country_return_values.test.sql"
@@ -91,6 +94,23 @@ fi
 if ! psql -d "${DBNAME}" -t -c "SELECT 1 FROM information_schema.tables WHERE table_name = 'countries';" | grep -q 1; then
  echo "ERROR: Table countries does not exist in database: ${DBNAME}" >&2
  exit 1
+fi
+
+# Setup test countries if setup script exists
+SETUP_SCRIPT="${PROJECT_ROOT}/tests/setup_test_countries_for_get_country.sh"
+if [[ -f "${SETUP_SCRIPT}" ]]; then
+ echo ""
+ echo "=========================================="
+ echo "Setting up test countries for get_country tests"
+ echo "=========================================="
+ # Execute setup script in a subshell to avoid affecting current environment
+ set +e
+ if bash "${SETUP_SCRIPT}" 2>&1; then
+  echo "Test countries setup completed"
+ else
+  echo "WARNING: Test countries setup failed, continuing anyway..."
+ fi
+ set -e
 fi
 
 # Run tests

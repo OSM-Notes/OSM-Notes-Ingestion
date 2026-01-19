@@ -193,6 +193,19 @@ __run_level2_tests() {
   __setup_test_database
  fi
 
+ # Setup test countries for get_country tests if setup script exists
+ SETUP_SCRIPT="tests/setup_test_countries_for_get_country.sh"
+ if docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
+   bash -c "test -f /app/${SETUP_SCRIPT}"; then
+  log_info "Setting up test countries for get_country tests..."
+  if docker compose -f "${DOCKER_COMPOSE_FILE}" exec -T app \
+   bash -c "cd /app && bash ${SETUP_SCRIPT}" > /dev/null 2>&1; then
+   log_success "Test countries setup completed"
+  else
+   log_warning "Test countries setup failed, continuing anyway..."
+  fi
+ fi
+
  local -a test_files=(
   "tests/unit/sql/tables_simple.test.sql"
   "tests/unit/sql/functions_simple.test.sql"
@@ -200,6 +213,8 @@ __run_level2_tests() {
   "tests/unit/sql/test_integrity_check_exists.sql"
   "tests/unit/sql/test_get_country_optimization.sql"
   "tests/unit/sql/test_sequence_sync_conditional.sql"
+  "tests/unit/sql/get_country_return_values.test.sql"
+  "tests/unit/sql/get_country_partial_failures.test.sql"
  )
 
  for test_file in "${test_files[@]}"; do
