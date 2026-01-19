@@ -18,7 +18,7 @@ updated AS (
   SET id_country = get_country(n.longitude, n.latitude, n.note_id)
   FROM target t
   WHERE n.note_id = t.note_id
-  AND (n.id_country IS NULL OR n.id_country = -1)
+  AND (n.id_country IS NULL OR n.id_country < 0)
   RETURNING n.note_id
 )
 SELECT COUNT(*) FROM updated;

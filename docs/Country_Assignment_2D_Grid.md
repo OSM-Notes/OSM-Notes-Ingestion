@@ -450,7 +450,7 @@ If notes remain unassigned:
 -- Find unassigned notes
 SELECT note_id, longitude, latitude
 FROM notes
-WHERE id_country IS NULL OR id_country = -1
+WHERE id_country IS NULL OR id_country < 0
 LIMIT 100;
 
 -- Check which zone they fall into

@@ -40,7 +40,7 @@ function __getLocationNotes_impl {
   # shellcheck disable=SC2154
   # PGAPPNAME is set by the calling script or environment
   NOTES_COUNT=$(PGAPPNAME="${PGAPPNAME:-}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-   <<< "SELECT COUNT(*) FROM notes WHERE (id_country IS NULL OR id_country = -1)" 2> /dev/null || echo "0")
+   <<< "SELECT COUNT(*) FROM notes WHERE (id_country IS NULL OR id_country < 0)" 2> /dev/null || echo "0")
 
   if [[ "${NOTES_COUNT}" -eq "0" ]]; then
    __logi "All notes already have countries assigned. Skipping country calculation."
@@ -52,11 +52,11 @@ function __getLocationNotes_impl {
   __logd "This will be much faster than loading 4.8M notes from backup CSV"
 
   # Assign countries to notes using get_country() function
-  # This only processes notes that don't have a country assigned (NULL or -1)
+  # This only processes notes that don't have a country assigned (NULL, -1, or -2)
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 <<< "
    UPDATE notes n
    SET id_country = get_country(n.longitude, n.latitude, n.note_id)
-   WHERE (n.id_country IS NULL OR n.id_country = -1);
+   WHERE (n.id_country IS NULL OR n.id_country < 0);
   " || {
    __loge "ERROR: Failed to assign countries to notes"
    __log_finish
@@ -468,7 +468,7 @@ function __getLocationNotes_impl {
  # Check if there are any notes without country assignment
  local -i NOTES_WITHOUT_COUNTRY
  NOTES_WITHOUT_COUNTRY=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 \
-  <<< "SELECT COUNT(*) FROM notes WHERE (id_country IS NULL OR id_country = -1)")
+  <<< "SELECT COUNT(*) FROM notes WHERE (id_country IS NULL OR id_country < 0)")
  __logi "Notes without country assignment: ${NOTES_WITHOUT_COUNTRY}"
 
  if [[ "${NOTES_WITHOUT_COUNTRY}" -eq 0 ]]; then
@@ -483,7 +483,7 @@ function __getLocationNotes_impl {
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
 SELECT COUNT(*)
 FROM notes
-WHERE (id_country IS NULL OR id_country = -1)
+WHERE (id_country IS NULL OR id_country < 0)
 AND longitude IS NOT NULL
 AND latitude IS NOT NULL;
 EOF
@@ -494,7 +494,7 @@ EOF
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -v ON_ERROR_STOP=1 << 'EOF'
 SELECT COUNT(*)
 FROM notes
-WHERE (id_country IS NULL OR id_country = -1)
+WHERE (id_country IS NULL OR id_country < 0)
 AND (longitude IS NULL OR latitude IS NULL);
 EOF
  )
@@ -537,7 +537,7 @@ EOF
 COPY (
  SELECT note_id
  FROM notes
- WHERE (id_country IS NULL OR id_country = -1)
+ WHERE (id_country IS NULL OR id_country < 0)
  AND longitude IS NOT NULL
  AND latitude IS NOT NULL
  ORDER BY note_id

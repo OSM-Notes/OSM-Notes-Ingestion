@@ -102,9 +102,36 @@ echo ""
 if psql -d "${DBNAME}" -f "${TEST_FILE}" 2>&1; then
  echo ""
  echo "=========================================="
- echo "Tests completed successfully"
+ echo "Basic tests completed successfully"
  echo "=========================================="
- exit 0
+ 
+ # Also run return values tests if available
+ RETURN_VALUES_TEST="${SCRIPT_DIR}/get_country_return_values.test.sql"
+ if [[ -f "${RETURN_VALUES_TEST}" ]]; then
+  echo ""
+  echo "=========================================="
+  echo "Running return values tests (bug detection)"
+  echo "=========================================="
+  if psql -d "${DBNAME}" -f "${RETURN_VALUES_TEST}" 2>&1; then
+   echo ""
+   echo "=========================================="
+   echo "All tests completed successfully"
+   echo "=========================================="
+   exit 0
+  else
+   echo ""
+   echo "=========================================="
+   echo "Return values tests failed"
+   echo "=========================================="
+   exit 1
+  fi
+ else
+  echo ""
+  echo "=========================================="
+  echo "All tests completed successfully"
+  echo "=========================================="
+  exit 0
+ fi
 else
  echo ""
  echo "=========================================="

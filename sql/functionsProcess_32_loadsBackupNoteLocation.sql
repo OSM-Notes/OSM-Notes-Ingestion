@@ -40,7 +40,7 @@ UPDATE notes AS n /* Notes-processAPI */
  FROM backup_note_locations AS b
  INNER JOIN countries AS c ON c.country_id = b.id_country
  WHERE b.note_id = n.note_id
- AND (n.id_country IS NULL OR n.id_country = -1)
+ AND (n.id_country IS NULL OR n.id_country < 0)
  AND b.id_country > 0;
 SELECT /* Notes-processAPI */ clock_timestamp() AS Processing,
  'Notes updated with location...' AS Text;

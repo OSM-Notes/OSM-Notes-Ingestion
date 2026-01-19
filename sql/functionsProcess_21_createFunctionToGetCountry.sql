@@ -7,7 +7,9 @@
 --   id_note INTEGER: Note ID for optimization [requerido]
 --
 -- Returns:
---   INTEGER: Country ID, or -1 for international waters
+--   INTEGER: Country ID (> 0 for valid countries)
+--   -1: Known international waters (from international_waters table)
+--   -2: Country unknown/not found (should be reassigned later)
 --   NULL: Never (always returns INTEGER)
 --
 -- Exceptions: None (uses RETURN, not RAISE)
@@ -16,6 +18,8 @@
 --   1. Check current country first (95% hit rate when updating boundaries)
 --   2. Use 2D grid (24 zones) to select relevant countries
 --   3. Search terrestrial countries before maritime zones
+--   4. Use ST_Intersects as fallback for points on edges (ST_Contains is strict)
+--   5. Normalize SRID to 4326 for all geometries (handles SRID 0 from production)
 --
 -- Performance: See docs/Country_Assignment_2D_Grid.md#performance
 --   - Average: <1ms per note
@@ -43,7 +47,9 @@ AS $func$
   m_area VARCHAR(50);
   m_order_column VARCHAR(50);
  BEGIN
-  m_id_country := -1;
+  -- Initialize as unknown (-2) instead of international waters (-1)
+  -- -1 is reserved for KNOWN international waters only
+  m_id_country := -2;
 
   -- OPTIMIZATION: Get current country assignment
   SELECT id_country INTO m_current_country
@@ -52,13 +58,26 @@ AS $func$
 
   -- OPTIMIZATION: Check if note STILL belongs to current country
   -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
+  -- Improved: Use ST_Intersects as fallback for points on edges (ST_Contains is strict)
   IF m_current_country IS NOT NULL AND m_current_country > 0 THEN
+    -- Try ST_Contains first (strict - point must be inside)
     SELECT ST_Contains(
-      geom,
+      ST_SetSRID(geom, 4326),
       ST_SetSRID(ST_Point(lon, lat), 4326)
     ) INTO m_contains
     FROM countries
     WHERE country_id = m_current_country;
+
+    -- If ST_Contains fails, try ST_Intersects (more tolerant - includes points on edges)
+    -- This handles cases where points are on country boundaries
+    IF NOT m_contains THEN
+      SELECT ST_Intersects(
+        ST_SetSRID(geom, 4326),
+        ST_SetSRID(ST_Point(lon, lat), 4326)
+      ) INTO m_contains
+      FROM countries
+      WHERE country_id = m_current_country;
+    END IF;
 
     -- If still in same country, return immediately (95% of cases!)
     IF m_contains THEN
@@ -80,7 +99,11 @@ AS $func$
     IF EXISTS (
       SELECT 1 FROM international_waters
       WHERE (
-        (geom IS NOT NULL AND ST_Contains(geom, ST_SetSRID(ST_Point(lon, lat), 4326)))
+        (geom IS NOT NULL AND (
+          ST_Contains(ST_SetSRID(geom, 4326), ST_SetSRID(ST_Point(lon, lat), 4326))
+          OR
+          ST_Intersects(ST_SetSRID(geom, 4326), ST_SetSRID(ST_Point(lon, lat), 4326))
+        ))
         OR
         (point_coords IS NOT NULL AND ST_DWithin(
           point_coords,
@@ -242,6 +265,7 @@ AS $func$
   -- OPTIMIZATION: Use direct SQL query instead of loop for better PostgreSQL optimization
   -- This allows PostgreSQL to optimize the entire query and use spatial indexes efficiently
   -- Fixed: Normalize SRID - production geometries have SRID 0, set to 4326
+  -- Improved: Use ST_Intersects as fallback for points on edges (ST_Contains is strict)
   -- OPTIMIZATION: Use ST_Envelope(geom) for faster bounding box intersection (uses index)
   SELECT country_id INTO m_id_country
   FROM countries
@@ -250,12 +274,19 @@ AS $func$
     -- First filter by bounding box (fast - uses countries_bbox_box2d or countries_bbox_gist index)
     -- ST_Envelope(geom) && point is more efficient than ST_Intersects with ST_MakeEnvelope
     -- Uses the optimized index created by processPlanetNotes_26_optimizeCountryIndexes.sql
-    AND ST_Envelope(geom) && ST_SetSRID(ST_Point(lon, lat), 4326)
-    -- Then check exact containment (expensive, but only for filtered countries)
-    -- Optimized: geom already has SRID 4326, no need for ST_SetSRID
-    AND ST_Contains(
-      geom,
-      ST_SetSRID(ST_Point(lon, lat), 4326)
+    AND ST_Envelope(ST_SetSRID(geom, 4326)) && ST_SetSRID(ST_Point(lon, lat), 4326)
+    -- Then check containment: Try ST_Contains first (strict), fallback to ST_Intersects (tolerant)
+    -- This handles points on country boundaries that ST_Contains would reject
+    AND (
+      ST_Contains(
+        ST_SetSRID(geom, 4326),
+        ST_SetSRID(ST_Point(lon, lat), 4326)
+      )
+      OR
+      ST_Intersects(
+        ST_SetSRID(geom, 4326),
+        ST_SetSRID(ST_Point(lon, lat), 4326)
+      )
     )
   ORDER BY
     -- Priority: current country first (if exists)
@@ -299,18 +330,25 @@ AS $func$
 
   -- If not found in terrestrial boundaries, search MARITIME zones (is_maritime = true)
   -- This ensures notes in sea (not in any country) are assigned to maritime zones
+  -- Improved: Use ST_Intersects as fallback for points on edges
   IF m_id_country IS NULL THEN
     SELECT country_id INTO m_id_country
     FROM countries
     WHERE country_id != COALESCE(m_current_country, -1)
       AND is_maritime = true  -- FALLBACK: Search maritime boundaries only if not in terrestrial
       -- First filter by bounding box (fast - uses countries_bbox_box2d or countries_bbox_gist index)
-      AND ST_Envelope(geom) && ST_SetSRID(ST_Point(lon, lat), 4326)
-      -- Then check exact containment (expensive, but only for filtered countries)
-      -- Optimized: geom already has SRID 4326, no need for ST_SetSRID
-      AND ST_Contains(
-        geom,
-        ST_SetSRID(ST_Point(lon, lat), 4326)
+      AND ST_Envelope(ST_SetSRID(geom, 4326)) && ST_SetSRID(ST_Point(lon, lat), 4326)
+      -- Then check containment: Try ST_Contains first (strict), fallback to ST_Intersects (tolerant)
+      AND (
+        ST_Contains(
+          ST_SetSRID(geom, 4326),
+          ST_SetSRID(ST_Point(lon, lat), 4326)
+        )
+        OR
+        ST_Intersects(
+          ST_SetSRID(geom, 4326),
+          ST_SetSRID(ST_Point(lon, lat), 4326)
+        )
       )
     ORDER BY
       -- Priority: current country first (if exists)
@@ -353,11 +391,12 @@ AS $func$
     LIMIT 1;
   END IF;
 
-  -- Return -1 if no country found (NULL means not found)
-  RETURN COALESCE(m_id_country, -1);
+  -- Return -2 (unknown) if no country found, instead of -1 (international waters)
+  -- -1 is reserved ONLY for KNOWN international waters from international_waters table
+  RETURN COALESCE(m_id_country, -2);
  END
 $func$
 ;
 COMMENT ON FUNCTION get_country IS
-  'Returns country using intelligent 2D grid (24 zones). Checks current country first. Searches terrestrial boundaries (is_maritime=false) first, then maritime zones (is_maritime=true) if not found. Uses direct SQL query with bounding box optimization for better performance.';
+  'Returns country using intelligent 2D grid (24 zones). Checks current country first. Searches terrestrial boundaries (is_maritime=false) first, then maritime zones (is_maritime=true) if not found. Returns -1 for KNOWN international waters, -2 for unknown/not found. Uses ST_Contains with ST_Intersects fallback to handle points on country boundaries. Normalizes SRID to 4326 for all geometries. Uses direct SQL query with bounding box optimization for better performance.';
 
