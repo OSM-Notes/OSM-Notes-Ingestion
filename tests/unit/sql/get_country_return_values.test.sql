@@ -3,7 +3,7 @@
 -- This test specifically detects the bug where -1 was returned for valid countries
 --
 -- Author: Andres Gomez (AngocA)
--- Version: 2025-01-19
+-- Version: 2026-01-19
 
 BEGIN;
 

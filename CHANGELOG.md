@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-#### Country Assignment Bug Fix (2025-01-19)
+#### Country Assignment Bug Fix (2026-01-19)
 
 - **Fixed ambiguous return value in `get_country()` function**:
   - **Issue**: Function returned `-1` for both known international waters and unknown countries, causing notes in countries like Brazil, Venezuela, Chile, etc. to be incorrectly marked as international waters

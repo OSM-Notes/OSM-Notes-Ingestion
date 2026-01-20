@@ -7,7 +7,7 @@
 # some notes in Brazil/Venezuela/Chile returned -1 incorrectly.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-19
+# Version: 2026-01-19
 
 set -euo pipefail
 
