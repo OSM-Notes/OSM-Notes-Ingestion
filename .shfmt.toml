@@ -28,4 +28,4 @@ func_call_chain = true
 space_redirects = true
 
 # Remove trailing spaces (aligned with trim_trailing_whitespace in .editorconfig)
-keep_trailing_space = false 
+keep_trailing_space = false
