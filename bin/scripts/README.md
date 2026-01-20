@@ -18,8 +18,8 @@ Scripts to export geographic boundaries from the database to GeoJSON backup file
   - Usage: `./bin/scripts/exportMaritimesBackup.sh`
   - See [Boundaries_Backup.md](../../docs/Boundaries_Backup.md) for details
 
-These backups are automatically used by `processPlanet base` and `updateCountries` to
-avoid downloading boundaries from Overpass API when IDs match.
+These backups are automatically used by `processPlanet base` and `updateCountries` to avoid
+downloading boundaries from Overpass API when IDs match.
 
 ### Note Location Backup
 
@@ -29,7 +29,8 @@ avoid downloading boundaries from Overpass API when IDs match.
   - Usage: `./bin/scripts/generateNoteLocationBackup.sh`
   - Database: Uses `DBNAME` from environment or `etc/properties.sh` (default: `notes`)
   - When to run: After initial Planet load or when country assignments change significantly
-  - Performance: Significantly speeds up country assignment by avoiding spatial queries for existing notes
+  - Performance: Significantly speeds up country assignment by avoiding spatial queries for existing
+    notes
   - See [bin/README.md](../README.md) for details
 
 ## Usage Examples

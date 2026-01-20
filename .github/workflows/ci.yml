@@ -7,18 +7,18 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     # Run full tests daily at 2:00 AM UTC
-    - cron: '0 2 * * *'
+    - cron: "0 2 * * *"
   workflow_dispatch:
     inputs:
       run_full_suite:
-        description: 'Run full test suite including performance and advanced tests'
+        description: "Run full test suite including performance and advanced tests"
         required: false
-        default: 'false'
+        default: "false"
 
 permissions:
   contents: read
@@ -40,96 +40,127 @@ jobs:
       performance_tests: ${{ steps.select.outputs.performance_tests }}
       integration_tests: ${{ steps.select.outputs.integration_tests }}
       run_all: ${{ steps.select.outputs.run_all }}
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 2  # Need history for diff
-    
-    - name: Determine test selection
-      id: select
-      run: |
-        # Source the test selection script
-        source tests/select_tests_by_changes.sh
-        
-        # Determine which tests to run
-        determine_test_selection
-        
-        # Export results
-        {
-          echo "boundary_tests=${RUN_BOUNDARY_TESTS:-false}"
-          echo "note_tests=${RUN_NOTE_TESTS:-false}"
-          echo "security_tests=${RUN_SECURITY_TESTS:-false}"
-          echo "validation_tests=${RUN_VALIDATION_TESTS:-false}"
-          echo "performance_tests=${RUN_PERFORMANCE_TESTS:-false}"
-          echo "integration_tests=${RUN_INTEGRATION_TESTS:-false}"
-          
-          # Determine if we should run all tests
-          if [[ "${RUN_BOUNDARY_TESTS}" == "true" ]] && \
-             [[ "${RUN_NOTE_TESTS}" == "true" ]] && \
-             [[ "${RUN_SECURITY_TESTS}" == "true" ]] && \
-             [[ "${RUN_VALIDATION_TESTS}" == "true" ]]; then
-            echo "run_all=true"
-          else
-            echo "run_all=false"
-          fi
-        } >> "$GITHUB_OUTPUT"
-    
-    - name: Show test selection
-      run: |
-        echo "## Test Selection Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- Boundary tests: ${{ steps.select.outputs.boundary_tests }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Note tests: ${{ steps.select.outputs.note_tests }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Security tests: ${{ steps.select.outputs.security_tests }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Validation tests: ${{ steps.select.outputs.validation_tests }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Performance tests: ${{ steps.select.outputs.performance_tests }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Integration tests: ${{ steps.select.outputs.integration_tests }}" >> $GITHUB_STEP_SUMMARY
-  
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Need history for diff
+
+      - name: Determine test selection
+        id: select
+        run: |
+          # Source the test selection script
+          source tests/select_tests_by_changes.sh
+
+          # Determine which tests to run
+          determine_test_selection
+
+          # Export results
+          {
+            echo "boundary_tests=${RUN_BOUNDARY_TESTS:-false}"
+            echo "note_tests=${RUN_NOTE_TESTS:-false}"
+            echo "security_tests=${RUN_SECURITY_TESTS:-false}"
+            echo "validation_tests=${RUN_VALIDATION_TESTS:-false}"
+            echo "performance_tests=${RUN_PERFORMANCE_TESTS:-false}"
+            echo "integration_tests=${RUN_INTEGRATION_TESTS:-false}"
+            
+            # Determine if we should run all tests
+            if [[ "${RUN_BOUNDARY_TESTS}" == "true" ]] && \
+               [[ "${RUN_NOTE_TESTS}" == "true" ]] && \
+               [[ "${RUN_SECURITY_TESTS}" == "true" ]] && \
+               [[ "${RUN_VALIDATION_TESTS}" == "true" ]]; then
+              echo "run_all=true"
+            else
+              echo "run_all=false"
+            fi
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Show test selection
+        run: |
+          echo "## Test Selection Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Boundary tests: ${{ steps.select.outputs.boundary_tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Note tests: ${{ steps.select.outputs.note_tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Security tests: ${{ steps.select.outputs.security_tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Validation tests: ${{ steps.select.outputs.validation_tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Performance tests: ${{ steps.select.outputs.performance_tests }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Integration tests: ${{ steps.select.outputs.integration_tests }}" >> $GITHUB_STEP_SUMMARY
+
   # ============================================================================
   # STAGE 1: Quick Quality Checks (always run - fast feedback)
   # ============================================================================
   quick-checks:
     name: Code Quality & Linting
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install shellcheck
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y shellcheck
+      - name: Install shellcheck
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
 
-    - name: Install shfmt
-      run: |
-        if ! command -v shfmt; then
-          echo "Installing shfmt from GitHub..."
-          chmod +x tests/install_shfmt.sh
-          ./tests/install_shfmt.sh
-        fi
+      - name: Install shfmt
+        run: |
+          if ! command -v shfmt; then
+            echo "Installing shfmt from GitHub..."
+            chmod +x tests/install_shfmt.sh
+            ./tests/install_shfmt.sh
+          fi
 
-    - name: Run shellcheck on all bash scripts
-      run: |
-        echo "Running shellcheck with all optional checks..."
-        find bin -name "*.sh" -type f -exec shellcheck -x -o all {} \;
+      - name: Run shellcheck on all bash scripts
+        run: |
+          echo "Running shellcheck with all optional checks..."
+          find bin -name "*.sh" -type f -exec shellcheck -x -o all {} \;
 
-    - name: Check code formatting with shfmt
-      run: |
-        echo "Checking bash code formatting..."
-        find bin -name "*.sh" -type f -exec shfmt -d -i 1 -sr -bn {} \;
+      - name: Check code formatting with shfmt
+        run: |
+          echo "Checking bash code formatting..."
+          find bin -name "*.sh" -type f -exec shfmt -d -i 1 -sr -bn {} \;
 
-    - name: Check for common code issues
-      run: |
-        echo "Checking for trailing whitespace..."
-        ! find bin -name "*.sh" -type f -exec grep -l " $" {} \;
-        
-        echo "Verifying proper shebang..."
-        find bin -name "*.sh" -type f -exec head -1 {} \; | grep "#!/bin/bash"
+      - name: Install SQLFluff
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlfluff || pip3 install sqlfluff
+
+      - name: Check SQL formatting with SQLFluff
+        continue-on-error: true
+        run: |
+          echo "Checking SQL code formatting..."
+          if command -v sqlfluff &> /dev/null; then
+            find sql -name "*.sql" -type f -exec sqlfluff lint {} \; || echo "SQL formatting issues found (non-blocking)"
+          else
+            echo "SQLFluff not available, skipping SQL format check"
+          fi
+
+      - name: Install Prettier
+        run: |
+          if ! command -v prettier &> /dev/null; then
+            npm install -g prettier
+          fi
+
+      - name: Check formatting with Prettier
+        continue-on-error: true
+        run: |
+          echo "Checking code formatting with Prettier..."
+          if command -v prettier &> /dev/null; then
+            prettier --check "**/*.{md,json,yaml,yml,css,html}" --ignore-path .prettierignore || echo "Prettier formatting issues found (non-blocking)"
+          else
+            echo "Prettier not available, skipping format check"
+          fi
+
+      - name: Check for common code issues
+        run: |
+          echo "Checking for trailing whitespace..."
+          ! find bin -name "*.sh" -type f -exec grep -l " $" {} \;
+
+          echo "Verifying proper shebang..."
+          find bin -name "*.sh" -type f -exec head -1 {} \; | grep "#!/bin/bash"
 
   # ============================================================================
   # STAGE 2: Unit Tests (always run) - Parallelized for faster execution
@@ -138,7 +169,7 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     needs: quick-checks
-    timeout-minutes: 45  # Increased timeout for sequential execution of many tests
+    timeout-minutes: 45 # Increased timeout for sequential execution of many tests
     strategy:
       fail-fast: false
       # WARNING: Multiple test groups will run in parallel
@@ -147,7 +178,8 @@ jobs:
       matrix:
         test-group:
           - name: "process-api-planet"
-            pattern: "tests/unit/bash/processAPINotes*.bats tests/unit/bash/processPlanetNotes*.bats"
+            pattern:
+              "tests/unit/bash/processAPINotes*.bats tests/unit/bash/processPlanetNotes*.bats"
           - name: "boundary-overpass"
             pattern: "tests/unit/bash/boundary*.bats tests/unit/bash/overpass*.bats"
           - name: "security-validation"
@@ -155,20 +187,29 @@ jobs:
           - name: "performance-parallel"
             pattern: "tests/unit/bash/performance*.bats tests/unit/bash/parallel*.bats"
           - name: "cleanup-tests"
-            pattern: "tests/unit/bash/cleanup*.bats tests/unit/bash/clean_flag*.bats tests/unit/bash/cleanupAll*.bats"
+            pattern:
+              "tests/unit/bash/cleanup*.bats tests/unit/bash/clean_flag*.bats
+              tests/unit/bash/cleanupAll*.bats"
           - name: "prerequisites-tests"
             pattern: "tests/unit/bash/prerequisites*.bats"
           - name: "note-processing-tests"
-            pattern: "tests/unit/bash/note_processing*.bats tests/unit/bash/noteProcessingProgressLogging*.bats tests/unit/bash/notesCheckVerifier_integration*.bats"
+            pattern:
+              "tests/unit/bash/note_processing*.bats
+              tests/unit/bash/noteProcessingProgressLogging*.bats
+              tests/unit/bash/notesCheckVerifier_integration*.bats"
           - name: "csv-awk-tests"
             pattern: "tests/unit/bash/csv*.bats tests/unit/bash/awk*.bats"
           - name: "xml-utility-tests"
-            pattern: "tests/unit/bash/xml*.bats tests/unit/bash/utility*.bats tests/unit/bash/function*.bats tests/unit/bash/script*.bats tests/unit/bash/trap*.bats tests/unit/bash/variable*.bats tests/unit/bash/format_and_lint*.bats tests/unit/bash/pathConfigurationFunctions*.bats"
+            pattern:
+              "tests/unit/bash/xml*.bats tests/unit/bash/utility*.bats
+              tests/unit/bash/function*.bats tests/unit/bash/script*.bats tests/unit/bash/trap*.bats
+              tests/unit/bash/variable*.bats tests/unit/bash/format_and_lint*.bats
+              tests/unit/bash/pathConfigurationFunctions*.bats"
           - name: "edge-cases-integration-tests"
             pattern: "tests/unit/bash/edge_cases*.bats tests/unit/bash/*_integration.test.bats"
           - name: "other-misc-tests"
             pattern: "tests/unit/bash/*.bats"
-    
+
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -177,342 +218,339 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: osm_notes_test
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: false
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 2  # Need history for test selection
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 2 # Need history for test selection
 
-    - name: Configure and initialize submodule
-      run: |
-        echo "Configuring submodule URL for GitHub Actions..."
-        # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
-        git submodule sync
-        
-        echo "Initializing submodule..."
-        git submodule update --init --recursive
-        
-        echo "Verifying submodule initialization..."
-        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "ERROR: Submodule initialization failed"
-          echo "Submodule status:"
-          git submodule status
-          echo "Contents of lib/osm-common/:"
-          ls -la lib/osm-common/ || echo "Directory does not exist"
-          exit 1
-        fi
-        echo "✓ Submodule initialized correctly"
-        echo "Submodule files:"
-        ls -la lib/osm-common/ | head -10
+      - name: Configure and initialize submodule
+        run: |
+          echo "Configuring submodule URL for GitHub Actions..."
+          # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
+          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
+          git submodule sync
 
-    # Cache apt packages
-    # Using only archives directory to avoid permission issues with lock files
-    # Disabled due to permission issues with tar - using continue-on-error as fallback
-    - name: Cache apt packages
-      uses: actions/cache@v4
-      continue-on-error: true
-      if: false  # Disable cache to avoid tar warnings
-      with:
-        path: /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-archives-${{ hashFiles('**/apt-packages.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-apt-archives-
+          echo "Initializing submodule..."
+          git submodule update --init --recursive
 
-    # Cache test fixtures
-    - name: Cache test fixtures
-      uses: actions/cache@v4
-      with:
-        path: |
-          tests/fixtures
-          tests/tmp
-        key: ${{ runner.os }}-fixtures-${{ hashFiles('tests/fixtures/**/*') }}
-        restore-keys: |
-          ${{ runner.os }}-fixtures-
-
-    # Cache Node.js global packages
-    - name: Cache Node.js global packages
-      uses: actions/cache@v4
-      with:
-        path: ~/.npm
-        key: ${{ runner.os }}-node-global-v1
-        restore-keys: |
-          ${{ runner.os }}-node-global-
-
-    # Cache shfmt binary
-    - name: Cache shfmt
-      uses: actions/cache@v4
-      with:
-        path: ~/.local/bin/shfmt
-        key: ${{ runner.os }}-shfmt-v5.2.0
-        restore-keys: |
-          ${{ runner.os }}-shfmt-
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          bats \
-          postgresql-client \
-          libxml2-utils \
-          xsltproc \
-          shellcheck \
-          curl \
-          parallel
-
-    - name: Clean apt cache for caching
-      if: always()
-      run: |
-        # Remove lock files and partial downloads that cannot be cached
-        # This step runs after apt-get install to clean up before cache save
-        sudo rm -f /var/cache/apt/archives/lock 2>/dev/null || true
-        sudo rm -rf /var/cache/apt/archives/partial 2>/dev/null || true
-        # Ensure archives directory exists and has proper permissions
-        sudo mkdir -p /var/cache/apt/archives
-        sudo chmod 755 /var/cache/apt/archives || true
-
-    - name: Install Node.js tools
-      run: |
-        npm install -g ajv-cli
-
-    - name: Install shfmt
-      run: |
-        if ! command -v shfmt > /dev/null 2>&1; then
-          if [[ -f ~/.local/bin/shfmt ]]; then
-            mkdir -p ~/.local/bin
-            export PATH="$HOME/.local/bin:$PATH"
-          else
-            chmod +x tests/install_shfmt.sh
-            ./tests/install_shfmt.sh
+          echo "Verifying submodule initialization..."
+          if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+            echo "ERROR: Submodule initialization failed"
+            echo "Submodule status:"
+            git submodule status
+            echo "Contents of lib/osm-common/:"
+            ls -la lib/osm-common/ || echo "Directory does not exist"
+            exit 1
           fi
-        fi
+          echo "✓ Submodule initialized correctly"
+          echo "Submodule files:"
+          ls -la lib/osm-common/ | head -10
 
-    - name: Setup test environment
-      run: |
-        mkdir -p tests/tmp
-        mkdir -p tests/results
-        chmod +x tests/run_integration_tests.sh
+      # Cache apt packages
+      # Using only archives directory to avoid permission issues with lock files
+      # Disabled due to permission issues with tar - using continue-on-error as fallback
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        continue-on-error: true
+        if: false # Disable cache to avoid tar warnings
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-archives-${{ hashFiles('**/apt-packages.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-archives-
 
-    - name: Verify tools availability
-      run: |
-        echo "Verifying required tools..."
-        command -v xsltproc && echo "✓ xsltproc available"
-        command -v xmllint && echo "✓ xmllint available"
-        command -v shfmt && echo "✓ shfmt available"
-        command -v shellcheck && echo "✓ shellcheck available"
-        command -v bats && echo "✓ bats available"
-        command -v psql && echo "✓ psql available"
+      # Cache test fixtures
+      - name: Cache test fixtures
+        uses: actions/cache@v4
+        with:
+          path: |
+            tests/fixtures
+            tests/tmp
+          key: ${{ runner.os }}-fixtures-${{ hashFiles('tests/fixtures/**/*') }}
+          restore-keys: |
+            ${{ runner.os }}-fixtures-
 
-    - name: Wait for PostgreSQL
-      run: |
-        until pg_isready -h localhost -p 5432 -U postgres; do
-          echo "Waiting for PostgreSQL..."
-          sleep 2
-        done
+      # Cache Node.js global packages
+      - name: Cache Node.js global packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-global-v1
+          restore-keys: |
+            ${{ runner.os }}-node-global-
 
-    - name: Setup PostGIS extensions
-      run: |
-        echo "Setting up PostGIS extensions in test database..."
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
-        echo "PostGIS extensions setup completed"
+      # Cache shfmt binary
+      - name: Cache shfmt
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/shfmt
+          key: ${{ runner.os }}-shfmt-v5.2.0
+          restore-keys: |
+            ${{ runner.os }}-shfmt-
 
-    - name: Run unit tests (group ${{ matrix.test-group.name }})
-      run: |
-        echo "=========================================="
-        echo "Running unit tests group: ${{ matrix.test-group.name }}"
-        echo "=========================================="
-        echo "Pattern: ${{ matrix.test-group.pattern }}"
-        echo ""
-        echo "⚠️  NOTE: Multiple test groups run in parallel"
-        echo "   Each group uses a separate PostgreSQL container"
-        echo "   Tests within this group run sequentially"
-        echo "=========================================="
-        echo ""
-        
-        # Ensure results directory exists and create log file
-        mkdir -p tests/results
-        LOG_FILE="tests/results/unit-tests-${{ matrix.test-group.name }}.log"
-        touch "${LOG_FILE}"
-        echo "Test execution started at $(date)" > "${LOG_FILE}"
-        echo "Test group: ${{ matrix.test-group.name }}" >> "${LOG_FILE}"
-        echo "Pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
-        echo "" >> "${LOG_FILE}"
-        
-        # Set CI environment for sleep optimization
-        export CI=true
-        export GITHUB_ACTIONS=true
-        
-        # Find and run tests matching pattern
-        # Handle multiple patterns separated by spaces
-        TEST_FILES=""
-        # Store pattern in variable to handle spaces correctly
-        PATTERN_STRING="${{ matrix.test-group.pattern }}"
-        # Convert pattern string to array, splitting on spaces
-        read -ra PATTERNS <<< "${PATTERN_STRING}"
-        # Process each pattern
-        for pattern in "${PATTERNS[@]}"; do
-          if [[ "${pattern}" == "tests/unit/bash/*.bats" ]]; then
-            # Special handling for "other-misc-tests" group - exclude already covered patterns
-            for test_file in tests/unit/bash/*.bats; do
-              if [[ -f "${test_file}" ]] && \
-                 [[ ! "${test_file}" =~ (processAPINotes|processPlanetNotes|boundary|overpass|security|validation|performance|parallel|cleanup|clean_flag|cleanupAll|prerequisites|note_processing|noteProcessingProgressLogging|notesCheckVerifier_integration|csv|awk|xml|utility|function|script|trap|variable|format_and_lint|pathConfigurationFunctions|edge_cases|_integration\.test) ]]; then
-                TEST_FILES="${TEST_FILES} ${test_file}"
-              fi
-            done
-          else
-            # Expand glob pattern - use shopt to ensure glob expansion works correctly
-            shopt -s nullglob
-            for test_file in ${pattern}; do
-              if [[ -f "${test_file}" ]]; then
-                TEST_FILES="${TEST_FILES} ${test_file}"
-              fi
-            done
-            shopt -u nullglob
-          fi
-        done
-        # Trim leading space if present
-        TEST_FILES="${TEST_FILES# }"
-        
-        # Run all found tests sequentially
-        # Since all tests share the same PostgreSQL database, sequential execution
-        # is required to avoid database conflicts and race conditions
-        if [[ -n "${TEST_FILES}" ]]; then
-          echo "Found tests: ${TEST_FILES}"
-          echo "Found tests: ${TEST_FILES}" >> "${LOG_FILE}"
-          
-          # Count test files
-          TEST_COUNT=$(echo "${TEST_FILES}" | wc -w)
-          
-          echo "Running ${TEST_COUNT} test file(s) sequentially to avoid database conflicts..."
-          echo "Running ${TEST_COUNT} test file(s) sequentially to avoid database conflicts..." >> "${LOG_FILE}"
-          
-          TEST_EXIT_CODE=0
-          FAILED_TESTS=()
-          # Sequential execution prevents database conflicts when multiple tests
-          # share the same PostgreSQL database instance
-          for test_file in ${TEST_FILES}; do
-            echo "Running: ${test_file}"
-            echo "Running: ${test_file}" >> "${LOG_FILE}"
-            set +o pipefail  # Allow pipe to continue even if bats fails
-            bats "${test_file}" 2>&1 | tee -a "${LOG_FILE}"
-            FILE_EXIT_CODE=${PIPESTATUS[0]}
-            set -o pipefail
-            if [[ ${FILE_EXIT_CODE} -ne 0 ]]; then
-              TEST_EXIT_CODE=${FILE_EXIT_CODE}
-              FAILED_TESTS+=("${test_file}")
-              echo "❌ Test ${test_file} failed with exit code ${FILE_EXIT_CODE}" >> "${LOG_FILE}"
-              echo "❌ Test ${test_file} failed with exit code ${FILE_EXIT_CODE}"
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bats \
+            postgresql-client \
+            libxml2-utils \
+            xsltproc \
+            shellcheck \
+            curl \
+            parallel
+
+      - name: Clean apt cache for caching
+        if: always()
+        run: |
+          # Remove lock files and partial downloads that cannot be cached
+          # This step runs after apt-get install to clean up before cache save
+          sudo rm -f /var/cache/apt/archives/lock 2>/dev/null || true
+          sudo rm -rf /var/cache/apt/archives/partial 2>/dev/null || true
+          # Ensure archives directory exists and has proper permissions
+          sudo mkdir -p /var/cache/apt/archives
+          sudo chmod 755 /var/cache/apt/archives || true
+
+      - name: Install Node.js tools
+        run: |
+          npm install -g ajv-cli
+
+      - name: Install shfmt
+        run: |
+          if ! command -v shfmt > /dev/null 2>&1; then
+            if [[ -f ~/.local/bin/shfmt ]]; then
+              mkdir -p ~/.local/bin
+              export PATH="$HOME/.local/bin:$PATH"
             else
-              echo "✅ Test ${test_file} passed" >> "${LOG_FILE}"
+              chmod +x tests/install_shfmt.sh
+              ./tests/install_shfmt.sh
             fi
-          done
-          
-          echo "" >> "${LOG_FILE}"
-          echo "Test execution completed at $(date)" >> "${LOG_FILE}"
-          echo "Exit code: ${TEST_EXIT_CODE}" >> "${LOG_FILE}"
-          
-          # Show summary
-          echo ""
-          echo "=========================================="
-          echo "Test Summary for group: ${{ matrix.test-group.name }}"
-          echo "=========================================="
-          echo "Total test files: ${TEST_COUNT}"
-          if [[ ${#FAILED_TESTS[@]} -eq 0 ]]; then
-            echo "✅ All tests passed"
-          else
-            echo "❌ Failed tests: ${#FAILED_TESTS[@]}"
-            for failed_test in "${FAILED_TESTS[@]}"; do
-              echo "   - ${failed_test}"
-            done
-            echo ""
-            echo "Check the log file for details: ${LOG_FILE}"
           fi
-          echo "=========================================="
-          
-          # Exit with test result code (0 if all passed, non-zero if any failed)
-          if [[ ${TEST_EXIT_CODE} -ne 0 ]]; then
-            echo "❌ Test group '${{ matrix.test-group.name }}' failed"
-            exit ${TEST_EXIT_CODE}
-          fi
-        else
-          echo "No tests found for pattern: ${{ matrix.test-group.pattern }}"
-          echo "No tests found for pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
-          echo "Test execution completed at $(date)" >> "${LOG_FILE}"
-          echo "Exit code: 0 (no tests to run)" >> "${LOG_FILE}"
-        fi
-      env:
-        TEST_DBNAME: osm_notes_test
-        TEST_DBUSER: postgres
-        TEST_DBPASSWORD: postgres
-        TEST_DBHOST: localhost
-        TEST_DBPORT: 5432
-        DBNAME: osm_notes_test
-        DB_USER: postgres
-        DBPASSWORD: postgres
-        DBHOST: localhost
-        DBPORT: 5432
-        LOG_LEVEL: INFO
-        MAX_THREADS: 2
-        CI: true
-        GITHUB_ACTIONS: true
 
-    - name: Prepare test artifacts
-      if: always()
-      run: |
-        mkdir -p tests/results tests/tmp
-        LOG_FILE="tests/results/unit-tests-${{ matrix.test-group.name }}.log"
-        if [[ ! -f "${LOG_FILE}" ]]; then
-          echo "No test log file found, creating placeholder..." > "${LOG_FILE}"
+      - name: Setup test environment
+        run: |
+          mkdir -p tests/tmp
+          mkdir -p tests/results
+          chmod +x tests/run_integration_tests.sh
+
+      - name: Verify tools availability
+        run: |
+          echo "Verifying required tools..."
+          command -v xsltproc && echo "✓ xsltproc available"
+          command -v xmllint && echo "✓ xmllint available"
+          command -v shfmt && echo "✓ shfmt available"
+          command -v shellcheck && echo "✓ shellcheck available"
+          command -v bats && echo "✓ bats available"
+          command -v psql && echo "✓ psql available"
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Setup PostGIS extensions
+        run: |
+          echo "Setting up PostGIS extensions in test database..."
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+          echo "PostGIS extensions setup completed"
+
+      - name: Run unit tests (group ${{ matrix.test-group.name }})
+        run: |
+          echo "=========================================="
+          echo "Running unit tests group: ${{ matrix.test-group.name }}"
+          echo "=========================================="
+          echo "Pattern: ${{ matrix.test-group.pattern }}"
+          echo ""
+          echo "⚠️  NOTE: Multiple test groups run in parallel"
+          echo "   Each group uses a separate PostgreSQL container"
+          echo "   Tests within this group run sequentially"
+          echo "=========================================="
+          echo ""
+
+          # Ensure results directory exists and create log file
+          mkdir -p tests/results
+          LOG_FILE="tests/results/unit-tests-${{ matrix.test-group.name }}.log"
+          touch "${LOG_FILE}"
+          echo "Test execution started at $(date)" > "${LOG_FILE}"
           echo "Test group: ${{ matrix.test-group.name }}" >> "${LOG_FILE}"
           echo "Pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
-          echo "Status: No tests executed or log file not created" >> "${LOG_FILE}"
-        fi
-        # Ensure tmp directory has at least one file to avoid tar errors
-        mkdir -p tests/tmp
-        echo "Test artifacts prepared at $(date)" > tests/tmp/artifact_info.txt
-        echo "Test group: ${{ matrix.test-group.name }}" >> tests/tmp/artifact_info.txt
-        echo "Pattern: ${{ matrix.test-group.pattern }}" >> tests/tmp/artifact_info.txt
-        # List all files in tmp directory for debugging
-        ls -la tests/tmp/ > tests/tmp/file_list.txt 2>&1 || echo "No files in tmp directory" > tests/tmp/file_list.txt
-        # Ensure files exist before upload (create empty file if directory is empty)
-        if [[ ! -f tests/tmp/artifact_info.txt ]]; then
-          echo "Test artifacts prepared at $(date)" > tests/tmp/artifact_info.txt
-        fi
-        if [[ ! -f tests/tmp/file_list.txt ]]; then
-          echo "No files in tmp directory" > tests/tmp/file_list.txt
-        fi
-        # Verify files exist
-        test -f tests/tmp/artifact_info.txt || exit 1
-        test -f tests/tmp/file_list.txt || exit 1
+          echo "" >> "${LOG_FILE}"
 
-    - name: Upload unit test results (group ${{ matrix.test-group.name }})
-      uses: actions/upload-artifact@v4
-      if: always()
-      continue-on-error: true
-      with:
-        name: unit-test-results-${{ matrix.test-group.name }}
-        path: |
-          tests/results/unit-tests-${{ matrix.test-group.name }}.log
-          tests/tmp/artifact_info.txt
-          tests/tmp/file_list.txt
-        retention-days: 7
-        if-no-files-found: warn
-        compression-level: 1
+          # Set CI environment for sleep optimization
+          export CI=true
+          export GITHUB_ACTIONS=true
+
+          # Find and run tests matching pattern
+          # Handle multiple patterns separated by spaces
+          TEST_FILES=""
+          # Store pattern in variable to handle spaces correctly
+          PATTERN_STRING="${{ matrix.test-group.pattern }}"
+          # Convert pattern string to array, splitting on spaces
+          read -ra PATTERNS <<< "${PATTERN_STRING}"
+          # Process each pattern
+          for pattern in "${PATTERNS[@]}"; do
+            if [[ "${pattern}" == "tests/unit/bash/*.bats" ]]; then
+              # Special handling for "other-misc-tests" group - exclude already covered patterns
+              for test_file in tests/unit/bash/*.bats; do
+                if [[ -f "${test_file}" ]] && \
+                   [[ ! "${test_file}" =~ (processAPINotes|processPlanetNotes|boundary|overpass|security|validation|performance|parallel|cleanup|clean_flag|cleanupAll|prerequisites|note_processing|noteProcessingProgressLogging|notesCheckVerifier_integration|csv|awk|xml|utility|function|script|trap|variable|format_and_lint|pathConfigurationFunctions|edge_cases|_integration\.test) ]]; then
+                  TEST_FILES="${TEST_FILES} ${test_file}"
+                fi
+              done
+            else
+              # Expand glob pattern - use shopt to ensure glob expansion works correctly
+              shopt -s nullglob
+              for test_file in ${pattern}; do
+                if [[ -f "${test_file}" ]]; then
+                  TEST_FILES="${TEST_FILES} ${test_file}"
+                fi
+              done
+              shopt -u nullglob
+            fi
+          done
+          # Trim leading space if present
+          TEST_FILES="${TEST_FILES# }"
+
+          # Run all found tests sequentially
+          # Since all tests share the same PostgreSQL database, sequential execution
+          # is required to avoid database conflicts and race conditions
+          if [[ -n "${TEST_FILES}" ]]; then
+            echo "Found tests: ${TEST_FILES}"
+            echo "Found tests: ${TEST_FILES}" >> "${LOG_FILE}"
+            
+            # Count test files
+            TEST_COUNT=$(echo "${TEST_FILES}" | wc -w)
+            
+            echo "Running ${TEST_COUNT} test file(s) sequentially to avoid database conflicts..."
+            echo "Running ${TEST_COUNT} test file(s) sequentially to avoid database conflicts..." >> "${LOG_FILE}"
+            
+            TEST_EXIT_CODE=0
+            FAILED_TESTS=()
+            # Sequential execution prevents database conflicts when multiple tests
+            # share the same PostgreSQL database instance
+            for test_file in ${TEST_FILES}; do
+              echo "Running: ${test_file}"
+              echo "Running: ${test_file}" >> "${LOG_FILE}"
+              set +o pipefail  # Allow pipe to continue even if bats fails
+              bats "${test_file}" 2>&1 | tee -a "${LOG_FILE}"
+              FILE_EXIT_CODE=${PIPESTATUS[0]}
+              set -o pipefail
+              if [[ ${FILE_EXIT_CODE} -ne 0 ]]; then
+                TEST_EXIT_CODE=${FILE_EXIT_CODE}
+                FAILED_TESTS+=("${test_file}")
+                echo "❌ Test ${test_file} failed with exit code ${FILE_EXIT_CODE}" >> "${LOG_FILE}"
+                echo "❌ Test ${test_file} failed with exit code ${FILE_EXIT_CODE}"
+              else
+                echo "✅ Test ${test_file} passed" >> "${LOG_FILE}"
+              fi
+            done
+            
+            echo "" >> "${LOG_FILE}"
+            echo "Test execution completed at $(date)" >> "${LOG_FILE}"
+            echo "Exit code: ${TEST_EXIT_CODE}" >> "${LOG_FILE}"
+            
+            # Show summary
+            echo ""
+            echo "=========================================="
+            echo "Test Summary for group: ${{ matrix.test-group.name }}"
+            echo "=========================================="
+            echo "Total test files: ${TEST_COUNT}"
+            if [[ ${#FAILED_TESTS[@]} -eq 0 ]]; then
+              echo "✅ All tests passed"
+            else
+              echo "❌ Failed tests: ${#FAILED_TESTS[@]}"
+              for failed_test in "${FAILED_TESTS[@]}"; do
+                echo "   - ${failed_test}"
+              done
+              echo ""
+              echo "Check the log file for details: ${LOG_FILE}"
+            fi
+            echo "=========================================="
+            
+            # Exit with test result code (0 if all passed, non-zero if any failed)
+            if [[ ${TEST_EXIT_CODE} -ne 0 ]]; then
+              echo "❌ Test group '${{ matrix.test-group.name }}' failed"
+              exit ${TEST_EXIT_CODE}
+            fi
+          else
+            echo "No tests found for pattern: ${{ matrix.test-group.pattern }}"
+            echo "No tests found for pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
+            echo "Test execution completed at $(date)" >> "${LOG_FILE}"
+            echo "Exit code: 0 (no tests to run)" >> "${LOG_FILE}"
+          fi
+        env:
+          TEST_DBNAME: osm_notes_test
+          TEST_DBUSER: postgres
+          TEST_DBPASSWORD: postgres
+          TEST_DBHOST: localhost
+          TEST_DBPORT: 5432
+          DBNAME: osm_notes_test
+          DB_USER: postgres
+          DBPASSWORD: postgres
+          DBHOST: localhost
+          DBPORT: 5432
+          LOG_LEVEL: INFO
+          MAX_THREADS: 2
+          CI: true
+          GITHUB_ACTIONS: true
+
+      - name: Prepare test artifacts
+        if: always()
+        run: |
+          mkdir -p tests/results tests/tmp
+          LOG_FILE="tests/results/unit-tests-${{ matrix.test-group.name }}.log"
+          if [[ ! -f "${LOG_FILE}" ]]; then
+            echo "No test log file found, creating placeholder..." > "${LOG_FILE}"
+            echo "Test group: ${{ matrix.test-group.name }}" >> "${LOG_FILE}"
+            echo "Pattern: ${{ matrix.test-group.pattern }}" >> "${LOG_FILE}"
+            echo "Status: No tests executed or log file not created" >> "${LOG_FILE}"
+          fi
+          # Ensure tmp directory has at least one file to avoid tar errors
+          mkdir -p tests/tmp
+          echo "Test artifacts prepared at $(date)" > tests/tmp/artifact_info.txt
+          echo "Test group: ${{ matrix.test-group.name }}" >> tests/tmp/artifact_info.txt
+          echo "Pattern: ${{ matrix.test-group.pattern }}" >> tests/tmp/artifact_info.txt
+          # List all files in tmp directory for debugging
+          ls -la tests/tmp/ > tests/tmp/file_list.txt 2>&1 || echo "No files in tmp directory" > tests/tmp/file_list.txt
+          # Ensure files exist before upload (create empty file if directory is empty)
+          if [[ ! -f tests/tmp/artifact_info.txt ]]; then
+            echo "Test artifacts prepared at $(date)" > tests/tmp/artifact_info.txt
+          fi
+          if [[ ! -f tests/tmp/file_list.txt ]]; then
+            echo "No files in tmp directory" > tests/tmp/file_list.txt
+          fi
+          # Verify files exist
+          test -f tests/tmp/artifact_info.txt || exit 1
+          test -f tests/tmp/file_list.txt || exit 1
+
+      - name: Upload unit test results (group ${{ matrix.test-group.name }})
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: unit-test-results-${{ matrix.test-group.name }}
+          path: |
+            tests/results/unit-tests-${{ matrix.test-group.name }}.log
+            tests/tmp/artifact_info.txt
+            tests/tmp/file_list.txt
+          retention-days: 7
+          if-no-files-found: warn
+          compression-level: 1
 
   # ============================================================================
   # STAGE 3: Quick Integration Tests (always run on PR, full on main/develop)
@@ -521,9 +559,9 @@ jobs:
     name: Integration Tests (Quick)
     runs-on: ubuntu-latest
     needs: unit-tests
-    timeout-minutes: 5  # Quick integration tests should be fast
+    timeout-minutes: 5 # Quick integration tests should be fast
     if: github.event_name == 'pull_request'
-    
+
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -532,106 +570,103 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: osm_notes_test
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: false
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Configure and initialize submodule
-      run: |
-        echo "Configuring submodule URL for GitHub Actions..."
-        # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
-        git submodule sync
-        
-        echo "Initializing submodule..."
-        git submodule update --init --recursive
-        
-        echo "Verifying submodule initialization..."
-        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "ERROR: Submodule initialization failed"
-          echo "Submodule status:"
-          git submodule status
-          echo "Contents of lib/osm-common/:"
-          ls -la lib/osm-common/ || echo "Directory does not exist"
-          exit 1
-        fi
-        echo "✓ Submodule initialized correctly"
+      - name: Configure and initialize submodule
+        run: |
+          echo "Configuring submodule URL for GitHub Actions..."
+          # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
+          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
+          git submodule sync
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          bats \
-          postgresql-client \
-          libxml2-utils \
-          xsltproc \
-          curl
+          echo "Initializing submodule..."
+          git submodule update --init --recursive
 
-    - name: Install shfmt
-      run: |
-        if ! command -v shfmt; then
-          chmod +x tests/install_shfmt.sh
-          ./tests/install_shfmt.sh
-        fi
+          echo "Verifying submodule initialization..."
+          if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+            echo "ERROR: Submodule initialization failed"
+            echo "Submodule status:"
+            git submodule status
+            echo "Contents of lib/osm-common/:"
+            ls -la lib/osm-common/ || echo "Directory does not exist"
+            exit 1
+          fi
+          echo "✓ Submodule initialized correctly"
 
-    - name: Setup test environment
-      run: |
-        mkdir -p tests/tmp
-        mkdir -p tests/results
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bats \
+            postgresql-client \
+            libxml2-utils \
+            xsltproc \
+            curl
 
-    - name: Wait for PostgreSQL
-      run: |
-        until pg_isready -h localhost -p 5432 -U postgres; do
-          echo "Waiting for PostgreSQL..."
-          sleep 2
-        done
+      - name: Install shfmt
+        run: |
+          if ! command -v shfmt; then
+            chmod +x tests/install_shfmt.sh
+            ./tests/install_shfmt.sh
+          fi
 
-    - name: Setup PostGIS extensions
-      run: |
-        echo "Setting up PostGIS extensions in test database..."
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
-        echo "PostGIS extensions setup completed"
+      - name: Setup test environment
+        run: |
+          mkdir -p tests/tmp
+          mkdir -p tests/results
 
-    - name: Run critical integration tests
-      run: |
-        echo "Running critical integration tests..."
-        bats tests/unit/bash/processAPINotes_integration.test.bats
-        bats tests/unit/bash/cleanupAll_integration.test.bats
-        if [[ -f "tests/unit/bash/processPlanetNotes_integration_fixed.test.bats" ]]; then
-          bats tests/unit/bash/processPlanetNotes_integration_fixed.test.bats
-        fi
-      env:
-        TEST_DBNAME: osm_notes_test
-        TEST_DBUSER: postgres
-        TEST_DBPASSWORD: postgres
-        TEST_DBHOST: localhost
-        TEST_DBPORT: 5432
-        DBNAME: osm_notes_test
-        DB_USER: postgres
-        DBPASSWORD: postgres
-        DBHOST: localhost
-        DBPORT: 5432
-        LOG_LEVEL: INFO
-        MAX_THREADS: 2
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: integration-test-results-quick
-        path: tests/results/
-        retention-days: 7
+      - name: Setup PostGIS extensions
+        run: |
+          echo "Setting up PostGIS extensions in test database..."
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+          echo "PostGIS extensions setup completed"
+
+      - name: Run critical integration tests
+        run: |
+          echo "Running critical integration tests..."
+          bats tests/unit/bash/processAPINotes_integration.test.bats
+          bats tests/unit/bash/cleanupAll_integration.test.bats
+          if [[ -f "tests/unit/bash/processPlanetNotes_integration_fixed.test.bats" ]]; then
+            bats tests/unit/bash/processPlanetNotes_integration_fixed.test.bats
+          fi
+        env:
+          TEST_DBNAME: osm_notes_test
+          TEST_DBUSER: postgres
+          TEST_DBPASSWORD: postgres
+          TEST_DBHOST: localhost
+          TEST_DBPORT: 5432
+          DBNAME: osm_notes_test
+          DB_USER: postgres
+          DBPASSWORD: postgres
+          DBHOST: localhost
+          DBPORT: 5432
+          LOG_LEVEL: INFO
+          MAX_THREADS: 2
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results-quick
+          path: tests/results/
+          retention-days: 7
 
   # ============================================================================
   # STAGE 4: Full Integration Tests (main/develop/schedule only)
@@ -645,7 +680,7 @@ jobs:
       github.ref == 'refs/heads/main' || 
       github.ref == 'refs/heads/develop' ||
       github.event.inputs.run_full_suite == 'true'
-    
+
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -654,213 +689,210 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_DB: osm_notes_test
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: false
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Configure and initialize submodule
-      run: |
-        echo "Configuring submodule URL for GitHub Actions..."
-        # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
-        git submodule sync
-        
-        echo "Initializing submodule..."
-        git submodule update --init --recursive
-        
-        echo "Verifying submodule initialization..."
-        if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
-          echo "ERROR: Submodule initialization failed"
-          echo "Submodule status:"
-          git submodule status
-          echo "Contents of lib/osm-common/:"
-          ls -la lib/osm-common/ || echo "Directory does not exist"
-          exit 1
-        fi
-        echo "✓ Submodule initialized correctly"
+      - name: Configure and initialize submodule
+        run: |
+          echo "Configuring submodule URL for GitHub Actions..."
+          # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
+          git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
+          git submodule sync
 
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+          echo "Initializing submodule..."
+          git submodule update --init --recursive
 
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          bats \
-          postgresql-client \
-          libxml2-utils \
-          xsltproc \
-          shellcheck \
-          curl
-
-    - name: Install shfmt
-      run: |
-        if ! command -v shfmt; then
-          chmod +x tests/install_shfmt.sh
-          ./tests/install_shfmt.sh
-        fi
-
-    - name: Verify tools availability
-      run: |
-        echo "Verifying required tools..."
-        command -v xsltproc && echo "✓ xsltproc available"
-        command -v xmllint && echo "✓ xmllint available"
-        command -v shfmt && echo "✓ shfmt available"
-        command -v shellcheck && echo "✓ shellcheck available"
-        command -v bats && echo "✓ bats available"
-        command -v psql && echo "✓ psql available"
-
-    - name: Setup test environment
-      run: |
-        mkdir -p tests/tmp
-        mkdir -p tests/output
-        chmod 755 tests/tmp
-        chmod 755 tests/output
-        
-        echo "# Test environment setup" > tests/tmp/setup.log
-        echo "# Test output directory" > tests/output/README.md
-        
-        chmod +x tests/run_integration_tests.sh
-        chmod +x tests/run_all_tests.sh
-        
-        cat > tests/properties.sh << EOF
-        # Test properties for integration tests
-        export DBHOST=localhost
-        export DBPORT=5432
-        export DBUSER=postgres
-        export DBPASSWORD=postgres
-        export DBNAME=osm_notes_test
-        export LOG_LEVEL=INFO
-        export TMP_DIR=tests/tmp
-        export OUTPUT_DIR=tests/output
-        EOF
-        
-        ls -la tests/tmp/
-        ls -la tests/output/
-
-    - name: Wait for PostgreSQL
-      run: |
-        until pg_isready -h localhost -p 5432 -U postgres; do
-          echo "Waiting for PostgreSQL..."
-          sleep 2
-        done
-
-    - name: Setup PostGIS extensions
-      run: |
-        echo "Setting up PostGIS extensions in test database..."
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
-        echo "PostGIS extensions setup completed"
-
-    - name: Run all integration tests
-      run: |
-        source tests/properties.sh
-        echo "Starting integration tests..."
-        
-        if ./tests/run_integration_tests.sh --all; then
-          echo "✅ All integration tests completed successfully"
-        else
-          echo "⚠️  Some integration tests failed, but continuing..."
-          echo "Integration tests completed with some failures" > tests/output/test_summary.log
-          echo "Timestamp: $(date)" >> tests/output/test_summary.log
-        fi
-        
-        echo "Test execution completed at $(date)" > tests/output/execution.log
-        echo "Integration tests workflow step completed" >> tests/output/execution.log
-      env:
-        DBHOST: localhost
-        DBPORT: 5432
-        DBUSER: postgres
-        DBPASSWORD: postgres
-        DBNAME: osm_notes_test
-        LOG_LEVEL: INFO
-
-    - name: Run specific integration test categories
-      run: |
-        source tests/properties.sh
-        echo "Running specific integration tests..."
-        
-        test_categories=("process-api" "process-planet" "cleanup" "wms")
-        
-        for category in "${test_categories[@]}"; do
-          echo "Running ${category} tests..."
-          if ./tests/run_integration_tests.sh --"${category}"; then
-            echo "✅ ${category} tests completed successfully"
-            echo "${category}: SUCCESS at $(date)" >> tests/output/specific_tests.log
-          else
-            echo "⚠️  ${category} tests failed, but continuing..."
-            echo "${category}: FAILED at $(date)" >> tests/output/specific_tests.log
+          echo "Verifying submodule initialization..."
+          if [[ ! -f "lib/osm-common/commonFunctions.sh" ]]; then
+            echo "ERROR: Submodule initialization failed"
+            echo "Submodule status:"
+            git submodule status
+            echo "Contents of lib/osm-common/:"
+            ls -la lib/osm-common/ || echo "Directory does not exist"
+            exit 1
           fi
-        done
-        
-        echo "Specific tests completed at $(date)" >> tests/output/execution.log
-        echo "All test categories processed" >> tests/output/execution.log
-      env:
-        DBHOST: localhost
-        DBPORT: 5432
-        DBUSER: postgres
-        DBPASSWORD: postgres
-        DBNAME: osm_notes_test
-        LOG_LEVEL: INFO
+          echo "✓ Submodule initialized correctly"
 
-    - name: Prepare artifacts for upload
-      if: always()
-      run: |
-        echo "Preparing artifacts..."
-        mkdir -p tests/tmp tests/output
-        
-        if [[ ! -f tests/output/test_summary.log ]]; then
-          echo "No test summary available" > tests/output/test_summary.log
-        fi
-        
-        if [[ ! -f tests/output/specific_tests.log ]]; then
-          echo "No specific tests log available" > tests/output/specific_tests.log
-        fi
-        
-        if [[ ! -f tests/output/execution.log ]]; then
-          echo "No execution log available" > tests/output/execution.log
-        fi
-        
-        echo "Integration tests workflow completed at $(date)" > tests/output/workflow_status.log
-        echo "Status: ${{ job.status }}" >> tests/output/workflow_status.log
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
 
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: integration-test-results-full
-        path: |
-          tests/tmp/
-          tests/output/
-        retention-days: 7
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bats \
+            postgresql-client \
+            libxml2-utils \
+            xsltproc \
+            shellcheck \
+            curl
 
-    - name: Generate test report
-      if: always()
-      run: |
-        echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Tests Executed:" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Process API integration tests" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Process Planet integration tests" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Cleanup integration tests" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ WMS integration tests" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ End-to-end tests" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Coverage:" >> $GITHUB_STEP_SUMMARY
-        echo "- **Categories:** Ingestion (Planet/API), WMS, Monitoring, Validation" >> $GITHUB_STEP_SUMMARY
-        echo "- **Integration Level:** Full script execution" >> $GITHUB_STEP_SUMMARY
+      - name: Install shfmt
+        run: |
+          if ! command -v shfmt; then
+            chmod +x tests/install_shfmt.sh
+            ./tests/install_shfmt.sh
+          fi
+
+      - name: Verify tools availability
+        run: |
+          echo "Verifying required tools..."
+          command -v xsltproc && echo "✓ xsltproc available"
+          command -v xmllint && echo "✓ xmllint available"
+          command -v shfmt && echo "✓ shfmt available"
+          command -v shellcheck && echo "✓ shellcheck available"
+          command -v bats && echo "✓ bats available"
+          command -v psql && echo "✓ psql available"
+
+      - name: Setup test environment
+        run: |
+          mkdir -p tests/tmp
+          mkdir -p tests/output
+          chmod 755 tests/tmp
+          chmod 755 tests/output
+
+          echo "# Test environment setup" > tests/tmp/setup.log
+          echo "# Test output directory" > tests/output/README.md
+
+          chmod +x tests/run_integration_tests.sh
+          chmod +x tests/run_all_tests.sh
+
+          cat > tests/properties.sh << EOF
+          # Test properties for integration tests
+          export DBHOST=localhost
+          export DBPORT=5432
+          export DBUSER=postgres
+          export DBPASSWORD=postgres
+          export DBNAME=osm_notes_test
+          export LOG_LEVEL=INFO
+          export TMP_DIR=tests/tmp
+          export OUTPUT_DIR=tests/output
+          EOF
+
+          ls -la tests/tmp/
+          ls -la tests/output/
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Setup PostGIS extensions
+        run: |
+          echo "Setting up PostGIS extensions in test database..."
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+          echo "PostGIS extensions setup completed"
+
+      - name: Run all integration tests
+        run: |
+          source tests/properties.sh
+          echo "Starting integration tests..."
+
+          if ./tests/run_integration_tests.sh --all; then
+            echo "✅ All integration tests completed successfully"
+          else
+            echo "⚠️  Some integration tests failed, but continuing..."
+            echo "Integration tests completed with some failures" > tests/output/test_summary.log
+            echo "Timestamp: $(date)" >> tests/output/test_summary.log
+          fi
+
+          echo "Test execution completed at $(date)" > tests/output/execution.log
+          echo "Integration tests workflow step completed" >> tests/output/execution.log
+        env:
+          DBHOST: localhost
+          DBPORT: 5432
+          DBUSER: postgres
+          DBPASSWORD: postgres
+          DBNAME: osm_notes_test
+          LOG_LEVEL: INFO
+
+      - name: Run specific integration test categories
+        run: |
+          source tests/properties.sh
+          echo "Running specific integration tests..."
+
+          test_categories=("process-api" "process-planet" "cleanup" "wms")
+
+          for category in "${test_categories[@]}"; do
+            echo "Running ${category} tests..."
+            if ./tests/run_integration_tests.sh --"${category}"; then
+              echo "✅ ${category} tests completed successfully"
+              echo "${category}: SUCCESS at $(date)" >> tests/output/specific_tests.log
+            else
+              echo "⚠️  ${category} tests failed, but continuing..."
+              echo "${category}: FAILED at $(date)" >> tests/output/specific_tests.log
+            fi
+          done
+
+          echo "Specific tests completed at $(date)" >> tests/output/execution.log
+          echo "All test categories processed" >> tests/output/execution.log
+        env:
+          DBHOST: localhost
+          DBPORT: 5432
+          DBUSER: postgres
+          DBPASSWORD: postgres
+          DBNAME: osm_notes_test
+          LOG_LEVEL: INFO
+
+      - name: Prepare artifacts for upload
+        if: always()
+        run: |
+          echo "Preparing artifacts..."
+          mkdir -p tests/tmp tests/output
+
+          if [[ ! -f tests/output/test_summary.log ]]; then
+            echo "No test summary available" > tests/output/test_summary.log
+          fi
+
+          if [[ ! -f tests/output/specific_tests.log ]]; then
+            echo "No specific tests log available" > tests/output/specific_tests.log
+          fi
+
+          if [[ ! -f tests/output/execution.log ]]; then
+            echo "No execution log available" > tests/output/execution.log
+          fi
+
+          echo "Integration tests workflow completed at $(date)" > tests/output/workflow_status.log
+          echo "Status: ${{ job.status }}" >> tests/output/workflow_status.log
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results-full
+          path: |
+            tests/tmp/
+            tests/output/
+          retention-days: 7
+
+      - name: Generate test report
+        if: always()
+        run: |
+          echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tests Executed:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Process API integration tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Process Planet integration tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Cleanup integration tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ WMS integration tests" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ End-to-end tests" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Categories:** Ingestion (Planet/API), WMS, Monitoring, Validation" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Level:** Full script execution" >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
   # STAGE 5: Security Scan (always run)
@@ -869,33 +901,33 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: quick-checks
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Run security checks
-      run: |
-        echo "Running security scan..."
-        
-        # Check for hardcoded credentials patterns
-        echo "Checking for hardcoded credentials..."
-        ! find bin -name "*.sh" -type f -exec grep -l "password.*=.*['\"]" {} \; || echo "Warning: Potential hardcoded passwords found"
-        
-        # Check file permissions
-        echo "Checking file permissions..."
-        find bin -name "*.sh" -type f -exec ls -la {} \;
+      - name: Run security checks
+        run: |
+          echo "Running security scan..."
 
-    - name: Generate security report
-      if: always()
-      run: |
-        echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ Shellcheck static analysis passed" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ No hardcoded credentials detected" >> $GITHUB_STEP_SUMMARY
-        echo "- ✅ File permissions verified" >> $GITHUB_STEP_SUMMARY
+          # Check for hardcoded credentials patterns
+          echo "Checking for hardcoded credentials..."
+          ! find bin -name "*.sh" -type f -exec grep -l "password.*=.*['\"]" {} \; || echo "Warning: Potential hardcoded passwords found"
+
+          # Check file permissions
+          echo "Checking file permissions..."
+          find bin -name "*.sh" -type f -exec ls -la {} \;
+
+      - name: Generate security report
+        if: always()
+        run: |
+          echo "## Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Shellcheck static analysis passed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ No hardcoded credentials detected" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ File permissions verified" >> $GITHUB_STEP_SUMMARY
 
   # ============================================================================
   # STAGE 6: Performance Tests (main/develop/schedule/manual)
@@ -909,7 +941,7 @@ jobs:
       github.ref == 'refs/heads/main' ||
       github.ref == 'refs/heads/develop' ||
       github.event.inputs.run_full_suite == 'true'
-    
+
     services:
       postgres:
         image: postgis/postgis:16-3.4
@@ -918,215 +950,212 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
         ports:
           - 5432:5432
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        fetch-depth: 2  # Need history for baseline comparison
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 2 # Need history for baseline comparison
 
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          bats \
-          postgresql-client \
-          libxml2-utils \
-          xsltproc \
-          shellcheck \
-          curl \
-          parallel \
-          jq \
-          bc
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bats \
+            postgresql-client \
+            libxml2-utils \
+            xsltproc \
+            shellcheck \
+            curl \
+            parallel \
+            jq \
+            bc
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-    - name: Install Node.js tools
-      run: |
-        npm install -g ajv-cli
+      - name: Install Node.js tools
+        run: |
+          npm install -g ajv-cli
 
-    - name: Install shfmt
-      run: |
-        if ! command -v shfmt > /dev/null 2>&1; then
-          if [[ -f ~/.local/bin/shfmt ]]; then
-            mkdir -p ~/.local/bin
-            export PATH="$HOME/.local/bin:$PATH"
-          else
-            chmod +x tests/install_shfmt.sh
-            ./tests/install_shfmt.sh
-          fi
-        fi
-
-    - name: Setup test environment
-      run: |
-        mkdir -p tests/tmp
-        mkdir -p tests/results
-        mkdir -p tests/benchmark_results
-        chmod +x tests/run_integration_tests.sh
-        chmod +x tests/analyze_performance_regressions.sh
-
-    - name: Wait for PostgreSQL
-      run: |
-        until pg_isready -h localhost -p 5432 -U postgres; do
-          echo "Waiting for PostgreSQL..."
-          sleep 2
-        done
-
-    - name: Setup PostGIS extensions
-      run: |
-        echo "Setting up PostGIS extensions in test database..."
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
-        PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
-        echo "PostGIS extensions setup completed"
-
-    - name: Download baseline (if exists)
-      uses: dawidd6/action-download-artifact@v3
-      continue-on-error: true
-      with:
-        name: performance-baseline
-        path: tests/benchmark_results/
-        if_no_artifact_found: ignore
-        workflow: ci.yml
-        workflow_conclusion: success
-
-    - name: Run performance benchmarks
-      run: |
-        echo "Running performance benchmarks..."
-        export CI=true
-        export GITHUB_ACTIONS=true
-        export TEST_DBNAME=osm_notes_test
-        export TEST_DBUSER=postgres
-        export TEST_DBPASSWORD=postgres
-        export TEST_DBHOST=localhost
-        export TEST_DBPORT=5432
-        export DBNAME=osm_notes_test
-        export DB_USER=postgres
-        export DBPASSWORD=postgres
-        export DBHOST=localhost
-        export DBPORT=5432
-        export LOG_LEVEL=ERROR
-        export MAX_THREADS=2
-        export BENCHMARK_RESULTS_DIR="${PWD}/tests/benchmark_results"
-        
-        # Run all performance benchmark tests
-        bats tests/unit/bash/performance_benchmarks*.bats || {
-          echo "Some benchmarks failed, but continuing with regression analysis..."
-        }
-
-    - name: Create baseline if not exists
-      run: |
-        if [[ ! -f "tests/benchmark_results/baseline.json" ]]; then
-          echo "No baseline found, creating from current results..."
-          ./tests/analyze_performance_regressions.sh create-baseline || true
-        fi
-
-    - name: Analyze performance regressions
-      run: |
-        echo "Analyzing performance regressions..."
-        export BASELINE_FILE="${PWD}/tests/benchmark_results/baseline.json"
-        export CURRENT_RESULTS_DIR="${PWD}/tests/benchmark_results"
-        export OUTPUT_FILE="${PWD}/tests/benchmark_results/regression_report.json"
-        
-        ./tests/analyze_performance_regressions.sh analyze || {
-          EXIT_CODE=$?
-          echo "Performance regressions detected!"
-          echo ""
-          echo "=== Regression Report ==="
-          if [[ -f "${OUTPUT_FILE}" ]]; then
-            cat "${OUTPUT_FILE}" | jq '.' || cat "${OUTPUT_FILE}"
-          fi
-          exit $EXIT_CODE
-        }
-
-    - name: Update baseline with current results
-      if: success()
-      run: |
-        echo "Updating baseline with current results..."
-        ./tests/analyze_performance_regressions.sh create-baseline
-
-    - name: Upload performance results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: performance-test-results
-        path: |
-          tests/benchmark_results/*.json
-          tests/benchmark_results/regression_report.json
-        retention-days: 30
-
-    - name: Generate performance dashboard
-      if: always()
-      run: |
-        echo "Generating performance dashboard..."
-        export RESULTS_DIR="${PWD}/tests/benchmark_results"
-        export BASELINE_FILE="${PWD}/tests/benchmark_results/baseline.json"
-        export OUTPUT_DIR="${PWD}/tests/benchmark_results/dashboard"
-        
-        ./tests/generate_performance_dashboard.sh || {
-          echo "Dashboard generation failed, but continuing..."
-        }
-
-    - name: Upload performance baseline
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: performance-baseline
-        path: tests/benchmark_results/baseline.json
-        retention-days: 90
-
-    - name: Upload performance dashboard
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: performance-dashboard
-        path: |
-          tests/benchmark_results/dashboard/
-          tests/benchmark_results/regression_report.json
-        retention-days: 30
-
-    - name: Display regression summary
-      if: always()
-      run: |
-        if [[ -f "tests/benchmark_results/regression_report.json" ]]; then
-          echo "=== Performance Regression Summary ===" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          cat tests/benchmark_results/regression_report.json | jq -r '
-            "**Total Tests:** \(.summary.total_tests)\n" +
-            "**Regressions:** \(.summary.regressions)\n" +
-            "**Improvements:** \(.summary.improvements)\n" +
-            "**Stable:** \(.summary.stable)\n\n" +
-            (if .regressions | length > 0 then
-              "### ⚠️ Regressions Detected\n\n" +
-              (.regressions | map("- \(.)") | join("\n")) + "\n\n"
+      - name: Install shfmt
+        run: |
+          if ! command -v shfmt > /dev/null 2>&1; then
+            if [[ -f ~/.local/bin/shfmt ]]; then
+              mkdir -p ~/.local/bin
+              export PATH="$HOME/.local/bin:$PATH"
             else
-              "### ✅ No Regressions\n\n"
-            end) +
-            (if .improvements | length > 0 then
-              "### 🎉 Improvements\n\n" +
-              (.improvements | map("- \(.)") | join("\n")) + "\n\n"
-            else
-              ""
-            end)
-          ' >> $GITHUB_STEP_SUMMARY || cat tests/benchmark_results/regression_report.json >> $GITHUB_STEP_SUMMARY
-        fi
-        
-        # Add dashboard link if available
-        if [[ -f "tests/benchmark_results/dashboard/index.html" ]]; then
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📊 Performance Dashboard" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Download the \`performance-dashboard\` artifact to view the interactive HTML dashboard." >> $GITHUB_STEP_SUMMARY
-        fi
+              chmod +x tests/install_shfmt.sh
+              ./tests/install_shfmt.sh
+            fi
+          fi
+
+      - name: Setup test environment
+        run: |
+          mkdir -p tests/tmp
+          mkdir -p tests/results
+          mkdir -p tests/benchmark_results
+          chmod +x tests/run_integration_tests.sh
+          chmod +x tests/analyze_performance_regressions.sh
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Setup PostGIS extensions
+        run: |
+          echo "Setting up PostGIS extensions in test database..."
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS postgis;" || echo "Warning: PostGIS extension creation failed or already exists"
+          PGPASSWORD=postgres psql -h localhost -p 5432 -U postgres -d osm_notes_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" || echo "Warning: btree_gist extension creation failed or already exists"
+          echo "PostGIS extensions setup completed"
+
+      - name: Download baseline (if exists)
+        uses: dawidd6/action-download-artifact@v3
+        continue-on-error: true
+        with:
+          name: performance-baseline
+          path: tests/benchmark_results/
+          if_no_artifact_found: ignore
+          workflow: ci.yml
+          workflow_conclusion: success
+
+      - name: Run performance benchmarks
+        run: |
+          echo "Running performance benchmarks..."
+          export CI=true
+          export GITHUB_ACTIONS=true
+          export TEST_DBNAME=osm_notes_test
+          export TEST_DBUSER=postgres
+          export TEST_DBPASSWORD=postgres
+          export TEST_DBHOST=localhost
+          export TEST_DBPORT=5432
+          export DBNAME=osm_notes_test
+          export DB_USER=postgres
+          export DBPASSWORD=postgres
+          export DBHOST=localhost
+          export DBPORT=5432
+          export LOG_LEVEL=ERROR
+          export MAX_THREADS=2
+          export BENCHMARK_RESULTS_DIR="${PWD}/tests/benchmark_results"
+
+          # Run all performance benchmark tests
+          bats tests/unit/bash/performance_benchmarks*.bats || {
+            echo "Some benchmarks failed, but continuing with regression analysis..."
+          }
+
+      - name: Create baseline if not exists
+        run: |
+          if [[ ! -f "tests/benchmark_results/baseline.json" ]]; then
+            echo "No baseline found, creating from current results..."
+            ./tests/analyze_performance_regressions.sh create-baseline || true
+          fi
+
+      - name: Analyze performance regressions
+        run: |
+          echo "Analyzing performance regressions..."
+          export BASELINE_FILE="${PWD}/tests/benchmark_results/baseline.json"
+          export CURRENT_RESULTS_DIR="${PWD}/tests/benchmark_results"
+          export OUTPUT_FILE="${PWD}/tests/benchmark_results/regression_report.json"
+
+          ./tests/analyze_performance_regressions.sh analyze || {
+            EXIT_CODE=$?
+            echo "Performance regressions detected!"
+            echo ""
+            echo "=== Regression Report ==="
+            if [[ -f "${OUTPUT_FILE}" ]]; then
+              cat "${OUTPUT_FILE}" | jq '.' || cat "${OUTPUT_FILE}"
+            fi
+            exit $EXIT_CODE
+          }
+
+      - name: Update baseline with current results
+        if: success()
+        run: |
+          echo "Updating baseline with current results..."
+          ./tests/analyze_performance_regressions.sh create-baseline
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-test-results
+          path: |
+            tests/benchmark_results/*.json
+            tests/benchmark_results/regression_report.json
+          retention-days: 30
+
+      - name: Generate performance dashboard
+        if: always()
+        run: |
+          echo "Generating performance dashboard..."
+          export RESULTS_DIR="${PWD}/tests/benchmark_results"
+          export BASELINE_FILE="${PWD}/tests/benchmark_results/baseline.json"
+          export OUTPUT_DIR="${PWD}/tests/benchmark_results/dashboard"
+
+          ./tests/generate_performance_dashboard.sh || {
+            echo "Dashboard generation failed, but continuing..."
+          }
+
+      - name: Upload performance baseline
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: performance-baseline
+          path: tests/benchmark_results/baseline.json
+          retention-days: 90
+
+      - name: Upload performance dashboard
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-dashboard
+          path: |
+            tests/benchmark_results/dashboard/
+            tests/benchmark_results/regression_report.json
+          retention-days: 30
+
+      - name: Display regression summary
+        if: always()
+        run: |
+          if [[ -f "tests/benchmark_results/regression_report.json" ]]; then
+            echo "=== Performance Regression Summary ===" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            cat tests/benchmark_results/regression_report.json | jq -r '
+              "**Total Tests:** \(.summary.total_tests)\n" +
+              "**Regressions:** \(.summary.regressions)\n" +
+              "**Improvements:** \(.summary.improvements)\n" +
+              "**Stable:** \(.summary.stable)\n\n" +
+              (if .regressions | length > 0 then
+                "### ⚠️ Regressions Detected\n\n" +
+                (.regressions | map("- \(.)") | join("\n")) + "\n\n"
+              else
+                "### ✅ No Regressions\n\n"
+              end) +
+              (if .improvements | length > 0 then
+                "### 🎉 Improvements\n\n" +
+                (.improvements | map("- \(.)") | join("\n")) + "\n\n"
+              else
+                ""
+              end)
+            ' >> $GITHUB_STEP_SUMMARY || cat tests/benchmark_results/regression_report.json >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Add dashboard link if available
+          if [[ -f "tests/benchmark_results/dashboard/index.html" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📊 Performance Dashboard" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Download the \`performance-dashboard\` artifact to view the interactive HTML dashboard." >> $GITHUB_STEP_SUMMARY
+          fi
 
   # ============================================================================
   # FINAL: Test Summary
@@ -1138,20 +1167,19 @@ jobs:
     if: always()
 
     steps:
-    - name: Generate summary
-      run: |
-        echo "## CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Quick Checks" >> $GITHUB_STEP_SUMMARY
-        echo "- Status: ${{ needs.quick-checks.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Unit Tests" >> $GITHUB_STEP_SUMMARY
-        echo "- Status: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Security Scan" >> $GITHUB_STEP_SUMMARY
-        echo "- Status: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "### Pipeline Type" >> $GITHUB_STEP_SUMMARY
-        echo "- Event: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-        echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
-
+      - name: Generate summary
+        run: |
+          echo "## CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Quick Checks" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.quick-checks.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Unit Tests" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Scan" >> $GITHUB_STEP_SUMMARY
+          echo "- Status: ${{ needs.security-scan.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pipeline Type" >> $GITHUB_STEP_SUMMARY
+          echo "- Event: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

@@ -2,9 +2,9 @@
 
 ## Overview
 
-The `sql` directory contains all database-related scripts, including table
-creation, data loading, and maintenance operations. This directory is essential
-for setting up and maintaining the PostgreSQL database that stores OSM notes data.
+The `sql` directory contains all database-related scripts, including table creation, data loading,
+and maintenance operations. This directory is essential for setting up and maintaining the
+PostgreSQL database that stores OSM notes data.
 
 ## Directory Structure
 
@@ -44,6 +44,7 @@ Scripts for processing and loading data, organized by processing type:
   - Usage: Called at start of `--base` mode
 
 **Sync Tables** (Sequence: 24):
+
 - **`processPlanetNotes_24_createSyncTables.sql`**: Creates sync tables
   - Creates: `notes_sync`, `note_comments_sync`, `note_comments_text_sync`
   - Purpose: Intermediate tables for Planet data before consolidation
@@ -188,7 +189,8 @@ Database functions and procedures (located directly in `sql/`):
 
 - **`functionsProcess_23_createProcedure_insertNoteComment.sql`**: Insert comment procedure
   - **Purpose**: Inserts a note comment and updates note status if closing
-  - **Procedure**: `insert_note_comment(note_id, comment_id, created_at, action, user_id, user_name, text, process_id)`
+  - **Procedure**:
+    `insert_note_comment(note_id, comment_id, created_at, action, user_id, user_name, text, process_id)`
   - **Features**:
     - Updates note status to "closed" if action is "closed"
     - Handles text comments separately
@@ -228,13 +230,17 @@ Database functions and procedures (located directly in `sql/`):
   - **Strategy**: Uses bounding box queries before full geometry checks
   - **Usage**: Called by `updateCountries.sh` for efficient reassignment
 
-- **`functionsProcess_36_reassignAffectedNotes_batch.sql`**: Reassign affected notes (batch, optimized)
-  - **Purpose**: Batch processing version with optimization to only update notes where country changed
-  - **Strategy**: 
+- **`functionsProcess_36_reassignAffectedNotes_batch.sql`**: Reassign affected notes (batch,
+  optimized)
+  - **Purpose**: Batch processing version with optimization to only update notes where country
+    changed
+  - **Strategy**:
     - Uses bounding box queries to find potentially affected notes
     - Calls `get_country()` which checks current country first (95% hit rate)
-    - **OPTIMIZATION**: Only performs UPDATE when country actually changed (reduces unnecessary writes)
-  - **Performance**: Significantly faster than updating all notes, especially when most notes remain in same country
+    - **OPTIMIZATION**: Only performs UPDATE when country actually changed (reduces unnecessary
+      writes)
+  - **Performance**: Significantly faster than updating all notes, especially when most notes remain
+    in same country
   - **Usage**: Called repeatedly by `updateCountries.sh` until all affected notes are processed
 
 - **`functionsProcess_37_assignCountryToNotesChunk.sql`**: Assign country to notes chunk (optimized)
@@ -313,19 +319,18 @@ Performance analysis and validation scripts:
 
 ## Usage
 
-These scripts should be executed in the correct order as defined by the processing
-pipeline. Most scripts are automatically called by the bash processing scripts
-in the `bin/` directory.
+These scripts should be executed in the correct order as defined by the processing pipeline. Most
+scripts are automatically called by the bash processing scripts in the `bin/` directory.
 
 ### Performance Analysis Scripts
 
-The `sql/analysis/` directory contains scripts for validating and analyzing
-performance optimizations:
+The `sql/analysis/` directory contains scripts for validating and analyzing performance
+optimizations:
 
 #### `analyze_integrity_verification_performance.sql`
 
-This script compares the performance of optimized vs original integrity verification
-queries to validate that optimizations are working correctly.
+This script compares the performance of optimized vs original integrity verification queries to
+validate that optimizations are working correctly.
 
 **Usage:**
 
@@ -346,6 +351,7 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.s
 5. **TEST 5**: Scalability test (validates performance with larger datasets)
 
 **Expected results:**
+
 - Execution time: < 1ms for 5000 notes, < 10ms for 100000 notes
 - Index `notes_country_note_id` should be used (Index Scan, not Seq Scan)
 - Query plan should be efficient (minimal buffers, fast execution)
@@ -358,7 +364,6 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_integrity_verification_performance.s
 - To troubleshoot performance issues
 
 ## Dependencies
-
 
 - PostgreSQL 11+ with PostGIS extension
 - Proper database permissions

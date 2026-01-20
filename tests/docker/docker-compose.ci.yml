@@ -41,24 +41,24 @@ services:
       TEST_DBPASSWORD: testpass
       TEST_DBHOST: postgres
       TEST_DBPORT: 5432
-      
+
       # Application database configuration
       DBNAME: osm_notes_test
       DB_USER: testuser
       DB_PASSWORD: testpass
       DB_HOST: postgres
       DB_PORT: 5432
-      
+
       # PostgreSQL client configuration
       PGPASSWORD: testpass
       PGHOST: postgres
       PGUSER: testuser
       PGDATABASE: osm_notes_test
-      
+
       # Application settings
       LOG_LEVEL: INFO
       MAX_THREADS: 2
-      
+
       # CI/CD specific settings
       CI: "true"
       GITHUB_ACTIONS: "true"
@@ -86,4 +86,4 @@ services:
 
 networks:
   default:
-    driver: bridge 
+    driver: bridge

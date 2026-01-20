@@ -1,6 +1,8 @@
 # Component Dependencies
 
-This document provides comprehensive diagrams and descriptions of component dependencies in the OSM-Notes-Ingestion system. Understanding these dependencies is crucial for development, debugging, and system maintenance.
+This document provides comprehensive diagrams and descriptions of component dependencies in the
+OSM-Notes-Ingestion system. Understanding these dependencies is crucial for development, debugging,
+and system maintenance.
 
 ## Table of Contents
 
@@ -469,8 +471,8 @@ updateCountries.sh
 
 ## External Dependencies
 
-> **Note:** For detailed information about external dependencies, risks, and
-> potential impacts, see [External Dependencies and Risks](./External_Dependencies_and_Risks.md).
+> **Note:** For detailed information about external dependencies, risks, and potential impacts, see
+> [External Dependencies and Risks](./External_Dependencies_and_Risks.md).
 
 ### System and Tool Dependencies
 
@@ -641,7 +643,7 @@ insert_note(note_id, lat, lon, created_at, process_id)
     │   └─▶ logs table (for logging)
     │
     └─▶ Used by:
-        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql 
+        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql
             now uses bulk INSERTs instead of this procedure for performance)
 
 insert_note_comment(...)
@@ -654,7 +656,7 @@ insert_note_comment(...)
     │   └─▶ note_comments_text table
     │
     └─▶ Used by:
-        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql 
+        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql
             now uses bulk INSERTs instead of this procedure for performance)
 ```
 
@@ -664,33 +666,33 @@ insert_note_comment(...)
 
 ### Component Dependency Matrix
 
-| Component | Depends On | Used By |
-|-----------|------------|---------|
-| `processAPINotes.sh` | `processAPIFunctions.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh` | Manual execution (testing), daemon mode (production) |
-| `processAPINotesDaemon.sh` | Same as `processAPINotes.sh` | Systemd service (REQUIRED for production) |
-| `processPlanetNotes.sh` | `processPlanetFunctions.sh`, `noteProcessingFunctions.sh`, `boundaryProcessingFunctions.sh`, `parallelProcessingFunctions.sh`, `functionsProcess.sh`, all common libraries | `processAPINotes.sh` (when threshold exceeded), manual execution |
-| `updateCountries.sh` | `boundaryProcessingFunctions.sh`, `processPlanetFunctions.sh`, `functionsProcess.sh`, `overpassFunctions.sh`, all common libraries | Monthly cron jobs, manual execution |
-| `functionsProcess.sh` | `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `securityFunctions.sh`, `overpassFunctions.sh` | All processing scripts, all `bin/lib/*.sh` |
-| `processAPIFunctions.sh` | `functionsProcess.sh` | `processAPINotes.sh` |
-| `processPlanetFunctions.sh` | `functionsProcess.sh` | `processPlanetNotes.sh`, `updateCountries.sh` |
-| `noteProcessingFunctions.sh` | `functionsProcess.sh` | `processPlanetNotes.sh` |
-| `boundaryProcessingFunctions.sh` | `functionsProcess.sh`, `overpassFunctions.sh` | `processPlanetNotes.sh`, `updateCountries.sh` |
-| `parallelProcessingFunctions.sh` | `commonFunctions.sh` | `processPlanetNotes.sh` |
-| `overpassFunctions.sh` | `commonFunctions.sh` | `boundaryProcessingFunctions.sh` |
-| `commonFunctions.sh` | `bash_logger.sh` (internal) | All scripts and libraries |
-| `validationFunctions.sh` | `commonFunctions.sh` | `functionsProcess.sh`, processing scripts |
-| `errorHandlingFunctions.sh` | `commonFunctions.sh` | `functionsProcess.sh`, processing scripts |
-| `alertFunctions.sh` | `commonFunctions.sh` | Processing scripts |
+| Component                        | Depends On                                                                                                                                                                 | Used By                                                          |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `processAPINotes.sh`             | `processAPIFunctions.sh`, `functionsProcess.sh`, `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `alertFunctions.sh`                          | Manual execution (testing), daemon mode (production)             |
+| `processAPINotesDaemon.sh`       | Same as `processAPINotes.sh`                                                                                                                                               | Systemd service (REQUIRED for production)                        |
+| `processPlanetNotes.sh`          | `processPlanetFunctions.sh`, `noteProcessingFunctions.sh`, `boundaryProcessingFunctions.sh`, `parallelProcessingFunctions.sh`, `functionsProcess.sh`, all common libraries | `processAPINotes.sh` (when threshold exceeded), manual execution |
+| `updateCountries.sh`             | `boundaryProcessingFunctions.sh`, `processPlanetFunctions.sh`, `functionsProcess.sh`, `overpassFunctions.sh`, all common libraries                                         | Monthly cron jobs, manual execution                              |
+| `functionsProcess.sh`            | `commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, `securityFunctions.sh`, `overpassFunctions.sh`                                                | All processing scripts, all `bin/lib/*.sh`                       |
+| `processAPIFunctions.sh`         | `functionsProcess.sh`                                                                                                                                                      | `processAPINotes.sh`                                             |
+| `processPlanetFunctions.sh`      | `functionsProcess.sh`                                                                                                                                                      | `processPlanetNotes.sh`, `updateCountries.sh`                    |
+| `noteProcessingFunctions.sh`     | `functionsProcess.sh`                                                                                                                                                      | `processPlanetNotes.sh`                                          |
+| `boundaryProcessingFunctions.sh` | `functionsProcess.sh`, `overpassFunctions.sh`                                                                                                                              | `processPlanetNotes.sh`, `updateCountries.sh`                    |
+| `parallelProcessingFunctions.sh` | `commonFunctions.sh`                                                                                                                                                       | `processPlanetNotes.sh`                                          |
+| `overpassFunctions.sh`           | `commonFunctions.sh`                                                                                                                                                       | `boundaryProcessingFunctions.sh`                                 |
+| `commonFunctions.sh`             | `bash_logger.sh` (internal)                                                                                                                                                | All scripts and libraries                                        |
+| `validationFunctions.sh`         | `commonFunctions.sh`                                                                                                                                                       | `functionsProcess.sh`, processing scripts                        |
+| `errorHandlingFunctions.sh`      | `commonFunctions.sh`                                                                                                                                                       | `functionsProcess.sh`, processing scripts                        |
+| `alertFunctions.sh`              | `commonFunctions.sh`                                                                                                                                                       | Processing scripts                                               |
 
 ### Database Dependency Matrix
 
-| SQL Script | Depends On | Creates/Modifies |
-|------------|------------|------------------|
-| `processAPINotes_21_createApiTables.sql` | PostgreSQL, PostGIS | `notes_api`, `note_comments_api`, `note_comments_text_api` |
-| `processAPINotes_32_insertNewNotesAndComments.sql` | `get_country()` function, `notes`, `note_comments`, `properties` tables | `notes`, `note_comments`, `note_comments_text` (bulk INSERT operations) |
-| `functionsProcess_21_createFunctionToGetCountry.sql` | `countries`, `maritimes`, `notes` tables, PostGIS | `get_country()` function |
-| `functionsProcess_22_createProcedure_insertNote.sql` | `get_country()` function, `notes`, `properties` tables | `insert_note()` procedure |
-| `functionsProcess_37_assignCountryToNotesChunk.sql` | `get_country()` function, `notes` table | Updates `notes.id_country` |
+| SQL Script                                           | Depends On                                                              | Creates/Modifies                                                        |
+| ---------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `processAPINotes_21_createApiTables.sql`             | PostgreSQL, PostGIS                                                     | `notes_api`, `note_comments_api`, `note_comments_text_api`              |
+| `processAPINotes_32_insertNewNotesAndComments.sql`   | `get_country()` function, `notes`, `note_comments`, `properties` tables | `notes`, `note_comments`, `note_comments_text` (bulk INSERT operations) |
+| `functionsProcess_21_createFunctionToGetCountry.sql` | `countries`, `maritimes`, `notes` tables, PostGIS                       | `get_country()` function                                                |
+| `functionsProcess_22_createProcedure_insertNote.sql` | `get_country()` function, `notes`, `properties` tables                  | `insert_note()` procedure                                               |
+| `functionsProcess_37_assignCountryToNotesChunk.sql`  | `get_country()` function, `notes` table                                 | Updates `notes.id_country`                                              |
 
 ---
 
@@ -729,14 +731,15 @@ The World_EEZ shapefile is used as a reference to identify missing maritime boun
 - **File:** World_EEZ_v12_20231025.zip
 - **Size:** ~122 MB
 - **Usage:** Used by `bin/scripts/generateEEZCentroids.sh` to generate centroids CSV
-- **Note:** This shapefile is used ONLY as a reference. Database data comes exclusively from OpenStreetMap (OSM).
+- **Note:** This shapefile is used ONLY as a reference. Database data comes exclusively from
+  OpenStreetMap (OSM).
 
 To download:
 
 1. Visit https://www.marineregions.org/downloads.php
 2. Download "World EEZ v12 (2023-10-25)" shapefile
-3. Place it at the default location: `/home/notes/World_EEZ_v12_20231025.zip`
-   (or set `EEZ_SHAPEFILE` environment variable)
+3. Place it at the default location: `/home/notes/World_EEZ_v12_20231025.zip` (or set
+   `EEZ_SHAPEFILE` environment variable)
 
 ## Optional Dependencies (Enhanced Features)
 
@@ -773,7 +776,8 @@ When a script starts, dependencies are loaded in this order:
 
 ### Core Documentation
 
-- **[Documentation.md](./Documentation.md)**: Complete system documentation and architecture overview
+- **[Documentation.md](./Documentation.md)**: Complete system documentation and architecture
+  overview
 - **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
 - **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Centralized troubleshooting guide
 
@@ -784,14 +788,17 @@ When a script starts, dependencies are loaded in this order:
 
 ### Spatial Processing Documentation
 
-- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment algorithm and spatial dependencies
-- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation and boundary dependencies
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment algorithm
+  and spatial dependencies
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
+  and boundary dependencies
 - **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Spatial function dependencies
 
 ### Library Documentation
 
 - **[bin/lib/README.md](../bin/lib/README.md)**: Function libraries documentation and dependencies
-- **[lib/osm-common/README.md](../lib/osm-common/README.md)**: Shared libraries documentation and dependencies
+- **[lib/osm-common/README.md](../lib/osm-common/README.md)**: Shared libraries documentation and
+  dependencies
 
 ### Database Documentation
 
@@ -801,4 +808,3 @@ When a script starts, dependencies are loaded in this order:
 
 - **[bin/README.md](../bin/README.md)**: Script usage and component interactions
 - **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and call dependencies
-

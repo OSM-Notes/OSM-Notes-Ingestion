@@ -2,7 +2,9 @@
 
 ## Overview
 
-The `docs` directory contains comprehensive documentation for the OSM-Notes-Ingestion system, including user guides, technical specifications, and implementation details. This documentation helps users and contributors understand the system architecture and usage.
+The `docs` directory contains comprehensive documentation for the OSM-Notes-Ingestion system,
+including user guides, technical specifications, and implementation details. This documentation
+helps users and contributors understand the system architecture and usage.
 
 ## Quick Start
 
@@ -14,7 +16,8 @@ The `docs` directory contains comprehensive documentation for the OSM-Notes-Inge
 
 **Total time: ~2 hours** for a complete overview.
 
-For detailed navigation paths by role, see [Documentation Navigation Guide](#documentation-navigation-guide) below.
+For detailed navigation paths by role, see
+[Documentation Navigation Guide](#documentation-navigation-guide) below.
 
 ## Documentation Structure
 
@@ -22,9 +25,11 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 
 - **`Documentation.md`**: Comprehensive system documentation and architecture overview
 - **`Rationale.md`**: Project motivation, background, and design decisions
-- **`Troubleshooting_Guide.md`**: Centralized troubleshooting guide for common problems and solutions
+- **`Troubleshooting_Guide.md`**: Centralized troubleshooting guide for common problems and
+  solutions
 - **`Component_Dependencies.md`**: Component dependencies, relationships, and data flow diagrams
-- **`External_Dependencies_and_Risks.md`**: External dependencies, risks, and potential impacts on the project
+- **`External_Dependencies_and_Risks.md`**: External dependencies, risks, and potential impacts on
+  the project
 
 > **Note:** DWH (Data Warehouse), ETL, and Analytics documentation has been moved to
 > [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
@@ -39,12 +44,15 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`Country_Assignment_2D_Grid.md`**: Country assignment strategy using 2D grid partitioning
 - **`Capital_Validation_Explanation.md`**: Capital validation to prevent data cross-contamination
 - **`ST_DWithin_Explanation.md`**: PostGIS spatial functions explanation
-- **`Maritime_Boundaries_Verification.md`**: Maritime boundaries verification using centroid-based approach
+- **`Maritime_Boundaries_Verification.md`**: Maritime boundaries verification using centroid-based
+  approach
 
 ### Testing Documentation
 
-- **`Testing_Guide.md`**: Complete testing guide with integration tests, troubleshooting, and best practices
-- **`Testing_Workflows_Overview.md`**: Overview of GitHub Actions workflows and how to interpret results
+- **`Testing_Guide.md`**: Complete testing guide with integration tests, troubleshooting, and best
+  practices
+- **`Testing_Workflows_Overview.md`**: Overview of GitHub Actions workflows and how to interpret
+  results
 - **`Input_Validation.md`**: Input validation and error handling documentation
 - **`XML_Validation_Improvements.md`**: XML processing and validation improvements
 
@@ -53,8 +61,10 @@ For **WMS (Web Map Service) documentation**, see the
 
 ### GDPR Compliance
 
-- **`GDPR_Privacy_Policy.md`**: Comprehensive GDPR privacy policy covering data processing, retention, security, and data subject rights
-- **`GDPR_Procedures.md`**: Detailed procedures for handling GDPR data subject requests (access, rectification, erasure, portability, objection)
+- **`GDPR_Privacy_Policy.md`**: Comprehensive GDPR privacy policy covering data processing,
+  retention, security, and data subject rights
+- **`GDPR_Procedures.md`**: Detailed procedures for handling GDPR data subject requests (access,
+  rectification, erasure, portability, objection)
 - **`GDPR_Annual_Checklist.md`**: Annual compliance review checklist for GDPR maintenance
 
 ## Documentation Navigation Guide
@@ -101,18 +111,21 @@ For **WMS (Web Map Service) documentation**, see the
 #### For New Users (~2 hours total)
 
 **Step 1: Project Context** (30 min)
+
 - **[Rationale.md](./Rationale.md)** - Project purpose and motivation
   - Why this project exists
   - Problem statement
   - Historical context
 
 **Step 2: System Overview** (45 min)
+
 - **[Documentation.md](./Documentation.md)** - System architecture and overview
   - High-level architecture
   - Component relationships
   - Data flow
 
 **Step 3: Processing Details** (60 min)
+
 - **[Process_API.md](./Process_API.md)** - API processing (30 min)
   - Real-time synchronization
   - Incremental updates
@@ -121,46 +134,58 @@ For **WMS (Web Map Service) documentation**, see the
   - Bulk processing
 
 **Step 4: Advanced Topics** (45 min)
+
 - **[Testing_Guide.md](./Testing_Guide.md)** - Testing procedures
 
 #### For Developers (~3 hours total)
 
 **Step 1: Foundation** (75 min)
+
 - **[Rationale.md](./Rationale.md)** - Project context (30 min)
 - **[Documentation.md](./Documentation.md)** - Architecture (45 min)
 
 **Step 2: Core Implementation** (60 min)
+
 - **[Process_API.md](./Process_API.md)** - API integration (30 min)
 - **[Process_Planet.md](./Process_Planet.md)** - Data processing (30 min)
 
 **Step 3: Advanced Topics** (30 min)
+
 - **[Testing_Guide.md](./Testing_Guide.md)** - Testing procedures (30 min)
 
 **Step 4: CI/CD** (30 min)
+
 - **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - GitHub Actions workflows
 
 #### For System Administrators (~2.5 hours total)
 
 **Step 1: Deployment** (45 min)
+
 - **[Documentation.md](./Documentation.md)** - Deployment guidelines
 - **[LOCAL_SETUP.md](./LOCAL_SETUP.md)** - Local setup and directory installation
 
 **Step 2: Operations** (60 min)
+
 - **[Process_API.md](./Process_API.md)** - API operations (30 min)
 - **[Process_Planet.md](./Process_Planet.md)** - Planet operations (30 min)
 
 **Step 3: Monitoring** (30 min)
-- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - CI/CD pipeline understanding
+
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - CI/CD pipeline
+  understanding
 
 #### For Testers and QA (~2 hours total)
 
 **Step 1: Testing Foundation** (30 min)
+
 - **[Testing_Guide.md](./Testing_Guide.md)** - Complete testing procedures
 
 **Step 2: CI/CD Understanding** (30 min)
+
 - **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)** - GitHub Actions workflows
 
 **Step 3: Validation Testing** (60 min)
+
 - **[Input_Validation.md](./Input_Validation.md)** - Validation guidelines (30 min)
 - **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)** - XML testing (30 min)
 
@@ -171,14 +196,16 @@ For **WMS (Web Map Service) documentation**, see the
 - **Purpose**: Project motivation and background
 - **References**:
   - [Documentation.md](./Documentation.md) for technical details
-  - [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for implementation specifics
+  - [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for
+    implementation specifics
 
 ### Documentation.md
 
 - **Purpose**: System architecture and technical overview
 - **References**:
   - [Rationale.md](./Rationale.md) for project motivation
-  - [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for detailed implementation
+  - [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for detailed
+    implementation
 
 ### Testing Documentation
 
@@ -253,7 +280,8 @@ For **WMS (Web Map Service) documentation**, see the
 
 - Understand data flow and transformation processes
 - Modify processing scripts and data ingestion procedures
-- Study [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for implementation details
+- Study [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for
+  implementation details
 
 > **Note:** For ETL procedures and analytics capabilities, see
 > [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
@@ -263,8 +291,8 @@ For **WMS (Web Map Service) documentation**, see the
 - Query the notes database for custom analytics
 - Review [Documentation.md](./Documentation.md) for data structure information
 
-> **Note:** For data warehouse queries, data marts, and advanced analytics features
-> (timezones, seasons, continents, application versions), see
+> **Note:** For data warehouse queries, data marts, and advanced analytics features (timezones,
+> seasons, continents, application versions), see
 > [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### For End Users
@@ -272,9 +300,10 @@ For **WMS (Web Map Service) documentation**, see the
 - View note activity and contribution metrics
 - Read [Rationale.md](./Rationale.md) to understand the project's purpose
 
-> **Note:** For interactive web visualization of user and country profiles, hashtag analysis, and campaign performance,
-> see [OSM-Notes-Viewer](https://github.com/OSM-Notes/OSM-Notes-Viewer).
-> For data warehouse and analytics backend, see [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+> **Note:** For interactive web visualization of user and country profiles, hashtag analysis, and
+> campaign performance, see [OSM-Notes-Viewer](https://github.com/OSM-Notes/OSM-Notes-Viewer). For
+> data warehouse and analytics backend, see
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ## Dependencies
 

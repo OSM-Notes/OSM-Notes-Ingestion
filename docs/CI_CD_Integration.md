@@ -2,15 +2,15 @@
 
 ## Overview
 
-This document describes the comprehensive CI/CD (Continuous Integration/Continuous
-Deployment) integration implemented for the OSM-Notes-Ingestion project.
+This document describes the comprehensive CI/CD (Continuous Integration/Continuous Deployment)
+integration implemented for the OSM-Notes-Ingestion project.
 
 ## Architecture
 
 ### GitHub Actions Workflow
 
-The project uses GitHub Actions for automated testing and quality assurance.
-The workflow is defined in `.github/workflows/tests.yml` and includes:
+The project uses GitHub Actions for automated testing and quality assurance. The workflow is defined
+in `.github/workflows/tests.yml` and includes:
 
 #### Jobs
 
@@ -25,7 +25,8 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
    - Uses PostgreSQL service container with PostGIS
    - Includes SQL unit tests and integration tests
 
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+> **Note:** DWH/ETL tests are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 3. **Integration Tests** (`integration-tests`)
    - Runs end-to-end tests using Docker containers
@@ -322,16 +323,17 @@ psql -h localhost -U testuser -d osm_notes_test
 ## Conclusion
 
 The CI/CD integration provides comprehensive testing and quality assurance for the
-OSM-Notes-Ingestion project. It ensures code quality, security, and reliability
-through automated testing across multiple environments and scenarios.
+OSM-Notes-Ingestion project. It ensures code quality, security, and reliability through automated
+testing across multiple environments and scenarios.
 
-The system is designed to be maintainable, scalable, and provides clear feedback
-to developers about the state of their changes.
+The system is designed to be maintainable, scalable, and provides clear feedback to developers about
+the state of their changes.
 
 ## Related Documentation
 
 - **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide and procedures
-- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows explanation
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows
+  explanation
 - **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
 - **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Test suites reference
 - **[Documentation.md](./Documentation.md)**: System architecture and development workflow

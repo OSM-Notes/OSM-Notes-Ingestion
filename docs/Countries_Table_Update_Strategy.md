@@ -2,9 +2,9 @@
 
 ## Overview
 
-The `updateCountries.sh` script uses a **temporary tables strategy** to safely
-update country boundaries. This approach ensures data integrity, allows for
-rollback, and prevents data loss during updates.
+The `updateCountries.sh` script uses a **temporary tables strategy** to safely update country
+boundaries. This approach ensures data integrity, allows for rollback, and prevents data loss during
+updates.
 
 ## Current Strategy: Temporary Tables + Swap
 
@@ -180,6 +180,8 @@ Script to safely perform table swap.
 ## Related Documentation
 
 - **[Documentation.md](./Documentation.md)**: System architecture overview
-- **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Update script implementation
+- **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Update script
+  implementation
 - **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy
-- **[Maritime_Boundaries_Verification.md](./Maritime_Boundaries_Verification.md)**: Maritime boundaries handling
+- **[Maritime_Boundaries_Verification.md](./Maritime_Boundaries_Verification.md)**: Maritime
+  boundaries handling

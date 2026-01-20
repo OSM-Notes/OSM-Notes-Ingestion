@@ -2,9 +2,8 @@
 
 ## Overview
 
-This document provides comprehensive technical documentation for the
-OSM-Notes-Ingestion system, including system architecture, data flow, and
-implementation details.
+This document provides comprehensive technical documentation for the OSM-Notes-Ingestion system,
+including system architecture, data flow, and implementation details.
 
 > **Note:** For project motivation and background, see [Rationale.md](./Rationale.md).
 
@@ -23,6 +22,7 @@ The system automatically detects installation mode:
   - Temporary files: `/tmp/`
 
 To find logs automatically (works in both modes):
+
 ```bash
 # Find latest processAPINotes.log
 find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
@@ -40,8 +40,8 @@ This repository focuses exclusively on **data ingestion** from OpenStreetMap:
 - **Data Processing**: Transforming and validating note data
 - **Data Storage**: Loading processed data into PostgreSQL/PostGIS
 
-> **Note:** Analytics, ETL, and Data Warehouse components are maintained in a
-> separate repository: [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
+> **Note:** Analytics, ETL, and Data Warehouse components are maintained in a separate repository:
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
 
 ---
 
@@ -166,6 +166,7 @@ The OSM-Notes-Ingestion system consists of the following components:
 
 For **WMS (Web Map Service) layer publication**, see the
 [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
+
 - **Style Management**: Different styles for open/closed notes
 - **Client Integration**: JOSM, Vespucci, and web applications
 
@@ -309,9 +310,10 @@ For **WMS (Web Map Service) layer publication**, see the
 
 **Output:** Updated database with latest changes
 
-**Frequency:** 
-  - **Daemon Mode (Recommended)**: Every 1 minute (30-60 seconds latency)
-  - **Cron Mode (Alternative)**: Every 15 minutes (legacy option)
+**Frequency:**
+
+- **Daemon Mode (Recommended)**: Every 1 minute (30-60 seconds latency)
+- **Cron Mode (Alternative)**: Every 15 minutes (legacy option)
 
 ### 4. Country Assignment
 
@@ -577,7 +579,8 @@ External Dependencies
     └─▶ ogr2ogr/GDAL (GeoJSON processing)
 ```
 
-> **Note:** For detailed dependency information, see [Component_Dependencies.md](./Component_Dependencies.md).
+> **Note:** For detailed dependency information, see
+> [Component_Dependencies.md](./Component_Dependencies.md).
 
 ### Error Handling Flow
 
@@ -728,7 +731,8 @@ Script    Validation Functions    XML Validator    CSV Validator    Database    
             ├─▶ Admin fixes issue
             ├─▶ Admin removes marker file
             └─▶ Wait for next cron execution
-```
+
+````
 
 For **WMS (Web Map Service) layer publication**, see the
 [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
@@ -767,9 +771,10 @@ export LOG_LEVEL=DEBUG
 export BASH_DEBUG=true
 export LOG_LEVEL=TRACE
 ./bin/process/processAPINotes.sh
-```
+````
 
 **Note:** The script creates temporary directories and logs. Location depends on installation mode:
+
 - **Installed**: Logs in `/var/log/osm-notes-ingestion/processing/processAPINotes.log`
 - **Fallback**: Logs in `/tmp/osm-notes-ingestion/logs/processing/processAPINotes.log`
 
@@ -828,17 +833,23 @@ export FORCE_SWAP_ON_WARNING=true
 ```
 
 **Safe Update Strategy:**
+
 - Creates `countries_new` table (doesn't drop `countries`)
 - Loads new data into `countries_new`
 - Compares geometries between `countries` and `countries_new`
 - Swaps tables only if validation passes
 - Keeps `countries_old` as automatic backup
 
-> **Note:** The script includes capital validation to prevent data cross-contamination. See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for details on how boundary validation works. See [Countries_Table_Update_Strategy.md](./Countries_Table_Update_Strategy.md) for details on the safe update strategy.
+> **Note:** The script includes capital validation to prevent data cross-contamination. See
+> [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for details on how
+> boundary validation works. See
+> [Countries_Table_Update_Strategy.md](./Countries_Table_Update_Strategy.md) for details on the safe
+> update strategy.
 
 ### Environment Variables
 
-All scripts support common environment variables. See [bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md) for complete documentation.
+All scripts support common environment variables. See
+[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md) for complete documentation.
 
 #### Common Variables
 
@@ -979,16 +990,20 @@ psql -d notes -c "SELECT count(*) FROM pg_stat_activity WHERE datname = 'notes';
 
 #### Required: Daemon Mode (systemd)
 
-For production use, the daemon mode is **REQUIRED**. The main API notes processing runs as a systemd service (daemon), not via cron. See `docs/Process_API.md` "Daemon Mode" section for detailed installation and configuration instructions.
+For production use, the daemon mode is **REQUIRED**. The main API notes processing runs as a systemd
+service (daemon), not via cron. See `docs/Process_API.md` "Daemon Mode" section for detailed
+installation and configuration instructions.
 
 The daemon (`processAPINotesDaemon.sh`) handles:
+
 - Continuous API notes ingestion (polls every minute)
 - Automatic initial setup (creates tables, loads historical data, loads countries)
 - Automatic Planet synchronization when needed (10K notes + new dump)
 
 #### Maintenance and Monitoring Tasks (Cron)
 
-While the main API notes processing runs as a daemon, you need to configure cron for maintenance and monitoring tasks:
+While the main API notes processing runs as a daemon, you need to configure cron for maintenance and
+monitoring tasks:
 
 ```bash
 # Country boundaries update: Monthly (first day at 2 AM)
@@ -1005,6 +1020,7 @@ While the main API notes processing runs as a daemon, you need to configure cron
 ```
 
 **Important Notes:**
+
 - Do NOT add `processAPINotes.sh` to cron - it is handled by the daemon
 - Do NOT add `processPlanetNotes.sh` to cron - it is automatically called by the daemon when needed
 - Cron is only for maintenance (country updates) and monitoring (verification, performance analysis)
@@ -1075,7 +1091,8 @@ All scripts support `--help` or `-h`:
 
 ## Common Use Cases
 
-This section describes real-world scenarios and typical workflows for using the OSM-Notes-Ingestion system.
+This section describes real-world scenarios and typical workflows for using the OSM-Notes-Ingestion
+system.
 
 ### Use Case 1: Initial System Setup
 
@@ -1229,7 +1246,9 @@ chmod +x /usr/local/bin/check-osm-notes-health.sh
 
 ### Use Case 3: Integration with Analytics System
 
-**Scenario**: Integrating OSM-Notes-Ingestion with [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) for data warehouse and analytics.
+**Scenario**: Integrating OSM-Notes-Ingestion with
+[OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) for data warehouse and
+analytics.
 
 **Workflow**:
 
@@ -1273,8 +1292,8 @@ For **WMS (Web Map Service) layer publication**, see the
 **Scenario**: Monitoring data quality and detecting synchronization issues.
 
 > **Note:** For comprehensive system monitoring across all repositories, see
-> [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring).
-> This use case describes local monitoring scripts specific to ingestion.
+> [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring). This use case describes
+> local monitoring scripts specific to ingestion.
 
 **Workflow**:
 
@@ -1498,8 +1517,8 @@ DB_PASSWORD=secure_password
 **Scenario**: Integrating with external monitoring systems (Nagios, Prometheus, etc.).
 
 > **Note:** For centralized monitoring across all OSM Notes repositories, see
-> [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring).
-> This use case describes integration with external monitoring systems for this repository.
+> [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring). This use case describes
+> integration with external monitoring systems for this repository.
 
 **Workflow**:
 
@@ -1588,7 +1607,7 @@ chmod +x /usr/local/bin/osm-notes-exporter.sh
 
 ```sql
 -- Get note counts by country
-SELECT 
+SELECT
     c.name AS country,
     COUNT(n.id) AS total_notes,
     COUNT(n.id) FILTER (WHERE n.status = 'open') AS open_notes,
@@ -1604,7 +1623,7 @@ LIMIT 20;
 
 ```sql
 -- Get notes created in the last 24 hours
-SELECT 
+SELECT
     id,
     created_at,
     status,
@@ -1619,7 +1638,7 @@ ORDER BY created_at DESC;
 
 ```sql
 -- Get notes created by a specific user
-SELECT 
+SELECT
     n.id,
     n.created_at,
     n.status,
@@ -1635,7 +1654,7 @@ ORDER BY n.created_at DESC;
 
 ```sql
 -- Overall statistics
-SELECT 
+SELECT
     COUNT(*) AS total_notes,
     COUNT(*) FILTER (WHERE status = 'open') AS open_notes,
     COUNT(*) FILTER (WHERE status = 'closed') AS closed_notes,
@@ -1649,7 +1668,7 @@ FROM notes;
 
 ```sql
 -- Get notes in a bounding box (e.g., around a city)
-SELECT 
+SELECT
     id,
     created_at,
     status,
@@ -1671,7 +1690,7 @@ ORDER BY created_at DESC;
 
 ```sql
 -- Find old open notes (older than 30 days)
-SELECT 
+SELECT
     n.id,
     n.created_at,
     c.name AS country,
@@ -1796,7 +1815,7 @@ fi
 
 ```sql
 -- Find notes in your area of interest
-SELECT 
+SELECT
     id,
     created_at,
     status,
@@ -1817,7 +1836,7 @@ ORDER BY created_at DESC;
 # Export notes to CSV
 psql -d notes -c "
 COPY (
-    SELECT 
+    SELECT
         id,
         created_at,
         status,
@@ -1846,7 +1865,7 @@ For **WMS (Web Map Service) layer usage** in mapping applications, see the
 
 ```sql
 -- Analyze note activity by country over time
-SELECT 
+SELECT
     c.name AS country,
     DATE_TRUNC('month', n.created_at) AS month,
     COUNT(*) AS notes_count,
@@ -1862,7 +1881,7 @@ ORDER BY month DESC, notes_count DESC;
 
 ```sql
 -- Find most active note creators
-SELECT 
+SELECT
     created_by AS username,
     COUNT(*) AS notes_created,
     COUNT(*) FILTER (WHERE status = 'open') AS open_notes,
@@ -1879,7 +1898,7 @@ LIMIT 50;
 
 ```sql
 -- Find areas with high note density
-SELECT 
+SELECT
     ST_Y(ST_Centroid(ST_Collect(location))) AS center_lat,
     ST_X(ST_Centroid(ST_Collect(location))) AS center_lon,
     COUNT(*) AS note_count,
@@ -1895,7 +1914,7 @@ LIMIT 20;
 
 ```sql
 -- Analyze note creation patterns by hour of day
-SELECT 
+SELECT
     EXTRACT(HOUR FROM created_at) AS hour_of_day,
     COUNT(*) AS notes_count,
     COUNT(*) FILTER (WHERE status = 'open') AS open_count
@@ -1941,7 +1960,7 @@ def recent_notes():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT id, created_at, status, 
+        SELECT id, created_at, status,
                ST_Y(location) AS lat, ST_X(location) AS lon
         FROM notes
         WHERE created_at > NOW() - INTERVAL '24 hours'
@@ -2079,11 +2098,14 @@ For **WMS (Web Map Service) tables and schema**, see the
 ### Core Tables
 
 - **`notes`**: All OSM notes with geographic and temporal data
-  - Columns: note_id, latitude, longitude, created_at, closed_at, status, id_country, insert_time, update_time
+  - Columns: note_id, latitude, longitude, created_at, closed_at, status, id_country, insert_time,
+    update_time
   - Indexes: spatial (lat/lon), temporal (dates), status
   - Approximately 4.3M notes (as of 2024)
-  - `insert_time`: Timestamp when the note was inserted into the database (automatically set by trigger)
-  - `update_time`: Timestamp when the note was last updated in the database (automatically updated by trigger)
+  - `insert_time`: Timestamp when the note was inserted into the database (automatically set by
+    trigger)
+  - `update_time`: Timestamp when the note was last updated in the database (automatically updated
+    by trigger)
 
 - **`note_comments`**: Comment metadata and user information
   - Columns: note_id, sequence_action, action, action_date, user_id, username
@@ -2142,7 +2164,8 @@ For **WMS (Web Map Service) tables and schema**, see the
   - Overpass API integration
   - Boundary validation (including capital validation to prevent cross-contamination)
   - Country table updates
-  - See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for validation details
+  - See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for validation
+    details
 
 #### Support Functions
 
@@ -2361,9 +2384,9 @@ For **WMS (Web Map Service) service configuration**, see the
 
 ## Monitoring and Maintenance
 
-> **Note:** For centralized monitoring, alerting, and API security across all
-> OSM Notes repositories, see [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring).
-> This section describes local monitoring capabilities specific to this repository.
+> **Note:** For centralized monitoring, alerting, and API security across all OSM Notes
+> repositories, see [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring). This
+> section describes local monitoring capabilities specific to this repository.
 
 ### System Health
 
@@ -2592,17 +2615,20 @@ For **WMS (Web Map Service) troubleshooting**, see the
 
 **Recovery for each error code:**
 
-See detailed troubleshooting in [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md).
+See detailed troubleshooting in [Process_API.md](./Process_API.md) and
+[Process_Planet.md](./Process_Planet.md).
 
 ### Getting Help
 
 **Review Documentation:**
 
-- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Comprehensive troubleshooting guide (all categories)
-- **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
+- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Comprehensive troubleshooting guide
+  (all categories)
+- **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and
+  relationships
 - [Process_API.md](./Process_API.md): API processing troubleshooting
-- [Process_Planet.md](./Process_Planet.md): Planet processing troubleshooting
-For **WMS troubleshooting**, see the [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
+- [Process_Planet.md](./Process_Planet.md): Planet processing troubleshooting For **WMS
+  troubleshooting**, see the [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 **Check Logs:**
 
@@ -2631,7 +2657,8 @@ fi
 
 ---
 
-> **Note:** For detailed usage guidelines by role (System Administrators, Developers, End Users), see [Use Case 12: Use Cases by Role](#use-case-12-use-cases-by-role) above.
+> **Note:** For detailed usage guidelines by role (System Administrators, Developers, End Users),
+> see [Use Case 12: Use Cases by Role](#use-case-12-use-cases-by-role) above.
 
 ---
 
@@ -2661,10 +2688,9 @@ fi
 
 ### Prerequisites Validation
 
-The project automatically validates external dependencies and system
-prerequisites during the prerequisites check (`__checkPrereqsCommands`). This
-validation ensures that all required external services and tools are accessible
-before processing begins.
+The project automatically validates external dependencies and system prerequisites during the
+prerequisites check (`__checkPrereqsCommands`). This validation ensures that all required external
+services and tools are accessible before processing begins.
 
 #### Automatic External Service Validations
 
@@ -2672,22 +2698,19 @@ The prerequisites check validates external service connectivity:
 
 1. **Internet Connectivity**: General internet access is available
 2. **Planet Server Access**: Can connect to `planet.openstreetmap.org`
-3. **OSM API Access and Version**: Can connect to `api.openstreetmap.org` and
-   verifies that the API version is 0.6 (as required by the project) by querying
-   the `/api/versions` endpoint
-4. **Overpass API Access**: Can connect to Overpass API endpoints (for boundary
-   downloads)
+3. **OSM API Access and Version**: Can connect to `api.openstreetmap.org` and verifies that the API
+   version is 0.6 (as required by the project) by querying the `/api/versions` endpoint
+4. **Overpass API Access**: Can connect to Overpass API endpoints (for boundary downloads)
 
 #### Validation Behavior
 
 - **On Success**: Processing continues normally
-- **On Failure**: Script exits with clear error messages indicating which
-  service is unavailable or which version mismatch was detected
+- **On Failure**: Script exits with clear error messages indicating which service is unavailable or
+  which version mismatch was detected
 
 #### System Prerequisites Validation
 
-In addition to external service validation, the prerequisites check also
-validates:
+In addition to external service validation, the prerequisites check also validates:
 
 - **Database Connectivity**: PostgreSQL database exists and is accessible
 - **Database Extensions**: PostGIS and btree_gist extensions are installed
@@ -2695,11 +2718,11 @@ validates:
   [Software Requirements](#software-requirements) above)
 - **File System**: Required files and directories exist and are accessible
 
-For installation instructions, see [Install prerequisites on
-Ubuntu](../README.md#install-prerequisites-on-ubuntu) in the main README.
+For installation instructions, see
+[Install prerequisites on Ubuntu](../README.md#install-prerequisites-on-ubuntu) in the main README.
 
-For details on external dependencies and risks, see [External Dependencies and
-Risks](./External_Dependencies_and_Risks.md).
+For details on external dependencies and risks, see
+[External Dependencies and Risks](./External_Dependencies_and_Risks.md).
 
 ---
 
@@ -2707,19 +2730,25 @@ Risks](./External_Dependencies_and_Risks.md).
 
 ### OpenStreetMap Data
 
-**Important:** This system processes data from **OpenStreetMap (OSM)**. All processed data (notes, country boundaries, maritime boundaries, etc.) stored in the database is derived from OSM and must comply with OSM's licensing requirements.
+**Important:** This system processes data from **OpenStreetMap (OSM)**. All processed data (notes,
+country boundaries, maritime boundaries, etc.) stored in the database is derived from OSM and must
+comply with OSM's licensing requirements.
 
 - **License:** [Open Database License (ODbL)](http://opendatacommons.org/licenses/odbl/)
 - **Copyright:** [OpenStreetMap contributors](http://www.openstreetmap.org/copyright)
 - **Attribution:** Required when using or distributing OSM data
 
-For more information about OSM licensing, see: [https://www.openstreetmap.org/copyright](https://www.openstreetmap.org/copyright)
+For more information about OSM licensing, see:
+[https://www.openstreetmap.org/copyright](https://www.openstreetmap.org/copyright)
 
-**Note:** This repository contains only code and configuration files. No OSM data is stored in the repository itself. All data is processed and stored in the database at runtime.
+**Note:** This repository contains only code and configuration files. No OSM data is stored in the
+repository itself. All data is processed and stored in the database at runtime.
 
 ### Reference Data (CC-BY 4.0)
 
-The `data/eez_analysis/eez_centroids.csv` file is a derivative work of the World_EEZ shapefile from MarineRegions.org and is licensed under **Creative Commons Attribution 4.0 International (CC-BY 4.0)**. See `data/eez_analysis/LICENSE` for full license details.
+The `data/eez_analysis/eez_centroids.csv` file is a derivative work of the World_EEZ shapefile from
+MarineRegions.org and is licensed under **Creative Commons Attribution 4.0 International (CC-BY
+4.0)**. See `data/eez_analysis/LICENSE` for full license details.
 
 ## Related Documentation
 
@@ -2734,18 +2763,16 @@ The `data/eez_analysis/eez_centroids.csv` file is a derivative work of the World
 - **[Process_API.md](./Process_API.md)**: API processing details
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing details
 - **[Input_Validation.md](./Input_Validation.md)**: Validation procedures
-- **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML
-  validation enhancements (optional)
+- **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML validation
+  enhancements (optional)
 
 ### Testing Documentation
 
 - **[Testing_Guide.md](./Testing_Guide.md)**: Testing guidelines
 - **[Test_Matrix.md](./Test_Matrix.md)**: Test coverage matrix
 - **[Test_Execution_Guide.md](./Test_Execution_Guide.md)**: Test execution guide and sequence
-- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Test
-  suites reference
-- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: Testing
-  workflows
+- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Test suites reference
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: Testing workflows
 
 For **WMS (Web Map Service) documentation**, see the
 [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
@@ -2757,15 +2784,17 @@ For **WMS (Web Map Service) documentation**, see the
 
 ### Spatial Processing Documentation
 
-- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy using 2D grid partitioning
-- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions explanation
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy
+  using 2D grid partitioning
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
+  to prevent data cross-contamination
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions
+  explanation
 
 ### Other Technical Guides
 
 - **[Cleanup_Integration.md](./Cleanup_Integration.md)**: Cleanup procedures
-- **[Logging_Pattern_Validation.md](./Logging_Pattern_Validation.md)**: Logging
-  standards
+- **[Logging_Pattern_Validation.md](./Logging_Pattern_Validation.md)**: Logging standards
 
 ---
 

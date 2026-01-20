@@ -1,15 +1,17 @@
 # Boundaries Backup (Countries and Maritimes)
 
 > **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  
-> For country boundary processing details, see [Process_Planet.md](./Process_Planet.md) and [bin/process/updateCountries.sh](../bin/process/updateCountries.sh).
+> For country boundary processing details, see [Process_Planet.md](./Process_Planet.md) and
+> [bin/process/updateCountries.sh](../bin/process/updateCountries.sh).
 
-Boundary backup files are stored in the [OSM-Notes-Data](https://github.com/OSM-Notes/OSM-Notes-Data) repository
-to keep this repository focused on code only. The backups are automatically downloaded from GitHub
-when needed.
+Boundary backup files are stored in the
+[OSM-Notes-Data](https://github.com/OSM-Notes/OSM-Notes-Data) repository to keep this repository
+focused on code only. The backups are automatically downloaded from GitHub when needed.
 
 ## Files Location
 
 The backup files are stored in the external repository:
+
 - **Repository**: [OSM-Notes-Data](https://github.com/OSM-Notes/OSM-Notes-Data)
 - **Path**: `data/countries.geojson.gz` and `data/maritimes.geojson.gz`
 - **URL**: `https://raw.githubusercontent.com/OSM-Notes/OSM-Notes-Data/main/data/`
@@ -30,6 +32,7 @@ Two scripts are provided to export boundaries from the database:
 Exports country boundaries (excluding maritimes) to `data/countries.geojson`.
 
 **Usage:**
+
 ```bash
 # Export from default database (notes)
 ./bin/scripts/exportCountriesBackup.sh
@@ -39,6 +42,7 @@ DBNAME=osm-notes ./bin/scripts/exportCountriesBackup.sh
 ```
 
 **What it does:**
+
 - Connects to the database and verifies countries table exists
 - Filters out maritime boundaries using comprehensive patterns (see Maritime Patterns below)
 - Exports all country boundaries to GeoJSON format
@@ -46,6 +50,7 @@ DBNAME=osm-notes ./bin/scripts/exportCountriesBackup.sh
 - Creates/updates `data/countries.geojson`
 
 **Output:**
+
 - File: `data/countries.geojson` (local, uncompressed)
 - Compressed: `data/countries.geojson.gz` (uploaded to OSM-Notes-Data repository)
 - Format: GeoJSON (RFC 7946)
@@ -56,6 +61,7 @@ DBNAME=osm-notes ./bin/scripts/exportCountriesBackup.sh
 Exports maritime boundaries to `data/maritimes.geojson`.
 
 **Usage:**
+
 ```bash
 # Export from default database (notes)
 ./bin/scripts/exportMaritimesBackup.sh
@@ -65,6 +71,7 @@ DBNAME=osm-notes ./bin/scripts/exportMaritimesBackup.sh
 ```
 
 **What it does:**
+
 - Connects to the database and verifies countries table exists
 - Identifies maritime boundaries using comprehensive patterns (see Maritime Patterns below)
 - Exports all maritime boundaries to GeoJSON format
@@ -72,6 +79,7 @@ DBNAME=osm-notes ./bin/scripts/exportMaritimesBackup.sh
 - Creates/updates `data/maritimes.geojson`
 
 **Output:**
+
 - File: `data/maritimes.geojson` (local, uncompressed)
 - Compressed: `data/maritimes.geojson.gz` (uploaded to OSM-Notes-Data repository)
 - Format: GeoJSON (RFC 7946)
@@ -79,26 +87,31 @@ DBNAME=osm-notes ./bin/scripts/exportMaritimesBackup.sh
 
 ## Maritime Patterns
 
-Maritime boundaries are identified using comprehensive case-insensitive patterns that match
-various naming conventions used in OSM:
+Maritime boundaries are identified using comprehensive case-insensitive patterns that match various
+naming conventions used in OSM:
 
 ### EEZ (Exclusive Economic Zone) Patterns:
+
 - `(EEZ)` - With parentheses
 - `EEZ` - Without parentheses (e.g., "EEZ Spain")
 - `Exclusive Economic Zone` - Full phrase
 - `Economic Zone` - Without "Exclusive" (e.g., "Economic Zone of Iceland")
 
 ### Contiguous Zone Patterns:
+
 - `(Contiguous Zone)` - With parentheses
 - `Contiguous Zone` - Without parentheses
-- `contiguous area` - Alternative wording (e.g., "France (contiguous area in the Mediterranean Sea)")
+- `contiguous area` - Alternative wording (e.g., "France (contiguous area in the Mediterranean
+  Sea)")
 - `contiguous border` - Alternative wording (e.g., "Contiguous border of France")
 
 ### Maritime Patterns:
+
 - `(maritime)` - With parentheses
 - `maritime` - Without parentheses
 
 ### Fisheries Zones:
+
 - `Fisheries protection zone` - (e.g., "Fisheries protection zone around Jan Mayen")
 - `Fishing territory` - (e.g., "Fishing territory around the Faroe Islands")
 
@@ -109,8 +122,8 @@ case-insensitive matching (ILIKE) to ensure all maritime boundaries are correctl
 
 The backups are automatically downloaded from GitHub and used by:
 
-1. **`processPlanet base`** - When processing planet notes in base mode, it will
-   download the backup files from GitHub if not found locally, avoiding the Overpass download entirely.
+1. **`processPlanet base`** - When processing planet notes in base mode, it will download the backup
+   files from GitHub if not found locally, avoiding the Overpass download entirely.
 
 2. **`updateCountries`** - When running in update mode (without `--base`), it will:
    - Download IDs from Overpass first (lightweight query)
@@ -122,6 +135,7 @@ The backups are automatically downloaded from GitHub and used by:
 ### Download Behavior
 
 The system will:
+
 1. First check for local files in `data/` directory (for development)
 2. If not found, automatically download from GitHub repository
 3. Cache downloaded files in temporary directory for reuse
@@ -194,8 +208,8 @@ The backup files are standard GeoJSON files (RFC 7946) with the following struct
 
 ## Regenerating Backups from Scratch
 
-If you need to regenerate backups from scratch (e.g., after fixing import bugs or when
-backup files are corrupted):
+If you need to regenerate backups from scratch (e.g., after fixing import bugs or when backup files
+are corrupted):
 
 ```bash
 # Step 1: Regenerate boundaries from Overpass API
@@ -209,12 +223,13 @@ backup files are corrupted):
 # Step 3: Upload to OSM-Notes-Data repository (see Manual Update section above)
 ```
 
-**Note**: Regenerating from scratch takes 30-60 minutes as it downloads all boundaries
-from Overpass API. Only do this when necessary.
+**Note**: Regenerating from scratch takes 30-60 minutes as it downloads all boundaries from Overpass
+API. Only do this when necessary.
 
 ## Maintenance
 
 The backups should be updated:
+
 - After significant changes to boundaries in OSM
 - Periodically (e.g., quarterly) to ensure they stay current
 - Before major processing runs if you want to ensure consistency
@@ -245,4 +260,3 @@ export BOUNDARIES_DATA_BRANCH="develop"
 - **[bin/scripts/README.md](../bin/scripts/README.md)**: Utility scripts documentation
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing (includes boundary loading)
 - **[Documentation.md](./Documentation.md)**: System architecture and data flow
-

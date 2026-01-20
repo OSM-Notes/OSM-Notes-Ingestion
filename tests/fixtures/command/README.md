@@ -1,17 +1,16 @@
 # Command Fixtures
 
-This directory contains deterministic fixture files used by mock commands for
-offline testing.
+This directory contains deterministic fixture files used by mock commands for offline testing.
 
 ## Location
 
-Fixtures are stored in `tests/fixtures/command/extra/` and used by the mock
-implementations in `tests/mock_commands/` (curl, etc.).
+Fixtures are stored in `tests/fixtures/command/extra/` and used by the mock implementations in
+`tests/mock_commands/` (curl, etc.).
 
 ## Purpose
 
-These fixtures provide deterministic, repeatable outputs for testing without
-requiring network access or external API calls.
+These fixtures provide deterministic, repeatable outputs for testing without requiring network
+access or external API calls.
 
 ## Fixture Types
 
@@ -24,8 +23,8 @@ The `extra/` subdirectory contains:
 
 ## Usage
 
-The mock commands in `tests/mock_commands/` automatically resolve these fixtures
-from URLs. For example:
+The mock commands in `tests/mock_commands/` automatically resolve these fixtures from URLs. For
+example:
 
 - `curl .../notes/3394115.json` -> `tests/fixtures/command/extra/3394115.json`
 - `curl .../countries` -> `tests/fixtures/command/extra/countries`

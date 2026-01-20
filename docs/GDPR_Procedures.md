@@ -4,9 +4,8 @@
 
 ## Overview
 
-This document provides detailed procedures for handling GDPR data subject
-requests and maintaining compliance with GDPR regulations in the OSM Notes
-Ingestion system.
+This document provides detailed procedures for handling GDPR data subject requests and maintaining
+compliance with GDPR regulations in the OSM Notes Ingestion system.
 
 ## Data Subject Request Handling Process
 
@@ -64,30 +63,28 @@ Best regards,
 
 Before processing any request, verify the identity of the data subject.
 
-**Important:** OpenStreetMap does not provide public access to user email
-addresses for privacy reasons. Therefore, we use alternative verification
-methods:
+**Important:** OpenStreetMap does not provide public access to user email addresses for privacy
+reasons. Therefore, we use alternative verification methods:
 
 **Verification Methods (choose one or combine):**
 
 1. **Email Confirmation (Preferred):**
-   - Ask the requester to send the GDPR request from the email address
-     registered in their OSM account
+   - Ask the requester to send the GDPR request from the email address registered in their OSM
+     account
    - The requester knows which email they used for OSM registration
-   - Verify that the email address matches what they claim (though we cannot
-     directly verify it with OSM)
+   - Verify that the email address matches what they claim (though we cannot directly verify it with
+     OSM)
    - If uncertain, request additional verification
 
 2. **OSM Profile Verification:**
-   - Ask the requester to add a specific verification code to their OSM user
-     profile description (temporarily)
+   - Ask the requester to add a specific verification code to their OSM user profile description
+     (temporarily)
    - Format: "GDPR-Verification: [UNIQUE_CODE]"
    - After verification, they can remove it
    - This proves they control the OSM account
 
 3. **Account Activity Information:**
-   - Ask the requester to provide information only the account owner would
-     know:
+   - Ask the requester to provide information only the account owner would know:
      - Approximate date of account creation
      - Location of some notes they created (without revealing exact coordinates)
      - Number of notes/comments they remember creating
@@ -198,8 +195,8 @@ If identity cannot be verified after reasonable attempts:
 
 **Purpose:** Correct inaccurate personal data.
 
-**Important Note:** Since data originates from OpenStreetMap, rectification
-should primarily be done in OSM. This system reflects OSM data.
+**Important Note:** Since data originates from OpenStreetMap, rectification should primarily be done
+in OSM. This system reflects OSM data.
 
 **Procedure:**
 
@@ -363,10 +360,8 @@ should primarily be done in OSM. This system reflects OSM data.
   - Keep issues private and confidential
   - Do not include sensitive personal data in issue descriptions
   - Reference sensitive data by ID only (e.g., "User ID: 12345")
-- **Retention:** Maintain logs securely for audit purposes. Retain for minimum
-  of 2 years
-- **Access Control:** Ensure only authorized personnel have access to private
-  issues
+- **Retention:** Maintain logs securely for audit purposes. Retain for minimum of 2 years
+- **Access Control:** Ensure only authorized personnel have access to private issues
 
 ### 5. Response Templates
 
@@ -474,8 +469,7 @@ Best regards,
 - Assess data processing activities
 - Update security measures
 - Review and update procedures as needed
-- Check and close any pending GDPR requests (review open GitHub Issues with
-  `gdpr` label)
+- Check and close any pending GDPR requests (review open GitHub Issues with `gdpr` label)
 - Training updates if applicable
 
 ### 8. Training Requirements
@@ -494,16 +488,15 @@ All team members handling GDPR requests must:
 
 **Legal Advisor:** Not applicable
 
-**Supervisory Authority:** Data subjects should contact their local data
-protection authority in their EU/EEA country of residence. See
-[GDPR_Privacy_Policy.md](./GDPR_Privacy_Policy.md) for details.
+**Supervisory Authority:** Data subjects should contact their local data protection authority in
+their EU/EEA country of residence. See [GDPR_Privacy_Policy.md](./GDPR_Privacy_Policy.md) for
+details.
 
 ## Appendix
 
 ### SQL Scripts Location
 
-SQL scripts for GDPR requests are located in:
-`sql/gdpr/`
+SQL scripts for GDPR requests are located in: `sql/gdpr/`
 
 See `sql/gdpr/README.md` for detailed usage instructions.
 

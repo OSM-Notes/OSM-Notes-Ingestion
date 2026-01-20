@@ -27,10 +27,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "timestamp_osm_base",
-        "copyright"
-      ],
+      "required": ["timestamp_osm_base", "copyright"],
       "additionalProperties": false
     },
     "elements": {
@@ -63,12 +60,7 @@
       }
     }
   },
-  "required": [
-    "version",
-    "generator",
-    "osm3s",
-    "elements"
-  ],
+  "required": ["version", "generator", "osm3s", "elements"],
   "additionalProperties": false,
   "$defs": {
     "osm_nodes": {
@@ -108,12 +100,7 @@
           "additionalProperties": false
         }
       },
-      "required": [
-        "type",
-        "id",
-        "lat",
-        "lon"
-      ],
+      "required": ["type", "id", "lat", "lon"],
       "additionalProperties": false
     },
     "osm_ways": {
@@ -150,11 +137,7 @@
           "additionalProperties": false
         }
       },
-      "required": [
-        "type",
-        "id",
-        "nodes"
-      ],
+      "required": ["type", "id", "nodes"],
       "additionalProperties": false
     },
     "osm_relations": {
@@ -192,10 +175,7 @@
                 "type": "string"
               }
             },
-            "required": [
-              "type",
-              "ref"
-            ],
+            "required": ["type", "ref"],
             "additionalProperties": false
           }
         },
@@ -210,11 +190,7 @@
           "additionalProperties": false
         }
       },
-      "required": [
-        "type",
-        "id",
-        "members"
-      ],
+      "required": ["type", "id", "members"],
       "additionalProperties": false
     }
   }

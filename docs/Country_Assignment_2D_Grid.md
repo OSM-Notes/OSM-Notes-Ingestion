@@ -2,19 +2,18 @@
 
 ## Overview
 
-This document describes the intelligent 2D grid partitioning strategy used to
-assign countries to OpenStreetMap notes efficiently.
+This document describes the intelligent 2D grid partitioning strategy used to assign countries to
+OpenStreetMap notes efficiently.
 
-The strategy minimizes expensive `ST_Contains` PostGIS operations by dividing
-the world into **24 geographic zones** based on both **longitude and latitude**,
-and maintaining priority-ordered country lists for each zone.
+The strategy minimizes expensive `ST_Contains` PostGIS operations by dividing the world into **24
+geographic zones** based on both **longitude and latitude**, and maintaining priority-ordered
+country lists for each zone.
 
 ## Motivation
 
 ### The Problem
 
-Previously, the world was divided into only **5 vertical zones** based solely
-on longitude:
+Previously, the world was divided into only **5 vertical zones** based solely on longitude:
 
 - Americas (lon < -30)
 - Europe/Africa (lon < 25)
@@ -39,21 +38,20 @@ This approach had limitations:
 - **Cumulative cost**: Called repeatedly until a match is found
 
 **Example**: In the old system, finding a note in Germany required checking:
+
 1. Is it in France? (ST_Contains call #1)
 2. Is it in Germany? (ST_Contains call #2) ✓ Found!
 
-With the new system, Germany is #1 in the Western Europe zone, so only **one
-ST_Contains call** is needed.
+With the new system, Germany is #1 in the Western Europe zone, so only **one ST_Contains call** is
+needed.
 
 ## The Solution: 2D Grid Partitioning
 
 ### Key Principles
 
 1. **Geographic logic**: Zones align with natural regions and continents
-2. **Density-based**: High-density areas (Western Europe, USA) get dedicated
-   zones
-3. **Priority ordering**: Within each zone, countries are ordered by note
-   density
+2. **Density-based**: High-density areas (Western Europe, USA) get dedicated zones
+3. **Priority ordering**: Within each zone, countries are ordered by note density
 4. **Minimize cross-zone**: Country assignments minimize border overlaps
 
 ### The 24 Geographic Zones
@@ -62,65 +60,65 @@ The world is divided into 24 zones, each with specific lon/lat boundaries:
 
 #### Americas (6 zones)
 
-| Zone | Region | Lon Range | Lat Range | Key Countries |
-|------|--------|-----------|-----------|---------------|
-| 1 | USA/Canada | -150 to -60 | 30 to 75 | USA, Canada |
-| 2 | Mexico/Central America | -120 to -75 | 5 to 35 | Mexico, Guatemala, Nicaragua |
-| 3 | Caribbean | -90 to -60 | 10 to 30 | Cuba, Haiti, Dominican Republic |
-| 4 | Northern South America | -80 to -35 | -15 to 15 | Brazil, Colombia, Ecuador, Venezuela |
-| 5 | Southern South America | -75 to -35 | -56 to -15 | Argentina, Chile, Uruguay |
-| 6 | Pacific Islands | 130 to -120* | -30 to 30 | Fiji, French Polynesia, Samoa |
+| Zone | Region                 | Lon Range     | Lat Range  | Key Countries                        |
+| ---- | ---------------------- | ------------- | ---------- | ------------------------------------ |
+| 1    | USA/Canada             | -150 to -60   | 30 to 75   | USA, Canada                          |
+| 2    | Mexico/Central America | -120 to -75   | 5 to 35    | Mexico, Guatemala, Nicaragua         |
+| 3    | Caribbean              | -90 to -60    | 10 to 30   | Cuba, Haiti, Dominican Republic      |
+| 4    | Northern South America | -80 to -35    | -15 to 15  | Brazil, Colombia, Ecuador, Venezuela |
+| 5    | Southern South America | -75 to -35    | -56 to -15 | Argentina, Chile, Uruguay            |
+| 6    | Pacific Islands        | 130 to -120\* | -30 to 30  | Fiji, French Polynesia, Samoa        |
 
-*Wraps around International Date Line
+\*Wraps around International Date Line
 
 #### Europe (4 zones)
 
-| Zone | Region | Lon Range | Lat Range | Key Countries |
-|------|--------|-----------|-----------|---------------|
-| 7 | Western Europe | -10 to 15 | 35 to 60 | Germany, France, UK, Spain |
-| 8 | Eastern Europe | 15 to 45 | 35 to 60 | Poland, Czechia, Ukraine |
-| 9 | Northern Europe | -10 to 35 | 55 to 75 | Scandinavia, Baltic states |
-| 10 | Southern Europe | -10 to 30 | 30 to 50 | Italy, Greece, Balkans |
+| Zone | Region          | Lon Range | Lat Range | Key Countries              |
+| ---- | --------------- | --------- | --------- | -------------------------- |
+| 7    | Western Europe  | -10 to 15 | 35 to 60  | Germany, France, UK, Spain |
+| 8    | Eastern Europe  | 15 to 45  | 35 to 60  | Poland, Czechia, Ukraine   |
+| 9    | Northern Europe | -10 to 35 | 55 to 75  | Scandinavia, Baltic states |
+| 10   | Southern Europe | -10 to 30 | 30 to 50  | Italy, Greece, Balkans     |
 
 #### Africa (4 zones)
 
-| Zone | Region | Lon Range | Lat Range | Key Countries |
-|------|--------|-----------|-----------|---------------|
-| 11 | Northern Africa | -20 to 50 | 15 to 40 | Morocco, Algeria, Egypt |
-| 12 | Western Africa | -20 to 20 | -10 to 20 | Nigeria, Ghana, DRC |
-| 13 | Eastern Africa | 20 to 55 | -15 to 20 | Kenya, Ethiopia, Tanzania |
-| 14 | Southern Africa | 10 to 50 | -36 to -15 | South Africa, Namibia |
+| Zone | Region          | Lon Range | Lat Range  | Key Countries             |
+| ---- | --------------- | --------- | ---------- | ------------------------- |
+| 11   | Northern Africa | -20 to 50 | 15 to 40   | Morocco, Algeria, Egypt   |
+| 12   | Western Africa  | -20 to 20 | -10 to 20  | Nigeria, Ghana, DRC       |
+| 13   | Eastern Africa  | 20 to 55  | -15 to 20  | Kenya, Ethiopia, Tanzania |
+| 14   | Southern Africa | 10 to 50  | -36 to -15 | South Africa, Namibia     |
 
 #### Asia (6 zones)
 
-| Zone | Region | Lon Range | Lat Range | Key Countries |
-|------|--------|-----------|-----------|---------------|
-| 15 | Middle East | 25 to 65 | 10 to 45 | Turkey, Iran, Saudi Arabia |
-| 16 | Russia North | 25 to 180 | 55 to 80 | Northern Russia, Siberia |
-| 17 | Russia South | 30 to 150 | 40 to 60 | Southern Russia, Kazakhstan |
-| 18 | Central Asia | 45 to 90 | 30 to 55 | Uzbekistan, Kyrgyzstan |
-| 19 | India/South Asia | 60 to 95 | 5 to 40 | India, Pakistan, Bangladesh |
-| 20 | Southeast Asia | 95 to 140 | -12 to 25 | Thailand, Vietnam, Indonesia |
-| 21 | Eastern Asia | 100 to 145 | 20 to 55 | China, Japan, Korea |
+| Zone | Region           | Lon Range  | Lat Range | Key Countries                |
+| ---- | ---------------- | ---------- | --------- | ---------------------------- |
+| 15   | Middle East      | 25 to 65   | 10 to 45  | Turkey, Iran, Saudi Arabia   |
+| 16   | Russia North     | 25 to 180  | 55 to 80  | Northern Russia, Siberia     |
+| 17   | Russia South     | 30 to 150  | 40 to 60  | Southern Russia, Kazakhstan  |
+| 18   | Central Asia     | 45 to 90   | 30 to 55  | Uzbekistan, Kyrgyzstan       |
+| 19   | India/South Asia | 60 to 95   | 5 to 40   | India, Pakistan, Bangladesh  |
+| 20   | Southeast Asia   | 95 to 140  | -12 to 25 | Thailand, Vietnam, Indonesia |
+| 21   | Eastern Asia     | 100 to 145 | 20 to 55  | China, Japan, Korea          |
 
 #### Oceania (1 zone)
 
-| Zone | Region | Lon Range | Lat Range | Key Countries |
-|------|--------|-----------|-----------|---------------|
-| 22 | Australia/NZ | 110 to 180 | -50 to -10 | Australia, New Zealand |
+| Zone | Region       | Lon Range  | Lat Range  | Key Countries          |
+| ---- | ------------ | ---------- | ---------- | ---------------------- |
+| 22   | Australia/NZ | 110 to 180 | -50 to -10 | Australia, New Zealand |
 
 #### Polar Regions (2 zones)
 
-| Zone | Region | Lon Range | Lat Range | Coverage |
-|------|--------|-----------|-----------|----------|
-| 23 | Arctic | all | > 70 | Greenland, Svalbard, northern territories |
-| 24 | Antarctic | all | < -60 | Antarctica, sub-Antarctic islands |
+| Zone | Region    | Lon Range | Lat Range | Coverage                                  |
+| ---- | --------- | --------- | --------- | ----------------------------------------- |
+| 23   | Arctic    | all       | > 70      | Greenland, Svalbard, northern territories |
+| 24   | Antarctic | all       | < -60     | Antarctica, sub-Antarctic islands         |
 
 #### Special Zone
 
-| Zone | Region | Lon Range | Lat Range | Notes |
-|------|--------|-----------|-----------|-------|
-| 0 | Null Island | -4 to 4 | -5 to 4.53 | Gulf of Guinea, test location |
+| Zone | Region      | Lon Range | Lat Range  | Notes                         |
+| ---- | ----------- | --------- | ---------- | ----------------------------- |
+| 0    | Null Island | -4 to 4   | -5 to 4.53 | Gulf of Guinea, test location |
 
 ## How It Works
 
@@ -128,24 +126,24 @@ The world is divided into 24 zones, each with specific lon/lat boundaries:
 
 ```sql
 FUNCTION get_country(lon, lat, note_id):
-  
+
   -- Step 1: Check if note is still in current country (95% hit rate!)
   IF note already has country assigned THEN
     IF ST_Contains(current_country.geom, point) THEN
       RETURN current_country  -- Fast path!
     END IF
   END IF
-  
+
   -- Step 2: Determine geographic zone using lon AND lat
   zone = determine_zone(lon, lat)  -- Simple range checks
-  
+
   -- Step 3: Search countries in priority order for that zone
   FOR country IN countries_ordered_by_zone_priority(zone):
     IF ST_Contains(country.geom, point) THEN
       RETURN country
     END IF
   END FOR
-  
+
   RETURN -1  -- Not found
 ```
 
@@ -173,14 +171,14 @@ Coordinates: (52.52, 13.40)
 
 Step 1: Check current country
   - If previously assigned to Germany → ST_Contains → YES → DONE! (1 call)
-  
+
 Step 2: Determine zone
   - lon = 13.40, lat = 52.52
   - Matches: Western Europe zone (lon: -10 to 15, lat: 35 to 60)
-  
+
 Step 3: Search in priority order for Western Europe
   - Priority 1: Germany → ST_Contains → YES → DONE! (1 call)
-  
+
 Total: 1-2 ST_Contains calls
 Old system: Could take 5-10 calls searching through all Europe
 ```
@@ -192,15 +190,15 @@ Coordinates: (35.68, 139.69)
 
 Step 1: Check current country
   - Not assigned yet
-  
+
 Step 2: Determine zone
   - lon = 139.69, lat = 35.68
   - Matches: Eastern Asia zone (lon: 100 to 145, lat: 20 to 55)
-  
+
 Step 3: Search in priority order for Eastern Asia
   - Priority 1: China → ST_Contains → NO
   - Priority 1: Japan → ST_Contains → YES → DONE! (2 calls)
-  
+
 Total: 2 ST_Contains calls
 Old system: Could take 10-20 calls through all Asia/Oceania
 ```
@@ -219,13 +217,13 @@ CREATE TABLE countries (
   country_name_es VARCHAR(100),
   country_name_en VARCHAR(100),
   geom GEOMETRY NOT NULL,
-  
+
   -- Legacy columns (kept for backward compatibility)
   americas INTEGER,
   europe INTEGER,
   russia_middle_east INTEGER,
   asia_oceania INTEGER,
-  
+
   -- New 2D grid zone priority columns
   zone_us_canada INTEGER,
   zone_mexico_central_america INTEGER,
@@ -251,7 +249,7 @@ CREATE TABLE countries (
   zone_pacific_islands INTEGER,
   zone_arctic INTEGER,
   zone_antarctic INTEGER,
-  
+
   updated BOOLEAN
 );
 ```
@@ -259,6 +257,7 @@ CREATE TABLE countries (
 ### Priority Values
 
 For each zone column:
+
 - `1-2`: Very high density (>50K notes)
 - `3-5`: High density (10K-50K notes)
 - `6-8`: Medium density (1K-10K notes)
@@ -327,8 +326,8 @@ This efficiently re-assigns only notes affected by boundary changes.
 
 ```sql
 -- Assign country to a single note
-SELECT get_country(longitude, latitude, note_id) 
-FROM notes 
+SELECT get_country(longitude, latitude, note_id)
+FROM notes
 WHERE note_id = 12345;
 
 -- Assign countries to all unassigned notes
@@ -349,13 +348,13 @@ WHERE longitude BETWEEN 10 AND 20
 
 Compared to the old 5-zone vertical partitioning:
 
-| Metric | Old System | New System | Improvement |
-|--------|-----------|------------|-------------|
-| Average zones checked | N/A | 1 (exact) | - |
-| Avg countries per zone | ~50-100 | ~10-30 | **3-10x fewer** |
-| Avg ST_Contains calls | 10-30 | 2-5 | **5-10x fewer** |
-| Same-country cache hit | 95% | 95% | Same |
-| New note assignment | Slow | **Fast** | **5-10x faster** |
+| Metric                 | Old System | New System | Improvement      |
+| ---------------------- | ---------- | ---------- | ---------------- |
+| Average zones checked  | N/A        | 1 (exact)  | -                |
+| Avg countries per zone | ~50-100    | ~10-30     | **3-10x fewer**  |
+| Avg ST_Contains calls  | 10-30      | 2-5        | **5-10x fewer**  |
+| Same-country cache hit | 95%        | 95%        | Same             |
+| New note assignment    | Slow       | **Fast**   | **5-10x faster** |
 
 ### Monitoring Performance
 
@@ -428,8 +427,8 @@ LIMIT 100;
 
 ### High Iteration Counts
 
-If a zone shows high average iterations, use EXPLAIN ANALYZE to identify
-which countries are being checked most frequently:
+If a zone shows high average iterations, use EXPLAIN ANALYZE to identify which countries are being
+checked most frequently:
 
 ```sql
 -- Analyze get_country() performance for a specific zone
@@ -439,8 +438,7 @@ FROM notes
 WHERE note_id IN (SELECT note_id FROM notes WHERE id_country IS NULL LIMIT 100);
 ```
 
-**Solution**: Adjust priority order for that zone in
-`functionsProcess_31_organizeAreas_2DGrid.sql`
+**Solution**: Adjust priority order for that zone in `functionsProcess_31_organizeAreas_2DGrid.sql`
 
 ### Notes Not Assigned
 
@@ -460,6 +458,7 @@ WHERE note_id = <problem_note_id>;
 ```
 
 **Common causes**:
+
 1. Note in ocean (expected)
 2. Note in disputed territory
 3. Zone boundary issue (adjust boundaries)
@@ -477,7 +476,7 @@ REINDEX INDEX countries_spatial;
 ANALYZE countries;
 
 -- Check index usage
-EXPLAIN ANALYZE 
+EXPLAIN ANALYZE
 SELECT get_country(-0.1276, 51.5074, 12345);
 ```
 
@@ -485,8 +484,7 @@ SELECT get_country(-0.1276, 51.5074, 12345);
 
 Potential improvements:
 
-1. **Dynamic zone adjustment**: Automatically adjust zone boundaries based on
-   note distribution
+1. **Dynamic zone adjustment**: Automatically adjust zone boundaries based on note distribution
 2. **Machine learning**: Predict country based on nearby notes
 3. **Spatial clustering**: Pre-assign countries based on geographic clusters
 4. **Caching**: Cache recent country lookups in memory
@@ -705,7 +703,8 @@ Russia spans multiple zones. Here's how it's handled:
 └─────────────────┘
 ```
 
-**Strategy**: 
+**Strategy**:
+
 - Appears with high priority in its main zones
 - Appears with low priority in adjacent zones (border coverage)
 - Ensures notes near zone boundaries are still found
@@ -752,7 +751,7 @@ Russia spans multiple zones. Here's how it's handled:
 
 Performance can be monitored using PostgreSQL's built-in query analysis tools:
 
-```sql
+````sql
 -- Analyze get_country() performance for a specific zone
 EXPLAIN ANALYZE
 SELECT get_country(longitude, latitude, note_id)
@@ -771,8 +770,8 @@ For performance analysis, you can also query the notes table directly:
 
 ```sql
 -- Analyze zone distribution of notes
-SELECT 
-  CASE 
+SELECT
+  CASE
     WHEN longitude BETWEEN -10 AND 15 AND latitude BETWEEN 35 AND 60 THEN 'Western Europe'
     WHEN longitude BETWEEN -150 AND -60 AND latitude BETWEEN 30 AND 75 THEN 'USA/Canada'
     WHEN longitude BETWEEN 100 AND 145 AND latitude BETWEEN 20 AND 55 THEN 'Eastern Asia'
@@ -784,7 +783,7 @@ SELECT
 FROM notes
 GROUP BY zone
 ORDER BY notes DESC;
-```
+````
 
 ### Visual Zone Boundaries
 
@@ -832,14 +831,14 @@ ORDER BY notes DESC;
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing (includes country assignment)
 - **[Process_API.md](./Process_API.md)**: API processing (includes country assignment)
 - **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
-- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions explanation
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
+  to prevent data cross-contamination
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions
+  explanation
 
 ### External References
 
-- **PostGIS Documentation**: 
-  <https://postgis.net/docs/ST_Contains.html>
-- **OpenStreetMap Boundaries**: 
-  <https://wiki.openstreetmap.org/wiki/Tag:boundary%3Dadministrative>
+- **PostGIS Documentation**: <https://postgis.net/docs/ST_Contains.html>
+- **OpenStreetMap Boundaries**: <https://wiki.openstreetmap.org/wiki/Tag:boundary%3Dadministrative>
 - **Spatial Indexing**:
   <https://postgis.net/docs/using_postgis_dbmanagement.html#spatial_index_intro>

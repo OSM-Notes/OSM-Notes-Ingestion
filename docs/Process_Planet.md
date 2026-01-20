@@ -1,23 +1,27 @@
 # Complete Description of processPlanetNotes.sh
 
-> **Note:** For a general system overview, see [Documentation.md](./Documentation.md).
-> For project motivation and background, see [Rationale.md](./Rationale.md).
+> **Note:** For a general system overview, see [Documentation.md](./Documentation.md). For project
+> motivation and background, see [Rationale.md](./Rationale.md).
 
 ## General Purpose
 
-The `processPlanetNotes.sh` script is the central component of the OpenStreetMap notes processing system. Its main function is to download, process, and load into a PostgreSQL database all notes from the OSM planet, either from scratch or only new notes.
+The `processPlanetNotes.sh` script is the central component of the OpenStreetMap notes processing
+system. Its main function is to download, process, and load into a PostgreSQL database all notes
+from the OSM planet, either from scratch or only new notes.
 
 ## Design Context
 
 ### Why This Design?
 
-The Planet processing design was created to handle very large XML files (2.2GB+) efficiently while maintaining data integrity. The key design decisions include:
+The Planet processing design was created to handle very large XML files (2.2GB+) efficiently while
+maintaining data integrity. The key design decisions include:
 
 **AWK-Based XML Processing**:
 
 - XML files from Planet are simple in structure and repeat elements many times
 - AWK processes XML as text files without full XML parsing, which is much faster
-- This approach was chosen after evaluating Saxon (Java, memory issues), xmlproc (memory leaks), and xmlstarlet (uses xmlproc)
+- This approach was chosen after evaluating Saxon (Java, memory issues), xmlproc (memory leaks), and
+  xmlstarlet (uses xmlproc)
 - **Trade-off**: Risk if OSM changes XML format, but API 0.6 has been stable for ~12 years
 
 **Split-Process-Consolidate Approach**:
@@ -44,24 +48,33 @@ The Planet processing design was created to handle very large XML files (2.2GB+)
 ### Design Patterns Used
 
 - **Singleton Pattern**: Ensures only one instance of `processPlanetNotes.sh` runs at a time
-- **FIFO Queue Pattern**: Used for downloading boundaries via Overpass API to prevent race conditions
-- **Semaphore Pattern**: Limits concurrent downloads to Overpass API, preventing rate limiting and temporary bans
+- **FIFO Queue Pattern**: Used for downloading boundaries via Overpass API to prevent race
+  conditions
+- **Semaphore Pattern**: Limits concurrent downloads to Overpass API, preventing rate limiting and
+  temporary bans
 - **Retry Pattern**: Implements exponential backoff for download failures and network operations
 - **Resource Management Pattern**: Uses `trap` handlers for cleanup of temporary files and resources
 
 ### Alternatives Considered
 
-- **XSLT Processing**: Initially used Saxon and xsltproc, but both had memory limitations with large files
-- **Full XML Parsing**: Considered using XML parsers, but AWK text processing proved much faster and more memory-efficient
-- **Sequential Processing**: Considered processing files sequentially, but parallel processing significantly reduces total time
-- **Fixed Partitions**: Evaluated fixed number of partitions, but dynamic partitioning based on data volume provides better resource utilization
+- **XSLT Processing**: Initially used Saxon and xsltproc, but both had memory limitations with large
+  files
+- **Full XML Parsing**: Considered using XML parsers, but AWK text processing proved much faster and
+  more memory-efficient
+- **Sequential Processing**: Considered processing files sequentially, but parallel processing
+  significantly reduces total time
+- **Fixed Partitions**: Evaluated fixed number of partitions, but dynamic partitioning based on data
+  volume provides better resource utilization
 
 ### Trade-offs
 
-- **Processing Speed vs. Memory**: AWK processing is faster but requires careful file splitting to avoid memory issues
+- **Processing Speed vs. Memory**: AWK processing is faster but requires careful file splitting to
+  avoid memory issues
 - **Validation vs. Performance**: Optional XML/CSV validations can be skipped for faster processing
-- **Parallel Complexity**: Parallel processing adds complexity but provides significant performance gains
-- **Sync Tables Overhead**: Temporary tables add overhead but provide safety and validation capabilities
+- **Parallel Complexity**: Parallel processing adds complexity but provides significant performance
+  gains
+- **Sync Tables Overhead**: Temporary tables add overhead but provide safety and validation
+  capabilities
 
 ## Input Arguments
 
@@ -107,8 +120,10 @@ Base tables store the complete history of all notes:
   - `status`: Status (open/closed)
   - `closed_at`: Closing date (if applicable)
   - `id_country`: ID of the country where it is located
-  - `insert_time`: Timestamp when the note was inserted into the database (automatically set by trigger on INSERT)
-  - `update_time`: Timestamp when the note was last updated in the database (automatically updated by trigger on UPDATE)
+  - `insert_time`: Timestamp when the note was inserted into the database (automatically set by
+    trigger on INSERT)
+  - `update_time`: Timestamp when the note was last updated in the database (automatically updated
+    by trigger on UPDATE)
 
 - **`note_comments`**: Comments associated with notes
   - `id`: Generated sequential ID
@@ -168,7 +183,7 @@ __moveSyncToMain
 
 # Verify data was moved
 psql -d "${DBNAME}" -c "
-  SELECT 
+  SELECT
     (SELECT COUNT(*) FROM notes_sync) as sync_count,
     (SELECT COUNT(*) FROM notes) as base_count;
 "
@@ -184,7 +199,7 @@ psql -d "${DBNAME}" -c "
 INSERT INTO notes (
   note_id, latitude, longitude, created_at, closed_at, status
 )
-SELECT 
+SELECT
   note_id, latitude, longitude, created_at, closed_at, status
 FROM notes_sync
 ON CONFLICT (note_id) DO UPDATE SET
@@ -453,7 +468,7 @@ iostat -x 5
 
 # Track database performance
 psql -d "${DBNAME}" -c "
-  SELECT 
+  SELECT
     schemaname,
     tablename,
     n_tup_ins as inserts,
@@ -570,7 +585,8 @@ User/Cron      processPlanetNotes.sh    Planet Server    Overpass API    Postgre
 
 ### Overpass API Interaction Sequence
 
-The following diagram shows how the system interacts with Overpass API using FIFO queue and semaphore patterns:
+The following diagram shows how the system interacts with Overpass API using FIFO queue and
+semaphore patterns:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -671,7 +687,8 @@ Main Script    FIFO Queue    Semaphore    Overpass API    PostgreSQL
 
 ### Troubleshooting
 
-This section covers common issues specific to Planet processing. For a comprehensive troubleshooting guide covering all system components, see [Troubleshooting_Guide.md](./Troubleshooting_Guide.md).
+This section covers common issues specific to Planet processing. For a comprehensive troubleshooting
+guide covering all system components, see [Troubleshooting_Guide.md](./Troubleshooting_Guide.md).
 
 #### Common Error Scenarios
 
@@ -795,7 +812,8 @@ fi
   - Database consolidation operations
 - **Planet Processing (Sync Mode)**: Similar to base mode, depends on data volume
 
-**Note**: High memory usage (6-7 GB) during Planet processing is **expected and normal**. The system is designed to handle this. Ensure your system has sufficient RAM (recommended: 8+ GB).
+**Note**: High memory usage (6-7 GB) during Planet processing is **expected and normal**. The system
+is designed to handle this. Ensure your system has sufficient RAM (recommended: 8+ GB).
 
 **Diagnosis:**
 
@@ -969,25 +987,31 @@ psql -d notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
 - Re-run geographic data processing:
   ```bash
   ./bin/process/updateCountries.sh
-
-> **Note:** The `updateCountries.sh` script includes automatic verification of missing maritime boundaries using a centroid-based approach. See [Maritime_Boundaries_Verification.md](./Maritime_Boundaries_Verification.md) for details on how maritime boundaries are verified and automatically imported from OSM.
   ```
+
+> **Note:** The `updateCountries.sh` script includes automatic verification of missing maritime
+> boundaries using a centroid-based approach. See
+> [Maritime_Boundaries_Verification.md](./Maritime_Boundaries_Verification.md) for details on how
+> maritime boundaries are verified and automatically imported from OSM.
+
+````
 
 #### Recovery Procedures
 
 **After Failed Execution:**
 
 1. Check failed execution marker:
-   ```bash
-   # Find and display failed execution marker (works in both modes)
-   FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
-     -name "processPlanetNotes_failed_execution" 2>/dev/null | head -1)
-   if [[ -n "${FAILED_FILE}" ]] && [[ -f "${FAILED_FILE}" ]]; then
-     cat "${FAILED_FILE}"
-   fi
-   ```
+ ```bash
+ # Find and display failed execution marker (works in both modes)
+ FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
+   -name "processPlanetNotes_failed_execution" 2>/dev/null | head -1)
+ if [[ -n "${FAILED_FILE}" ]] && [[ -f "${FAILED_FILE}" ]]; then
+   cat "${FAILED_FILE}"
+ fi
+````
 
 2. Review logs:
+
    ```bash
    LATEST_DIR=$(ls -1rtd /tmp/processPlanetNotes_* | tail -1)
    # Find and tail latest log (works in both modes)
@@ -1002,6 +1026,7 @@ psql -d notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
 3. Fix underlying issue (see specific error scenarios above)
 
 4. Remove failed marker:
+
    ```bash
    # Remove failed execution marker (works in both modes)
    FAILED_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
@@ -1021,6 +1046,7 @@ psql -d notes -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoint(0,0));"
 If processing was interrupted:
 
 1. Check what was completed:
+
    ```bash
    psql -d notes -c "SELECT COUNT(*) FROM notes;"
    ```
@@ -1098,13 +1124,18 @@ psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 
 #### Getting More Help
 
-- **Comprehensive Guide**: See [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for detailed troubleshooting across all components
-- **Error Codes**: See [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference) for complete error code reference
-- **API Processing Issues**: See [Process_API.md#troubleshooting](./Process_API.md#troubleshooting) for API-specific troubleshooting
+- **Comprehensive Guide**: See [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for detailed
+  troubleshooting across all components
+- **Error Codes**: See
+  [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference)
+  for complete error code reference
+- **API Processing Issues**: See [Process_API.md#troubleshooting](./Process_API.md#troubleshooting)
+  for API-specific troubleshooting
 - **Logs**: Logs are stored in different locations depending on installation mode:
   - **Installed**: `/var/log/osm-notes-ingestion/processing/processPlanetNotes.log`
   - **Fallback**: `/tmp/osm-notes-ingestion/logs/processing/processPlanetNotes.log`
-- **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture overview
+- **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture
+  overview
 
 ## Integration with Other Components
 
@@ -1128,6 +1159,10 @@ psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
 - **API Processing**: See [Process_API.md](./Process_API.md) for API data processing details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
-- **Country Assignment**: See [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md) for country assignment strategy
-- **Capital Validation**: See [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation details
-- **Spatial Functions**: See [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for PostGIS spatial functions
+- **Country Assignment**: See [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md) for
+  country assignment strategy
+- **Capital Validation**: See
+  [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation
+  details
+- **Spatial Functions**: See [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for PostGIS
+  spatial functions

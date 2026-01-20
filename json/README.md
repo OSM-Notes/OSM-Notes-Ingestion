@@ -3,6 +3,7 @@
 ## Purpose
 
 The `json` directory contains JSON schema definitions and sample data files used for:
+
 - **Data Validation**: Validating JSON data structures from Overpass API responses
 - **Testing**: Providing test data and examples for development
 - **Documentation**: Self-documenting schema definitions for OSM data structures
@@ -10,9 +11,9 @@ The `json` directory contains JSON schema definitions and sample data files used
 
 ## Overview
 
-The `json` directory contains JSON (JavaScript Object Notation) files that provide
-structured data for the OSM-Notes-Ingestion system. These files include schema
-definitions, sample data, and configuration files in JSON format.
+The `json` directory contains JSON (JavaScript Object Notation) files that provide structured data
+for the OSM-Notes-Ingestion system. These files include schema definitions, sample data, and
+configuration files in JSON format.
 
 ## Directory Structure
 

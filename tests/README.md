@@ -2,10 +2,9 @@
 
 ## Overview
 
-The `tests` directory contains comprehensive testing infrastructure for the
-OSM-Notes-Ingestion system. It includes unit tests, integration tests,
-performance tests, and quality assurance tools to ensure the reliability and
-correctness of the entire system.
+The `tests` directory contains comprehensive testing infrastructure for the OSM-Notes-Ingestion
+system. It includes unit tests, integration tests, performance tests, and quality assurance tools to
+ensure the reliability and correctness of the entire system.
 
 ## Quick Start (No sudo required)
 
@@ -51,7 +50,8 @@ For GitHub Actions and other CI environments:
    ./tests/run_ci_tests_simple.sh
    ```
 
-**Note**: The CI workflow automatically handles dependency installation and environment verification.
+**Note**: The CI workflow automatically handles dependency installation and environment
+verification.
 
 ## Troubleshooting
 
@@ -103,7 +103,8 @@ Unit tests for individual components:
   - **`tables_final_fixed.test.sql`**: Database table structure tests
   - **`functions_final_corrected.test.sql`**: Database function tests
 
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+> **Note:** DWH/ETL tests are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 #### Test File Organization
 
@@ -116,6 +117,7 @@ The test suite uses a **modular structure** for improved maintainability and org
 - **Module categories**: common, validation, integration, error handling, performance, etc.
 
 **Benefits of modular structure:**
+
 - Easier to maintain and understand
 - Faster test execution (can run specific modules)
 - Better organization by functionality
@@ -126,7 +128,8 @@ The test suite uses a **modular structure** for improved maintainability and org
 End-to-end integration tests:
 
 - **`end_to_end.test.bats`**: Complete workflow testing from data ingestion to output
-- **`processAPI_historical_e2e.test.bats`**: End-to-end tests for processAPI historical validation with real database scenarios
+- **`processAPI_historical_e2e.test.bats`**: End-to-end tests for processAPI historical validation
+  with real database scenarios
 
 ### `/tests/docker/`
 
@@ -172,16 +175,16 @@ Test data and sample files:
 
 ### Contributing Tests
 
-- **[CONTRIBUTING_TESTS.md](./CONTRIBUTING_TESTS.md)**: Comprehensive guide for
-  contributing tests, including:
+- **[CONTRIBUTING_TESTS.md](./CONTRIBUTING_TESTS.md)**: Comprehensive guide for contributing tests,
+  including:
   - Test structure and organization
   - Writing tests with inline comments
   - Using fixtures and mocking dependencies
   - Test naming conventions
   - Code quality standards
 
-- **[TESTING_STRATEGIES.md](./TESTING_STRATEGIES.md)**: Comprehensive testing
-  strategies and approaches, including:
+- **[TESTING_STRATEGIES.md](./TESTING_STRATEGIES.md)**: Comprehensive testing strategies and
+  approaches, including:
   - Testing philosophy and principles
   - Test types and strategies (unit, integration, E2E, performance, security)
   - Mocking and test data strategies
@@ -190,8 +193,8 @@ Test data and sample files:
 
 ### Test Fixtures
 
-- **[fixtures/README.md](./fixtures/README.md)**: Complete documentation of test
-  fixtures and sample data:
+- **[fixtures/README.md](./fixtures/README.md)**: Complete documentation of test fixtures and sample
+  data:
   - Command fixtures for mock commands
   - Special case XML scenarios
   - XML test data files
@@ -215,7 +218,8 @@ Test data and sample files:
 - **Security Tests**: Vulnerability scanning
 - **Quality Tests**: Code quality and style validation
 - **Resource Limit Tests**: XML processing resource monitoring and limits validation
-- **Historical Data Validation Tests**: ProcessAPI prerequisite validation for historical data integrity
+- **Historical Data Validation Tests**: ProcessAPI prerequisite validation for historical data
+  integrity
 - **XSLT Enum Format Tests**: PostgreSQL enum compatibility validation for CSV output
 
 ### Test Data
@@ -236,8 +240,10 @@ Tests can be run individually or as part of the complete test suite:
 ### Running Specific Test Categories
 
 - **Resource Limit Tests**: `cd tests/unit/bash && bats resource_limits.test.bats`
-- **Historical Data Validation Tests**: `cd tests/unit/bash && bats historical_data_validation.test.bats`
-- **ProcessAPI Integration Tests**: `cd tests/unit/bash && bats processAPI_historical_integration.test.bats`
+- **Historical Data Validation Tests**:
+  `cd tests/unit/bash && bats historical_data_validation.test.bats`
+- **ProcessAPI Integration Tests**:
+  `cd tests/unit/bash && bats processAPI_historical_integration.test.bats`
 - **XSLT Enum Format Tests**: `cd tests/unit/bash && bats xslt_enum_format.test.bats`
 - **XML Processing Tests**: `cd tests/unit/bash && bats xml_processing_enhanced.test.bats`
 - **Individual Test**: `cd tests/unit/bash && bats resource_limits.test.bats -f "test_name"`
@@ -271,10 +277,9 @@ Tests can be run individually or as part of the complete test suite:
 
 ### Overview
 
-This document describes the standardized configuration values used across all test
-environments in the OSM-Notes-Ingestion project. **Test properties are completely
-separate from production properties** to maintain clear boundaries between
-environments.
+This document describes the standardized configuration values used across all test environments in
+the OSM-Notes-Ingestion project. **Test properties are completely separate from production
+properties** to maintain clear boundaries between environments.
 
 ### Test Properties vs Production Properties
 
@@ -296,50 +301,50 @@ environments.
 
 #### Database Configuration
 
-| Variable | Default Value | Description |
-|----------|---------------|-------------|
-| `TEST_DBNAME` | `osm_notes_ingestion_test` | Test database name |
-| `TEST_DBUSER` | `testuser` (Docker) / `postgres` (Host) | Test-specific database user |
-| `TEST_DBPASSWORD` | `testpass` (Docker) / `` (Host) | Database password |
-| `TEST_DBHOST` | `postgres` (Docker) / `localhost` (Host) | Database host |
-| `TEST_DBPORT` | `5432` | Database port |
+| Variable          | Default Value                            | Description                 |
+| ----------------- | ---------------------------------------- | --------------------------- |
+| `TEST_DBNAME`     | `osm_notes_ingestion_test`               | Test database name          |
+| `TEST_DBUSER`     | `testuser` (Docker) / `postgres` (Host)  | Test-specific database user |
+| `TEST_DBPASSWORD` | `testpass` (Docker) / `` (Host)          | Database password           |
+| `TEST_DBHOST`     | `postgres` (Docker) / `localhost` (Host) | Database host               |
+| `TEST_DBPORT`     | `5432`                                   | Database port               |
 
 #### Timeout Configuration
 
-| Variable | Default Value | Description |
-|----------|---------------|-------------|
-| `TEST_TIMEOUT` | `300` (5 minutes) | General test timeout |
-| `PERFORMANCE_TIMEOUT` | `60` (1 minute) | Performance test timeout |
-| `MOCK_API_TIMEOUT` | `30` (30 seconds) | Mock API timeout |
-| `CI_TIMEOUT` | `600` (10 minutes) | CI/CD timeout |
-| `DOCKER_TIMEOUT` | `300` (5 minutes) | Docker operations timeout |
-| `VALIDATION_TIMEOUT` | `60` (1 minute) | Validation test timeout |
+| Variable              | Default Value      | Description               |
+| --------------------- | ------------------ | ------------------------- |
+| `TEST_TIMEOUT`        | `300` (5 minutes)  | General test timeout      |
+| `PERFORMANCE_TIMEOUT` | `60` (1 minute)    | Performance test timeout  |
+| `MOCK_API_TIMEOUT`    | `30` (30 seconds)  | Mock API timeout          |
+| `CI_TIMEOUT`          | `600` (10 minutes) | CI/CD timeout             |
+| `DOCKER_TIMEOUT`      | `300` (5 minutes)  | Docker operations timeout |
+| `VALIDATION_TIMEOUT`  | `60` (1 minute)    | Validation test timeout   |
 
 #### Retry Configuration
 
-| Variable | Default Value | Description |
-|----------|---------------|-------------|
-| `TEST_RETRIES` | `3` | Standard retry count |
-| `MAX_RETRIES` | `30` | Maximum retries for service startup |
-| `RETRY_INTERVAL` | `2` | Seconds between retries |
-| `CI_MAX_RETRIES` | `20` | CI environment retries |
-| `DOCKER_MAX_RETRIES` | `10` | Docker-specific retries |
-| `VALIDATION_RETRIES` | `3` | Validation retries |
+| Variable             | Default Value | Description                         |
+| -------------------- | ------------- | ----------------------------------- |
+| `TEST_RETRIES`       | `3`           | Standard retry count                |
+| `MAX_RETRIES`        | `30`          | Maximum retries for service startup |
+| `RETRY_INTERVAL`     | `2`           | Seconds between retries             |
+| `CI_MAX_RETRIES`     | `20`          | CI environment retries              |
+| `DOCKER_MAX_RETRIES` | `10`          | Docker-specific retries             |
+| `VALIDATION_RETRIES` | `3`           | Validation retries                  |
 
 #### Threading Configuration
 
-| Variable | Default Value | Description |
-|----------|---------------|-------------|
-| `MAX_THREADS` | `2` | Conservative threading for tests |
-| `CI_MAX_THREADS` | `2` | Conservative threading for CI |
-| `PARALLEL_THREADS` | `2` | Conservative parallel processing |
-| `PARALLEL_ENABLED` | `false` | Enable parallel processing |
+| Variable           | Default Value | Description                      |
+| ------------------ | ------------- | -------------------------------- |
+| `MAX_THREADS`      | `2`           | Conservative threading for tests |
+| `CI_MAX_THREADS`   | `2`           | Conservative threading for CI    |
+| `PARALLEL_THREADS` | `2`           | Conservative parallel processing |
+| `PARALLEL_ENABLED` | `false`       | Enable parallel processing       |
 
 #### Memory Configuration
 
-| Variable | Default Value | Description |
-|----------|---------------|-------------|
-| `MEMORY_LIMIT_MB` | `100` | Memory limit for tests |
+| Variable          | Default Value | Description            |
+| ----------------- | ------------- | ---------------------- |
+| `MEMORY_LIMIT_MB` | `100`         | Memory limit for tests |
 
 ### Environment-Specific Configuration
 
@@ -395,12 +400,12 @@ bash tests/run_enhanced_tests.sh --parallel
 
 The system uses different default values for production and test environments:
 
-| Configuration | Production | Test |
-|---------------|------------|------|
-| `MAX_THREADS` | `4-16` (based on cores) | `2` |
-| `MEMORY_LIMIT_MB` | `512` | `100` |
-| `TEST_TIMEOUT` | `600` | `300` |
-| `MAX_RETRIES` | `30` | `30` |
+| Configuration     | Production              | Test  |
+| ----------------- | ----------------------- | ----- |
+| `MAX_THREADS`     | `4-16` (based on cores) | `2`   |
+| `MEMORY_LIMIT_MB` | `512`                   | `100` |
+| `TEST_TIMEOUT`    | `600`                   | `300` |
+| `MAX_RETRIES`     | `30`                    | `30`  |
 
 ### Benefits of Separation
 

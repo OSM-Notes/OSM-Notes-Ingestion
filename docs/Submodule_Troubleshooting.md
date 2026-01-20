@@ -129,7 +129,6 @@ The repository is configured to use SSH for submodule cloning. Ensure you have:
    ```
 
 2. SSH key added to GitHub:
-
    - Copy your public key: `cat ~/.ssh/id_ed25519.pub`
    - Add it at: <https://github.com/settings/keys>
 

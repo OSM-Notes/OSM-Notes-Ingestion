@@ -1,7 +1,8 @@
 # Mocking Best Practices Guide
 
 **Version:** 2025-12-27  
-**Purpose:** Comprehensive guide for implementing effective mocking in OSM-Notes-Ingestion project tests.
+**Purpose:** Comprehensive guide for implementing effective mocking in OSM-Notes-Ingestion project
+tests.
 
 ---
 
@@ -62,11 +63,13 @@ Mocks must make **explicit** what they are simulating:
 **Reason:** External services may be unavailable, slow, or rate-limited.
 
 **Services to mock:**
+
 - **OSM Notes API** (`api.openstreetmap.org`)
 - **Overpass API** (`overpass-api.de`)
 - **OSM Planet Server** (`planet.openstreetmap.org`)
 
 **Example:**
+
 ```bash
 # Mock curl to avoid real API calls
 __setup_mock_curl_for_api "https://api.openstreetmap.org" "200" '{"notes":[]}'
@@ -77,11 +80,13 @@ __setup_mock_curl_for_api "https://api.openstreetmap.org" "200" '{"notes":[]}'
 **Reason:** Unit tests must be fast and not depend on I/O.
 
 **Operations to mock:**
+
 - Database access (in unit tests)
 - File operations (when not the focus of the test)
 - Calls to complex external commands
 
 **Example:**
+
 ```bash
 # Mock psql for unit tests
 __setup_mock_psql_for_query "SELECT.*FROM notes" "5" 0
@@ -92,6 +97,7 @@ __setup_mock_psql_for_query "SELECT.*FROM notes" "5" 0
 **Reason:** Test components in isolation without depending on internal implementations.
 
 **Example:**
+
 ```bash
 # Mock internal function to test specific component
 __validate_json_with_element() {
@@ -110,15 +116,17 @@ export -f __validate_json_with_element
 **Reason:** Local services are fast, reliable, and provide better coverage.
 
 **Services to use real:**
+
 - **PostgreSQL** (local database `osm_notes_ingestion_test`)
 - **System tools** (`xmllint`, `bzip2`, `jq`)
 
 **Example:**
+
 ```bash
 # Use real PostgreSQL in integration tests
 @test "Function should insert into database" {
   __skip_if_no_database "${DBNAME}" "Database not available"
-  
+
   # Use real database
   run function_that_inserts_data
   [[ "${status}" -eq 0 ]]
@@ -130,6 +138,7 @@ export -f __validate_json_with_element
 **Reason:** If you mock what you're testing, you're not testing anything.
 
 **Example:**
+
 ```bash
 # ❌ BAD: Mock the function you're testing
 @test "Function should process data" {
@@ -142,7 +151,7 @@ export -f __validate_json_with_element
 # ✅ GOOD: Mock dependencies, not the main function
 @test "Function should process data" {
   __setup_mock_curl_for_api "http://api.example.com" "200" '{"data":[]}'
-  
+
   run function_being_tested
   [[ "${status}" -eq 0 ]]
 }
@@ -153,6 +162,7 @@ export -f __validate_json_with_element
 **Reason:** Tools like `grep`, `awk`, `sed` are fast and reliable.
 
 **Example:**
+
 ```bash
 # ✅ Use real grep
 result=$(grep "pattern" "${file}")
@@ -164,20 +174,24 @@ result=$(grep "pattern" "${file}")
 
 **Tools:** `osmtogeojson`, `ogr2ogr`, `xmllint`
 
-**Reason:** These tools are local and deterministic, but may not be installed in all test environments.
+**Reason:** These tools are local and deterministic, but may not be installed in all test
+environments.
 
 **Strategy:**
+
 - **Unit tests**: Mock to avoid dependencies and test logic in isolation
 - **Integration tests**: Use real tools when available, skip tests if not available
 - **Hybrid tests**: Use real tools (they need to work with real database)
 
 **Example - Unit Test (Mock):**
+
 ```bash
 # Mock osmtogeojson for unit tests
 __setup_mock_osmtogeojson "input.json" "output.geojson"
 ```
 
 **Example - Integration Test (Real):**
+
 ```bash
 # Check availability and use real tool
 if ! command -v osmtogeojson > /dev/null; then
@@ -189,6 +203,7 @@ osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
 ```
 
 **Example - Hybrid Test (Real with Fallback):**
+
 ```bash
 # In hybrid mode, mock delegates to real command if available
 # See: tests/setup_hybrid_mock_environment.sh
@@ -204,12 +219,14 @@ osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
 **Location:** `tests/test_helpers_common.bash`
 
 **Advantages:**
+
 - ✅ Code reuse
 - ✅ Consistency across tests
 - ✅ Centralized maintenance
 - ✅ Fewer errors
 
 **Example:**
+
 ```bash
 load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 
@@ -222,12 +239,14 @@ setup() {
 ### ❌ Avoid: Inline Mocks
 
 **Problems:**
+
 - ❌ Code duplication
 - ❌ Inconsistencies between implementations
 - ❌ Difficult maintenance
 - ❌ Less readable tests
 
 **Example:**
+
 ```bash
 # ❌ BAD: Inline mock duplicated
 psql() {
@@ -242,11 +261,13 @@ export -f psql
 ### Exception: Test-Specific Mocks
 
 **When to use inline mocks:**
+
 - When the mock is specific to a single test
 - When the simulated behavior is unique and not reusable
 - When the mock is very simple (1-2 lines)
 
 **Example:**
+
 ```bash
 @test "Function should handle specific error case" {
   # Mock specific to this unique test
@@ -254,7 +275,7 @@ export -f psql
     return 1  # Simulate specific error
   }
   export -f __specific_helper
-  
+
   run function_under_test
   [[ "${status}" -ne 0 ]]
 }
@@ -267,6 +288,7 @@ export -f psql
 ### Step 1: Identify Dependencies
 
 Before writing the test, identify:
+
 1. **What external services** the function uses
 2. **What system commands** it executes
 3. **What internal functions** it calls
@@ -275,15 +297,15 @@ Before writing the test, identify:
 
 Use this decision table:
 
-| Dependency | Type | Mock? | Helper Available? | Notes |
-|------------|------|-------|-------------------|-------|
-| OSM API | Internet | ✅ Yes | `__setup_mock_curl_for_api` | Always mock |
-| Overpass API | Internet | ✅ Yes | `__setup_mock_curl_overpass` | Always mock |
-| PostgreSQL | Local | ❌ No (integration tests) | `__skip_if_no_database` | Use real DB |
-| PostgreSQL | Local | ✅ Yes (unit tests) | `__setup_mock_psql_for_query` | Mock for isolation |
-| osmtogeojson | Tool | ⚠️ Conditional | `__setup_mock_osmtogeojson` | Mock in unit tests, real in integration |
-| ogr2ogr | Tool | ⚠️ Conditional | `__setup_mock_ogr2ogr` | Mock in unit tests, real in hybrid tests |
-| xmllint | Tool | ❌ No | - | Always use real (check availability) |
+| Dependency   | Type     | Mock?                     | Helper Available?             | Notes                                    |
+| ------------ | -------- | ------------------------- | ----------------------------- | ---------------------------------------- |
+| OSM API      | Internet | ✅ Yes                    | `__setup_mock_curl_for_api`   | Always mock                              |
+| Overpass API | Internet | ✅ Yes                    | `__setup_mock_curl_overpass`  | Always mock                              |
+| PostgreSQL   | Local    | ❌ No (integration tests) | `__skip_if_no_database`       | Use real DB                              |
+| PostgreSQL   | Local    | ✅ Yes (unit tests)       | `__setup_mock_psql_for_query` | Mock for isolation                       |
+| osmtogeojson | Tool     | ⚠️ Conditional            | `__setup_mock_osmtogeojson`   | Mock in unit tests, real in integration  |
+| ogr2ogr      | Tool     | ⚠️ Conditional            | `__setup_mock_ogr2ogr`        | Mock in unit tests, real in hybrid tests |
+| xmllint      | Tool     | ❌ No                     | -                             | Always use real (check availability)     |
 
 ### Step 3: Implement Mocks
 
@@ -295,10 +317,10 @@ load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 setup() {
   # Mock PostgreSQL for unit tests
   __setup_mock_psql_for_query "SELECT.*FROM notes" "5" 0
-  
+
   # Mock curl for external API
   __setup_mock_curl_for_api "https://api.openstreetmap.org" "200" '{"notes":[]}'
-  
+
   # Mock osmtogeojson
   __setup_mock_osmtogeojson "input.json" "output.geojson"
 }
@@ -314,7 +336,7 @@ setup() {
     return 0
   }
   export -f __specific_function
-  
+
   run function_under_test
   [[ "${status}" -eq 0 ]]
 }
@@ -323,6 +345,7 @@ setup() {
 ### Step 4: Document Mocks
 
 **Always document:**
+
 - What service/command is being mocked
 - Why it's being mocked
 - What behavior is being simulated
@@ -341,6 +364,7 @@ __setup_mock_curl_for_api "https://api.openstreetmap.org" "200" '{"notes":[]}'
 ### Pattern 1: PostgreSQL Mock
 
 **For unit tests:**
+
 ```bash
 # Mock psql to return specific result
 __setup_mock_psql_for_query "SELECT COUNT" "5" 0
@@ -357,6 +381,7 @@ __setup_mock_psql_with_tracking \
 ```
 
 **For integration tests:**
+
 ```bash
 # Check database availability
 __skip_if_no_database "${DBNAME}" "Database not available"
@@ -384,6 +409,7 @@ __setup_mock_curl_overpass \
 ### Pattern 3: GeoJSON Tools Mock (Unit Tests Only)
 
 **For unit tests** (testing logic without real conversion):
+
 ```bash
 # Mock osmtogeojson (OSM→GeoJSON conversion)
 __setup_mock_osmtogeojson "input.json" "output.geojson"
@@ -393,6 +419,7 @@ __setup_mock_ogr2ogr "true"  # Simulate success
 ```
 
 **For integration tests** (testing real functionality):
+
 ```bash
 # Check availability and use real tool
 if ! command -v osmtogeojson > /dev/null; then
@@ -406,7 +433,8 @@ osmtogeojson "${JSON_FILE}" > "${GEOJSON_FILE}"
 # See: tests/setup_hybrid_mock_environment.sh
 ```
 
-**Note:** These tools are local and deterministic. Mocking is only needed in unit tests where you're testing logic, not the actual conversion/import functionality.
+**Note:** These tools are local and deterministic. Mocking is only needed in unit tests where you're
+testing logic, not the actual conversion/import functionality.
 
 ### Pattern 4: Internal Functions Mock
 
@@ -447,6 +475,7 @@ run processAPINotes.sh
 ### Error 1: Mocking What You're Testing
 
 **❌ Incorrect:**
+
 ```bash
 @test "Function should process data" {
   function_being_tested() {
@@ -457,11 +486,12 @@ run processAPINotes.sh
 ```
 
 **✅ Correct:**
+
 ```bash
 @test "Function should process data" {
   # Mock dependencies, not the main function
   __setup_mock_curl_for_api "http://api.example.com" "200" '{"data":[]}'
-  
+
   run function_being_tested
   [[ "${status}" -eq 0 ]]
 }
@@ -470,6 +500,7 @@ run processAPINotes.sh
 ### Error 2: Duplicating Inline Mocks
 
 **❌ Incorrect:**
+
 ```bash
 # In each test file...
 psql() {
@@ -480,6 +511,7 @@ export -f psql
 ```
 
 **✅ Correct:**
+
 ```bash
 load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 
@@ -491,6 +523,7 @@ setup() {
 ### Error 3: Not Checking Service Availability
 
 **❌ Incorrect:**
+
 ```bash
 @test "Function should query database" {
   # Assumes database is available
@@ -500,11 +533,12 @@ setup() {
 ```
 
 **✅ Correct:**
+
 ```bash
 @test "Function should query database" {
   # Check availability before using
   __skip_if_no_database "${DBNAME}" "Database not available"
-  
+
   run function_that_queries_db
   [[ "${status}" -eq 0 ]]
 }
@@ -513,6 +547,7 @@ setup() {
 ### Error 4: Overly Complex Mocks
 
 **❌ Incorrect:**
+
 ```bash
 psql() {
   # ... 50 lines of complex logic replicating real psql ...
@@ -520,6 +555,7 @@ psql() {
 ```
 
 **✅ Correct:**
+
 ```bash
 # Use common helper that handles complexity
 __setup_mock_psql_for_query "SELECT.*FROM notes" "5" 0
@@ -528,6 +564,7 @@ __setup_mock_psql_for_query "SELECT.*FROM notes" "5" 0
 ### Error 5: Not Documenting Mock Behavior
 
 **❌ Incorrect:**
+
 ```bash
 curl() {
   echo "{}"
@@ -536,6 +573,7 @@ curl() {
 ```
 
 **✅ Correct:**
+
 ```bash
 # Mock curl to avoid real API calls
 # Simulates successful response with empty JSON
@@ -557,7 +595,7 @@ load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 setup() {
   # Mock PostgreSQL to avoid real connections
   __setup_mock_psql_for_query "SELECT COUNT" "5" 0
-  
+
   # Mock curl to avoid external API calls
   __setup_mock_curl_for_api \
     "https://api.openstreetmap.org/api/0.6/notes" \
@@ -567,7 +605,7 @@ setup() {
 
 @test "Function should count notes correctly" {
   run function_that_counts_notes
-  
+
   [[ "${status}" -eq 0 ]]
   [[ "${output}" == "5" ]]
 }
@@ -587,7 +625,7 @@ setup() {
     "https://api.openstreetmap.org/api/0.6/notes" \
     "200" \
     '{"notes":[]}'
-  
+
   # Check local database availability
   __skip_if_no_database "${DBNAME}" "Database not available"
 }
@@ -595,9 +633,9 @@ setup() {
 @test "E2E: Complete workflow with real database" {
   # Use real database for better coverage
   run processAPINotes.sh
-  
+
   [[ "${status}" -eq 0 ]]
-  
+
   # Verify results in real database
   local count
   count=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM notes_api")
@@ -615,7 +653,7 @@ setup() {
   __validate_json_with_element() {
     local file="${1}"
     local element="${2}"
-    
+
     # Simulate successful validation
     [[ -f "${file}" ]] && [[ -s "${file}" ]]
     return 0
@@ -627,9 +665,9 @@ setup() {
   # Create test JSON
   local json_file="${TMP_DIR}/test.json"
   echo '{"elements":[]}' > "${json_file}"
-  
+
   run function_that_processes_json "${json_file}"
-  
+
   [[ "${status}" -eq 0 ]]
 }
 ```
@@ -645,10 +683,10 @@ setup() {
     return 124  # Timeout exit code
   }
   export -f curl
-  
+
   # Function should retry 3 times before failing
   run function_with_retry "http://example.com"
-  
+
   [[ "${status}" -eq 1 ]]
   [[ "${output}" == *"retry"* ]]
 }
@@ -701,7 +739,8 @@ Following these best practices ensures:
 - ✅ **Maintainable tests**: Reusable and consistent code
 - ✅ **Clear tests**: Easy to understand and modify
 
-**Remember:** The goal of mocking is to **facilitate testing**, not complicate it. When in doubt, ask: "Does this mock make the test simpler and clearer?"
+**Remember:** The goal of mocking is to **facilitate testing**, not complicate it. When in doubt,
+ask: "Does this mock make the test simpler and clearer?"
 
 ---
 

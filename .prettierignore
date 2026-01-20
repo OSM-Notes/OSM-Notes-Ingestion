@@ -1,0 +1,26 @@
+# Ignore node_modules
+node_modules/
+
+# Ignore git directories
+.git/
+
+# Ignore build artifacts
+dist/
+build/
+
+# Ignore temporary files
+tmp/
+*.tmp
+
+# Ignore logs
+*.log
+
+# Ignore submodules
+lib/osm-common/
+
+# XML test fixtures - these are real OSM dumps and should not be formatted
+# They represent actual planet dumps and API responses, formatting would break tests
+tests/fixtures/**/*.xml
+tests/fixtures/command/extra/*.xml
+tests/fixtures/special_cases/*.xml
+tests/fixtures/xml/*.xml

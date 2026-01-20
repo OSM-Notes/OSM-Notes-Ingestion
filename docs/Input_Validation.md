@@ -2,11 +2,14 @@
 
 ## Overview
 
-This document describes the centralized input validation functions that have been added to the OSM-Notes-Ingestion project to address the critical issue of **"Falta de Validación de Entrada"** (Lack of Input Validation).
+This document describes the centralized input validation functions that have been added to the
+OSM-Notes-Ingestion project to address the critical issue of **"Falta de Validación de Entrada"**
+(Lack of Input Validation).
 
 ## Problem Statement
 
-Previously, the project had inconsistent and scattered input validation across different scripts. This led to:
+Previously, the project had inconsistent and scattered input validation across different scripts.
+This led to:
 
 - Runtime errors when files were missing or corrupted
 - Inconsistent error handling
@@ -15,7 +18,8 @@ Previously, the project had inconsistent and scattered input validation across d
 
 ## Solution
 
-A centralized set of validation functions has been implemented in `bin/lib/functionsProcess.sh` that provides:
+A centralized set of validation functions has been implemented in `bin/lib/functionsProcess.sh` that
+provides:
 
 - **Consistent validation logic** across all scripts
 - **Comprehensive error reporting** with detailed messages
@@ -70,7 +74,8 @@ The following validation functions are available in `bin/lib/functionsProcess.sh
   - Returns 0 if valid and contains expected element, 1 if invalid or missing element
   - **Parameters:**
     - `json_file`: Path to the JSON file to validate
-    - `expected_element`: Name of the expected element (e.g., `"elements"` for OSM JSON, `"features"` for GeoJSON)
+    - `expected_element`: Name of the expected element (e.g., `"elements"` for OSM JSON,
+      `"features"` for GeoJSON)
   - **Usage examples:**
     - Validate OSM JSON with elements: `__validate_json_with_element "${json_file}" "elements"`
     - Validate GeoJSON with features: `__validate_json_with_element "${geojson_file}" "features"`
@@ -118,7 +123,9 @@ The following validation functions are available in `bin/lib/functionsProcess.sh
 
 ## JSON Validation with Retry Logic
 
-The `__validate_json_with_element` function is particularly important for validating downloaded files from external APIs (like Overpass API) where downloads may be corrupted or incomplete. The system implements automatic retry logic when validation fails.
+The `__validate_json_with_element` function is particularly important for validating downloaded
+files from external APIs (like Overpass API) where downloads may be corrupted or incomplete. The
+system implements automatic retry logic when validation fails.
 
 ### Download and Validation Flow
 
@@ -238,13 +245,13 @@ fi
 function __checkPrereqs {
   # Validate SQL script files using centralized validation
   __logi "Validating SQL script files..."
-  
+
   local sql_files=(
     "${POSTGRES_11_CHECK_BASE_TABLES}"
     "${POSTGRES_12_CREATE_FUNCTIONS}"
     # ... more files
   )
-  
+
   # Validate each SQL file
   for sql_file in "${sql_files[@]}"; do
     if ! __validate_sql_structure "${sql_file}"; then
@@ -268,7 +275,7 @@ function __checkPrereqs {
       exit "${ERROR_MISSING_LIBRARY}"
     fi
   fi
-  
+
   # Validate dates in XML files if they exist
   __logi "Validating dates in XML files..."
   if [[ -f "${PLANET_NOTES_FILE}" ]]; then
@@ -318,7 +325,8 @@ fi
 
 ## Testing
 
-A comprehensive test suite has been created in `tests/unit/bash/input_validation.test.bats` that covers:
+A comprehensive test suite has been created in `tests/unit/bash/input_validation.test.bats` that
+covers:
 
 - Valid file validation
 - Invalid file handling
@@ -349,26 +357,31 @@ To migrate existing scripts to use the new validation functions:
 
 ## Example Script
 
-The validation functions are demonstrated in the comprehensive test suite at `tests/unit/bash/input_validation.test.bats`.
+The validation functions are demonstrated in the comprehensive test suite at
+`tests/unit/bash/input_validation.test.bats`.
 
 ## Key Features
 
-- **JSON Validation**: `__validate_json_with_element` function validates JSON structure and verifies expected elements exist and are not empty
+- **JSON Validation**: `__validate_json_with_element` function validates JSON structure and verifies
+  expected elements exist and are not empty
 - **Retry Integration**: Integrated with retry logic in boundary processing workflow
 - **Automatic Recovery**: Enables automatic retry when downloaded files are corrupted or incomplete
 - **Overpass API Support**: Used for validating Overpass API responses and GeoJSON conversions
 - **Comprehensive Coverage**: Support for SQL, XML, CSV, and configuration file validation
 
-> **Note:** ETL scripts are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+> **Note:** ETL scripts are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ## Date Validation Functions
+
     - `__validate_iso8601_date()` - Validates ISO 8601 date formats
     - `__validate_xml_dates()` - Validates dates in XML files
     - `__validate_csv_dates()` - Validates dates in CSV files
-  - **Integrated date validation** in process scripts:
-    - `processPlanetNotes.sh` - Validates dates in planet XML files
-    - `processAPINotes.sh` - Validates dates in API XML files
-  - **Created comprehensive test suite** for date validation functions
+
+- **Integrated date validation** in process scripts:
+  - `processPlanetNotes.sh` - Validates dates in planet XML files
+  - `processAPINotes.sh` - Validates dates in API XML files
+- **Created comprehensive test suite** for date validation functions
 
 ## Contributing
 
@@ -384,7 +397,8 @@ When adding new validation functions:
 
 ## SQL Sanitization (Security)
 
-In addition to input validation, the project implements SQL sanitization functions to prevent SQL injection attacks. These functions are located in `lib/osm-common/validationFunctions.sh`.
+In addition to input validation, the project implements SQL sanitization functions to prevent SQL
+injection attacks. These functions are located in `lib/osm-common/validationFunctions.sh`.
 
 ### SQL Sanitization Functions
 
@@ -423,7 +437,8 @@ In addition to input validation, the project implements SQL sanitization functio
 
 ### Why SQL Sanitization Matters
 
-SQL injection is a critical security vulnerability that occurs when user input is directly interpolated into SQL queries without proper sanitization. The sanitization functions ensure:
+SQL injection is a critical security vulnerability that occurs when user input is directly
+interpolated into SQL queries without proper sanitization. The sanitization functions ensure:
 
 1. **String Values**: Single quotes are escaped to prevent breaking out of string literals
 2. **Identifiers**: Table/column names are properly quoted to prevent injection
@@ -432,12 +447,14 @@ SQL injection is a critical security vulnerability that occurs when user input i
 ### Implementation Example
 
 **Before (Vulnerable)**:
+
 ```bash
 NAME=$(grep "name" file | sed "s/'/''/")
 psql -c "INSERT INTO table VALUES ('${NAME}')"
 ```
 
 **After (Secure)**:
+
 ```bash
 NAME_RAW=$(grep "name" file)
 NAME=$(__sanitize_sql_string "${NAME_RAW}")
@@ -459,7 +476,10 @@ psql -c "INSERT INTO table VALUES ('${NAME}') WHERE id=${SANITIZED_ID}"
 ## Related Documentation
 
 - **[Documentation.md](./Documentation.md)**: System architecture and validation overview
-- **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML validation strategies for large files
+- **[XML_Validation_Improvements.md](./XML_Validation_Improvements.md)**: XML validation strategies
+  for large files
 - **[Testing_Guide.md](./Testing_Guide.md)**: Testing procedures including validation tests
-- **[bin/lib/README.md](../bin/lib/README.md)**: Function libraries documentation (includes validation functions)
-- **[lib/osm-common/validationFunctions.sh](../lib/osm-common/validationFunctions.sh)**: Validation function implementations
+- **[bin/lib/README.md](../bin/lib/README.md)**: Function libraries documentation (includes
+  validation functions)
+- **[lib/osm-common/validationFunctions.sh](../lib/osm-common/validationFunctions.sh)**: Validation
+  function implementations

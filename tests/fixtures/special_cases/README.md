@@ -1,6 +1,7 @@
 # Special Test Cases for Unit Testing
 
-This directory contains XML test files for special cases that may occur when the API returns data. These cases are designed to test the robustness of the note processing system.
+This directory contains XML test files for special cases that may occur when the API returns data.
+These cases are designed to test the robustness of the note processing system.
 
 ## Test Cases
 

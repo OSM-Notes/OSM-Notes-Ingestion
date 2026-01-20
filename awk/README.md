@@ -1,6 +1,7 @@
 # AWK Scripts for OSM Notes Processing
 
-This directory contains AWK scripts for extracting and transforming OSM Planet notes data from XML format to CSV format.
+This directory contains AWK scripts for extracting and transforming OSM Planet notes data from XML
+format to CSV format.
 
 ## Overview
 
@@ -116,12 +117,12 @@ These AWK scripts are used directly by:
 
 Tested on OSM Planet with ~4.87M notes:
 
-| Metric | Value |
-|--------|-------|
-| Processing time | ~8 minutes |
-| Memory usage | ~10 MB per process |
-| Throughput | ~10,000 notes/second |
-| Parallel processes | 10 (default) |
+| Metric             | Value                |
+| ------------------ | -------------------- |
+| Processing time    | ~8 minutes           |
+| Memory usage       | ~10 MB per process   |
+| Throughput         | ~10,000 notes/second |
+| Parallel processes | 10 (default)         |
 
 ## Technical Details
 
@@ -144,4 +145,3 @@ Tested on OSM Planet with ~4.87M notes:
 
 - `bin/process/processAPINotes.sh` - API notes processing (uses these scripts directly)
 - `bin/process/processPlanetNotes.sh` - Planet notes processing (uses these scripts directly)
-

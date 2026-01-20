@@ -24,7 +24,8 @@ keep_padding = true
 func_call_chain = true
 
 # For and select condition parentheses should not be spaced
-space_redirects = false
+# Use spaces around redirect operators (aligned with -sr flag and .editorconfig)
+space_redirects = true
 
-# Keep trailing spaces
-keep_trailing_space = true 
+# Remove trailing spaces (aligned with trim_trailing_whitespace in .editorconfig)
+keep_trailing_space = false 

@@ -2,7 +2,8 @@
 
 **Version:** 2025-12-08
 
-This comprehensive troubleshooting guide consolidates common problems and solutions for the OSM-Notes-Ingestion system. Problems are organized by category for easy navigation.
+This comprehensive troubleshooting guide consolidates common problems and solutions for the
+OSM-Notes-Ingestion system. Problems are organized by category for easy navigation.
 
 ## Table of Contents
 
@@ -92,6 +93,7 @@ sudo iptables -L | grep postgresql
 **Solutions:**
 
 1. **Start PostgreSQL service:**
+
    ```bash
    sudo systemctl start postgresql
    sudo systemctl enable postgresql  # Enable auto-start
@@ -103,6 +105,7 @@ sudo iptables -L | grep postgresql
    - Test connection manually: `psql -h HOST -U USER -d DBNAME`
 
 3. **Create database if missing:**
+
    ```bash
    createdb "${DBNAME:-notes}"
    psql -d "${DBNAME:-notes}" -c "CREATE EXTENSION IF NOT EXISTS postgis;"
@@ -133,7 +136,7 @@ psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:
 
 # Check table sizes
 psql -d "${DBNAME:-notes}" -c "
-SELECT 
+SELECT
   schemaname,
   tablename,
   pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
@@ -150,6 +153,7 @@ du -sh /tmp/process*_* 2>/dev/null
 **Solutions:**
 
 1. **Free up disk space:**
+
    ```bash
    # Remove old log directories
    find /tmp -name "process*_*" -type d -mtime +7 -exec rm -rf {} \;
@@ -159,6 +163,7 @@ du -sh /tmp/process*_* 2>/dev/null
    ```
 
 2. **Vacuum database:**
+
    ```bash
    psql -d "${DBNAME:-notes}" -c "VACUUM FULL;"
    psql -d "${DBNAME:-notes}" -c "VACUUM ANALYZE;"
@@ -186,7 +191,7 @@ psql -d "${DBNAME:-notes}" -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 
 # Check for missing indexes
 psql -d "${DBNAME:-notes}" -c "
-SELECT 
+SELECT
   schemaname,
   tablename,
   indexname,
@@ -200,7 +205,7 @@ ORDER BY pg_relation_size(indexrelid) DESC;
 
 # Check table statistics
 psql -d "${DBNAME:-notes}" -c "
-SELECT 
+SELECT
   schemaname,
   tablename,
   n_live_tup,
@@ -217,16 +222,19 @@ ORDER BY n_dead_tup DESC;
 **Solutions:**
 
 1. **Update statistics:**
+
    ```bash
    psql -d "${DBNAME:-notes}" -c "ANALYZE;"
    ```
 
 2. **Rebuild indexes:**
+
    ```bash
    psql -d "${DBNAME:-notes}" -c "REINDEX DATABASE ${DBNAME:-notes};"
    ```
 
 3. **Vacuum dead rows:**
+
    ```bash
    psql -d "${DBNAME:-notes}" -c "VACUUM FULL notes;"
    ```
@@ -263,6 +271,7 @@ psql -d "${DBNAME:-notes}" -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoin
 **Solutions:**
 
 1. **Install PostGIS extension:**
+
    ```bash
    # Install PostGIS package (Ubuntu/Debian)
    sudo apt-get install postgis postgresql-XX-postgis-3
@@ -272,6 +281,7 @@ psql -d "${DBNAME:-notes}" -c "SELECT ST_Contains(ST_MakePoint(0,0), ST_MakePoin
    ```
 
 2. **Verify PostGIS version** (3.0+ recommended):
+
    ```bash
    psql -d "${DBNAME:-notes}" -c "SELECT PostGIS_version();"
    ```
@@ -322,10 +332,11 @@ psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;" 2>&1
 **Solutions:**
 
 1. **Network connectivity issues:**
+
    ```bash
    # Test OSM API connectivity
    curl -I "https://api.openstreetmap.org/api/0.6/notes"
-   
+
    # Check DNS resolution
    nslookup api.openstreetmap.org
    ```
@@ -334,6 +345,7 @@ psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;" 2>&1
    - See [Database Issues](#database-issues) section above
 
 3. **Missing base tables:**
+
    ```bash
    # Run Planet processing to create base tables
    ./bin/process/processPlanetNotes.sh --base
@@ -354,7 +366,7 @@ psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;" 2>&1
 ```bash
 # Check for gaps in note sequence
 psql -d "${DBNAME:-notes}" -c "
-SELECT 
+SELECT
   note_id,
   LAG(note_id) OVER (ORDER BY note_id) as prev_id,
   note_id - LAG(note_id) OVER (ORDER BY note_id) as gap
@@ -414,19 +426,21 @@ fi
 
 1. **If processPlanetNotes.sh is running:**
    - Wait for it to complete
+
    # Monitor progress (works in both modes)
+
    LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
      -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
      sort -n | tail -1 | awk '{print $2}')
-   if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
-     tail -f "${LATEST_LOG}"
-   fi
+   if [[ -n "${LATEST_LOG}"
+   ]] && [[-f "${LATEST_LOG}"]]; then tail -f "${LATEST_LOG}" fi
 
 2. **If lock file is stale** (process not running):
+
    ```bash
    # Verify process is not running
    ps aux | grep processPlanetNotes.sh | grep -v grep
-   
+
    # If not running, remove stale lock
    # Remove lock file (works in both modes)
    LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
@@ -465,6 +479,7 @@ find /var/tmp/osm-notes-ingestion /tmp -type d -name "processAPINotes_*" 2>/dev/
 **Solutions:**
 
 1. **Skip CSV validation** (for testing only):
+
    ```bash
    export SKIP_CSV_VALIDATION=true
    ./bin/process/processAPINotes.sh
@@ -547,16 +562,18 @@ journalctl -k | grep -i "oom\|killed" | tail -20
 **Solutions:**
 
 1. **Reduce MAX_THREADS:**
+
    ```bash
    export MAX_THREADS=2  # Default is CPU cores - 2
    ./bin/process/processPlanetNotes.sh --base
    ```
 
 2. **Add swap space:**
+
    ```bash
    # Check current swap
    swapon --show
-   
+
    # Add swap file (example: 4GB)
    sudo fallocate -l 4G /swapfile
    sudo chmod 600 /swapfile
@@ -593,10 +610,11 @@ psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:
 **Solutions:**
 
 1. **Free up disk space:**
+
    ```bash
    # Remove old log directories
    find /tmp -name "processPlanetNotes_*" -type d -mtime +7 -exec rm -rf {} \;
-   
+
    # Remove old temporary files
    # Remove temporary subdirectories (works in both modes)
    find /var/tmp/osm-notes-ingestion /tmp -type d -name "processPlanetNotes_*" 2>/dev/null | \
@@ -604,6 +622,7 @@ psql -d "${DBNAME:-notes}" -c "SELECT pg_size_pretty(pg_database_size('${DBNAME:
    ```
 
 2. **Enable automatic cleanup:**
+
    ```bash
    export CLEAN=true  # This is the default
    ./bin/process/processPlanetNotes.sh
@@ -646,10 +665,11 @@ fi
 **Solutions:**
 
 1. **If process is not running** (stale lock):
+
    ```bash
    # Verify process is not running
    ps aux | grep processPlanetNotes.sh | grep -v grep
-   
+
    # If not running, remove stale lock
    # Remove lock file (works in both modes)
    LOCK_FILE=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
@@ -661,13 +681,14 @@ fi
 
 2. **If process is running:**
    - Wait for completion
+
    # Monitor progress (works in both modes)
+
    LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
      -name "processPlanetNotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
      sort -n | tail -1 | awk '{print $2}')
-   if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
-     tail -f "${LATEST_LOG}"
-   fi
+   if [[ -n "${LATEST_LOG}"
+   ]] && [[-f "${LATEST_LOG}"]]; then tail -f "${LATEST_LOG}" fi
 
 3. **Check for zombie processes:**
    ```bash
@@ -702,6 +723,7 @@ fi
 **Solutions:**
 
 1. **Skip XML validation** (for testing only):
+
    ```bash
    export SKIP_XML_VALIDATION=true
    ./bin/process/processPlanetNotes.sh --base
@@ -749,6 +771,7 @@ grep -i "RATE_LIMIT\|OVERPASS" etc/properties.sh
 **Solutions:**
 
 1. **Increase delay between requests:**
+
    ```bash
    export RATE_LIMIT=5  # seconds between requests (default: 2)
    ./bin/process/updateCountries.sh
@@ -793,17 +816,20 @@ curl --connect-timeout 10 "https://api.openstreetmap.org/api/0.6/notes"
 **Solutions:**
 
 1. **Check internet connection:**
+
    ```bash
    ping -c 3 8.8.8.8
    ping -c 3 api.openstreetmap.org
    ```
 
 2. **Check firewall rules:**
+
    ```bash
    sudo iptables -L | grep -E "OUTPUT|443|80"
    ```
 
 3. **Increase timeout:**
+
    ```bash
    export API_TIMEOUT=60  # seconds
    ./bin/process/processAPINotes.sh
@@ -843,16 +869,18 @@ echo "MAX_THREADS: ${MAX_THREADS:-$(nproc)}"
 **Solutions:**
 
 1. **Optimize database:**
+
    ```bash
    psql -d "${DBNAME:-notes}" -c "ANALYZE;"
    psql -d "${DBNAME:-notes}" -c "VACUUM FULL;"
    ```
 
 2. **Adjust parallel processing:**
+
    ```bash
    # Increase threads if CPU available
    export MAX_THREADS=8  # Default is CPU cores - 2
-   
+
    # Decrease if memory constrained
    export MAX_THREADS=2
    ```
@@ -889,6 +917,7 @@ swapon --show
 **Solutions:**
 
 1. **Reduce MAX_THREADS:**
+
    ```bash
    export MAX_THREADS=2
    ```
@@ -907,143 +936,143 @@ swapon --show
 
 All scripts use standardized error codes defined in `lib/osm-common/commonFunctions.sh`:
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit, no action needed |
-| `238` | Previous execution failed | Check failed marker, fix issue, remove marker |
-| `239` | Error creating report | Check report directory permissions |
-| `241` | Library or utility missing | Install missing dependencies |
-| `242` | Invalid argument | Check script parameters |
-| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule is initialized |
-| `244` | Error downloading boundary ID list | Check Overpass API connectivity |
-| `245` | No last update timestamp | Run `processPlanetNotes.sh --base` first |
-| `246` | Planet process is currently running | Wait for Planet processing to complete |
-| `247` | Error downloading notes | Check OSM API connectivity |
-| `248` | Error executing Planet dump | Check Planet processing logs |
-| `249` | Error downloading boundary | Check Overpass API connectivity |
-| `250` | Error GeoJSON conversion | Check GDAL/ogr2ogr installation |
-| `251` | Internet issue | Check network connectivity |
-| `252` | Data validation error | Check input data format |
-| `255` | General error | Review logs for specific issue |
+| Code  | Meaning                             | Solution                                          |
+| ----- | ----------------------------------- | ------------------------------------------------- |
+| `1`   | Help message displayed              | Normal exit, no action needed                     |
+| `238` | Previous execution failed           | Check failed marker, fix issue, remove marker     |
+| `239` | Error creating report               | Check report directory permissions                |
+| `241` | Library or utility missing          | Install missing dependencies                      |
+| `242` | Invalid argument                    | Check script parameters                           |
+| `243` | Logger utility is missing           | Verify `lib/osm-common/` submodule is initialized |
+| `244` | Error downloading boundary ID list  | Check Overpass API connectivity                   |
+| `245` | No last update timestamp            | Run `processPlanetNotes.sh --base` first          |
+| `246` | Planet process is currently running | Wait for Planet processing to complete            |
+| `247` | Error downloading notes             | Check OSM API connectivity                        |
+| `248` | Error executing Planet dump         | Check Planet processing logs                      |
+| `249` | Error downloading boundary          | Check Overpass API connectivity                   |
+| `250` | Error GeoJSON conversion            | Check GDAL/ogr2ogr installation                   |
+| `251` | Internet issue                      | Check network connectivity                        |
+| `252` | Data validation error               | Check input data format                           |
+| `255` | General error                       | Review logs for specific issue                    |
 
 ### Script-Specific Error Codes
 
 #### processAPINotes.sh
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit, no action needed |
-| `238` | Previous execution failed | Check failed marker, fix issue, remove marker |
-| `241` | Library or utility missing | Install missing dependencies |
-| `242` | Invalid argument | Check script parameters |
-| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule is initialized |
-| `245` | No last update timestamp | Run `processPlanetNotes.sh --base` first |
-| `246` | Planet process is currently running | Wait for Planet processing to complete |
-| `248` | Error executing Planet dump | Check Planet processing logs |
+| Code  | Meaning                             | Solution                                          |
+| ----- | ----------------------------------- | ------------------------------------------------- |
+| `1`   | Help message displayed              | Normal exit, no action needed                     |
+| `238` | Previous execution failed           | Check failed marker, fix issue, remove marker     |
+| `241` | Library or utility missing          | Install missing dependencies                      |
+| `242` | Invalid argument                    | Check script parameters                           |
+| `243` | Logger utility is missing           | Verify `lib/osm-common/` submodule is initialized |
+| `245` | No last update timestamp            | Run `processPlanetNotes.sh --base` first          |
+| `246` | Planet process is currently running | Wait for Planet processing to complete            |
+| `248` | Error executing Planet dump         | Check Planet processing logs                      |
 
 #### processPlanetNotes.sh
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit, no action needed |
-| `238` | Previous execution failed | Check failed marker, fix issue, remove marker |
-| `241` | Library or utility missing | Install missing dependencies |
-| `242` | Invalid argument | Check script parameters |
-| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule is initialized |
-| `244` | Error downloading boundary ID list | Check Overpass API connectivity |
-| `245` | No last update timestamp | Run `processPlanetNotes.sh --base` first |
-| `246` | Planet process is currently running | Wait for Planet processing to complete |
-| `247` | Error downloading notes | Check Planet download connectivity |
-| `248` | Error executing Planet dump | Check Planet processing logs |
-| `249` | Error downloading boundary | Check Overpass API connectivity |
-| `250` | Error GeoJSON conversion | Check GDAL/ogr2ogr installation |
-| `251` | Internet issue | Check network connectivity |
-| `252` | Data validation error | Check input data format |
-| `255` | General error | Review logs for specific issue |
+| Code  | Meaning                             | Solution                                          |
+| ----- | ----------------------------------- | ------------------------------------------------- |
+| `1`   | Help message displayed              | Normal exit, no action needed                     |
+| `238` | Previous execution failed           | Check failed marker, fix issue, remove marker     |
+| `241` | Library or utility missing          | Install missing dependencies                      |
+| `242` | Invalid argument                    | Check script parameters                           |
+| `243` | Logger utility is missing           | Verify `lib/osm-common/` submodule is initialized |
+| `244` | Error downloading boundary ID list  | Check Overpass API connectivity                   |
+| `245` | No last update timestamp            | Run `processPlanetNotes.sh --base` first          |
+| `246` | Planet process is currently running | Wait for Planet processing to complete            |
+| `247` | Error downloading notes             | Check Planet download connectivity                |
+| `248` | Error executing Planet dump         | Check Planet processing logs                      |
+| `249` | Error downloading boundary          | Check Overpass API connectivity                   |
+| `250` | Error GeoJSON conversion            | Check GDAL/ogr2ogr installation                   |
+| `251` | Internet issue                      | Check network connectivity                        |
+| `252` | Data validation error               | Check input data format                           |
+| `255` | General error                       | Review logs for specific issue                    |
 
 #### updateCountries.sh
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
-| `238` | Previous execution failed | Check failed marker |
-| `241` | Library or utility missing | Install missing dependencies |
-| `242` | Invalid argument | Check script parameters |
-| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule |
-| `249` | Error downloading boundary | Check Overpass API connectivity |
-| `250` | Error GeoJSON conversion | Check GDAL/ogr2ogr installation |
-| `255` | General error | Review logs |
+| Code  | Meaning                    | Solution                           |
+| ----- | -------------------------- | ---------------------------------- |
+| `1`   | Help message displayed     | Normal exit                        |
+| `238` | Previous execution failed  | Check failed marker                |
+| `241` | Library or utility missing | Install missing dependencies       |
+| `242` | Invalid argument           | Check script parameters            |
+| `243` | Logger utility is missing  | Verify `lib/osm-common/` submodule |
+| `249` | Error downloading boundary | Check Overpass API connectivity    |
+| `250` | Error GeoJSON conversion   | Check GDAL/ogr2ogr installation    |
+| `255` | General error              | Review logs                        |
 
 #### notesCheckVerifier.sh
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
-| `238` | Previous execution failed | Check failed marker |
-| `239` | Error creating report | Check report directory permissions |
-| `241` | Library or utility missing | Install missing dependencies |
-| `242` | Invalid argument | Check script parameters |
-| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule |
-| `255` | General error | Review logs |
+| Code  | Meaning                    | Solution                           |
+| ----- | -------------------------- | ---------------------------------- |
+| `1`   | Help message displayed     | Normal exit                        |
+| `238` | Previous execution failed  | Check failed marker                |
+| `239` | Error creating report      | Check report directory permissions |
+| `241` | Library or utility missing | Install missing dependencies       |
+| `242` | Invalid argument           | Check script parameters            |
+| `243` | Logger utility is missing  | Verify `lib/osm-common/` submodule |
+| `255` | General error              | Review logs                        |
 
 #### processCheckPlanetNotes.sh
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
-| `238` | Previous execution failed | Check failed marker |
-| `241` | Library or utility missing | Install missing dependencies |
-| `242` | Invalid argument | Check script parameters |
-| `243` | Logger utility is missing | Verify `lib/osm-common/` submodule |
-| `247` | Error downloading notes | Check Planet download connectivity |
-| `255` | General error | Review logs |
+| Code  | Meaning                    | Solution                           |
+| ----- | -------------------------- | ---------------------------------- |
+| `1`   | Help message displayed     | Normal exit                        |
+| `238` | Previous execution failed  | Check failed marker                |
+| `241` | Library or utility missing | Install missing dependencies       |
+| `242` | Invalid argument           | Check script parameters            |
+| `243` | Logger utility is missing  | Verify `lib/osm-common/` submodule |
+| `247` | Error downloading notes    | Check Planet download connectivity |
+| `255` | General error              | Review logs                        |
 
 #### Script Error Codes
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
-| `241` | Library or utility missing | Install missing dependencies (PostGIS, SQL files) |
-| `242` | Invalid argument | Check script parameters |
-| `255` | General error | Review logs (database connection, PostGIS installation) |
+| Code  | Meaning                    | Solution                                                |
+| ----- | -------------------------- | ------------------------------------------------------- |
+| `1`   | Help message displayed     | Normal exit                                             |
+| `241` | Library or utility missing | Install missing dependencies (PostGIS, SQL files)       |
+| `242` | Invalid argument           | Check script parameters                                 |
+| `255` | General error              | Review logs (database connection, PostGIS installation) |
 
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
-| `241` | Library or utility missing | Install missing dependencies (curl, jq, etc.) |
-| `242` | Invalid argument | Check script parameters |
-| `255` | General error | Review logs (GeoServer connection, authentication) |
+|------|---------|----------| | `1` | Help message displayed | Normal exit | | `241` | Library or
+utility missing | Install missing dependencies (curl, jq, etc.) | | `242` | Invalid argument | Check
+script parameters | | `255` | General error | Review logs (GeoServer connection, authentication) |
 
 #### cleanupAll.sh
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
+| Code  | Meaning                    | Solution                     |
+| ----- | -------------------------- | ---------------------------- |
+| `1`   | Help message displayed     | Normal exit                  |
 | `241` | Library or utility missing | Install missing dependencies |
-| `242` | Invalid argument | Check script parameters |
-| `255` | General error | Review logs |
+| `242` | Invalid argument           | Check script parameters      |
+| `255` | General error              | Review logs                  |
 
 #### analyzeDatabasePerformance.sh
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
-| `241` | Library or utility missing | Install missing dependencies (SQL analysis scripts) |
-| `242` | Invalid argument | Check script parameters |
-| `255` | General error | Review logs (database connection, analysis script failures) |
+| Code  | Meaning                    | Solution                                                    |
+| ----- | -------------------------- | ----------------------------------------------------------- |
+| `1`   | Help message displayed     | Normal exit                                                 |
+| `241` | Library or utility missing | Install missing dependencies (SQL analysis scripts)         |
+| `242` | Invalid argument           | Check script parameters                                     |
+| `255` | General error              | Review logs (database connection, analysis script failures) |
 
 #### Scripts in bin/scripts/
 
-All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `generateNoteLocationBackup.sh`) use:
+All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`,
+`generateNoteLocationBackup.sh`) use:
 
-| Code | Meaning | Solution |
-|------|---------|----------|
-| `1` | Help message displayed | Normal exit |
-| `249` | Error downloading boundary | Check Overpass API connectivity |
-| `255` | General error | Review logs (database connection, file operations) |
+| Code  | Meaning                    | Solution                                           |
+| ----- | -------------------------- | -------------------------------------------------- |
+| `1`   | Help message displayed     | Normal exit                                        |
+| `249` | Error downloading boundary | Check Overpass API connectivity                    |
+| `255` | General error              | Review logs (database connection, file operations) |
 
 ### Recovery for Each Error Code
 
 1. **Check failed execution marker:**
+
    ```bash
    # Find and display failed execution markers (works in both modes)
    FAILED_API=$(find /var/run/osm-notes-ingestion /tmp/osm-notes-ingestion/locks \
@@ -1059,6 +1088,7 @@ All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `ge
    ```
 
 2. **Review logs for specific error:**
+
    ```bash
    # Find latest log (works in both modes)
    LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
@@ -1072,6 +1102,7 @@ All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `ge
 3. **Fix underlying issue** (see specific problem sections above)
 
 4. **Remove failed marker:**
+
    ```bash
    rm /tmp/processAPINotes_failed_execution
    rm /tmp/processPlanetNotes_failed_execution
@@ -1086,6 +1117,7 @@ All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `ge
 ### After Failed Execution
 
 1. **Check failed execution marker:**
+
    ```bash
    if [ -f /tmp/processAPINotes_failed_execution ]; then
      cat /tmp/processAPINotes_failed_execution
@@ -1093,6 +1125,7 @@ All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `ge
    ```
 
 2. **Review logs:**
+
    ```bash
    LATEST_DIR=$(ls -1rtd /tmp/processAPINotes_* 2>/dev/null | tail -1)
    if [ -n "$LATEST_DIR" ]; then
@@ -1103,6 +1136,7 @@ All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `ge
 3. **Fix underlying issue** (see specific problem sections above)
 
 4. **Remove failed marker:**
+
    ```bash
    rm /tmp/processAPINotes_failed_execution
    ```
@@ -1116,6 +1150,7 @@ All utility scripts (`exportCountriesBackup.sh`, `exportMaritimesBackup.sh`, `ge
 If processing was interrupted:
 
 1. **Check what was completed:**
+
    ```bash
    psql -d "${DBNAME:-notes}" -c "SELECT COUNT(*) FROM notes;"
    psql -d "${DBNAME:-notes}" -c "SELECT MAX(created_at) FROM notes;"
@@ -1134,21 +1169,25 @@ If processing was interrupted:
 If database corruption is suspected:
 
 1. **Backup current state:**
+
    ```bash
    pg_dump "${DBNAME:-notes}" > backup_before_recovery_$(date +%Y%m%d).sql
    ```
 
 2. **Restore from Planet:**
+
    ```bash
    ./bin/process/processPlanetNotes.sh --base
    ```
 
 3. **Reload boundaries:**
+
    ```bash
    ./bin/process/updateCountries.sh --base
    ```
 
 4. **Regenerate backups:**
+
    ```bash
    ./bin/scripts/generateNoteLocationBackup.sh
    ./bin/scripts/exportCountriesBackup.sh
@@ -1169,9 +1208,9 @@ If database corruption is suspected:
 
 - **[Documentation.md](./Documentation.md)**: Complete system documentation
 - **[Process_API.md](./Process_API.md)**: API processing details and troubleshooting
-- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details and troubleshooting
-For **WMS (Web Map Service) documentation**, see the
-[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details and troubleshooting For
+  **WMS (Web Map Service) documentation**, see the
+  [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Check Logs
 
@@ -1220,19 +1259,24 @@ Use these scripts for automated diagnostics:
 ### Core Documentation
 
 - **[Documentation.md](./Documentation.md)**: Complete system documentation and architecture
-- **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
+- **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and
+  relationships
 - **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
 
 ### Processing Documentation
 
 - **[Process_API.md](./Process_API.md)**: API processing details, troubleshooting, and error codes
-- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details, troubleshooting, and error codes
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing details, troubleshooting, and
+  error codes
 
 ### Spatial Processing Documentation
 
-- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment algorithm and spatial processing
-- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation mechanism
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions explanation
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment algorithm
+  and spatial processing
+- **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
+  mechanism
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions
+  explanation
 
 ### Service Documentation
 
@@ -1243,7 +1287,8 @@ For **WMS (Web Map Service) documentation**, see the
 
 - **[bin/README.md](../bin/README.md)**: Script usage examples and common use cases
 - **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and parameters
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable documentation
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable
+  documentation
 
 ### Testing Documentation
 

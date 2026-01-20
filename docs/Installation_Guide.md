@@ -22,6 +22,7 @@ sudo bin/scripts/install_directories.sh
 ```
 
 This script:
+
 - Creates `/var/log/osm-notes-ingestion/` with subdirectories (daemon, processing, monitoring)
 - Creates `/var/tmp/osm-notes-ingestion/` with subdirectories (planet, overpass, api)
 - Creates `/var/run/osm-notes-ingestion/` for lock files
@@ -44,12 +45,15 @@ sudo -u notes rm /var/log/osm-notes-ingestion/test.log
 ### 3. Configure Logrotate (Optional)
 
 The installation script creates `/etc/logrotate.d/osm-notes-ingestion` with:
+
 - Daily rotation
 - 30 days retention
 - Automatic compression
 - Uses `copytruncate` to avoid interrupting the daemon during rotation
 
-**Note:** If you have an existing installation with the old configuration (that reloads the daemon), you can update it by running:
+**Note:** If you have an existing installation with the old configuration (that reloads the daemon),
+you can update it by running:
+
 ```bash
 sudo bin/scripts/update_logrotate_config.sh
 ```
@@ -66,6 +70,7 @@ If you don't want to install (e.g., for testing), the system automatically falls
 ```
 
 The system will:
+
 - Use `/tmp/osm-notes-ingestion/logs/` for logs
 - Use `/tmp/` for temporary files
 - Use `/tmp/osm-notes-ingestion/locks/` for lock files
@@ -182,4 +187,3 @@ du -sh /var/tmp/osm-notes-ingestion/
 # Clean old logs manually (if needed)
 find /var/log/osm-notes-ingestion/ -name "*.log.*" -mtime +30 -delete
 ```
-

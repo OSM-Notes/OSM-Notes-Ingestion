@@ -1,15 +1,16 @@
 # Alerting System
 
 > **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  
-> For error handling details, see [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md).  
-> For troubleshooting, see [Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide).
+> For error handling details, see [Process_API.md](./Process_API.md) and
+> [Process_Planet.md](./Process_Planet.md).  
+> For troubleshooting, see
+> [Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide).
 
 ## Overview
 
-The OSM Notes Ingestion system includes an immediate alerting mechanism that
-sends email notifications when critical errors occur during processing. Alerts
-are sent automatically within seconds of an error, ensuring administrators
-are notified promptly.
+The OSM Notes Ingestion system includes an immediate alerting mechanism that sends email
+notifications when critical errors occur during processing. Alerts are sent automatically within
+seconds of an error, ensuring administrators are notified promptly.
 
 ## How It Works
 
@@ -24,11 +25,12 @@ Time    Event
         │  (Location: /var/run/osm-notes-ingestion/ in installed mode,
         │   /tmp/osm-notes-ingestion/locks/ in fallback mode)
         └─ 📧 Sends email IMMEDIATELY
-        
+
         👤 Admin receives alert (seconds after error)
 ```
 
 **Key Features:**
+
 - ⚡ Immediate alerts (seconds, not minutes)
 - 🎯 Simple configuration (just environment variables)
 - 💰 Efficient (no additional monitoring scripts required)
@@ -71,6 +73,7 @@ Time    Event
 ```
 
 **Required components:**
+
 - 1 script (processAPINotesDaemon.sh or processPlanetNotes.sh)
 - 1 systemd service or cron configuration
 - Simple environment variables
@@ -131,7 +134,7 @@ SEND_ALERT_EMAIL=true
 
 When an error occurs, you will receive an email like this:
 
-```
+````
 Subject: ALERT: OSM Notes processAPINotes Failed - hostname
 
 ALERT: OSM Notes Processing Failed
@@ -147,7 +150,7 @@ Failed marker file: processAPINotes_failed_execution
 Error Details:
 --------------
 Error code: 248
-Error: Historical data validation failed - base tables exist 
+Error: Historical data validation failed - base tables exist
        but contain no historical data
 
 Process Information:
@@ -159,7 +162,7 @@ Temporary directory: processAPINotes_20251022_010000
 
 Action Required:
 ----------------
-Run processPlanetNotes.sh to load historical data: 
+Run processPlanetNotes.sh to load historical data:
 /home/notes/OSM-Notes-Ingestion/bin/process/processPlanetNotes.sh
 
 Recovery Steps:
@@ -186,11 +189,13 @@ Or find automatically:
 find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
   -name "processAPINotes.log" -type f -printf '%T@ %p\n' 2>/dev/null | \
   sort -n | tail -1 | awk '{print $2}'
-```
+````
 
 ---
+
 This is an automated alert from OSM Notes Ingestion system.
-```
+
+````
 
 ## Frequently Asked Questions
 
@@ -203,9 +208,9 @@ This is an automated alert from OSM Notes Ingestion system.
 
 ### What email tools does the system use?
 
-The system uses **`mutt`** as the email tool. `mutt` is a **required prerequisite** 
-that is validated during the prerequisites check (`__checkPrereqsCommands`). 
-If `mutt` is not available, the script will exit with an error before attempting 
+The system uses **`mutt`** as the email tool. `mutt` is a **required prerequisite**
+that is validated during the prerequisites check (`__checkPrereqsCommands`).
+If `mutt` is not available, the script will exit with an error before attempting
 to send any emails.
 
 ### Validating Email Sending Capability
@@ -214,19 +219,19 @@ The prerequisites check verifies that:
 1. `mutt` is installed
 2. `mutt` has SMTP support compiled in (for external email delivery)
 
-However, actual email delivery cannot be validated without sending a real email. 
+However, actual email delivery cannot be validated without sending a real email.
 To manually test email sending, use:
 
 ```bash
 echo "Test email" | mutt -s "Test" "${ADMIN_EMAIL}"
-```
+````
 
-The failed file is created anyway to prevent subsequent executions, even if 
-email sending fails.
+The failed file is created anyway to prevent subsequent executions, even if email sending fails.
 
 ### Are multiple alerts sent if it fails multiple times?
 
 No. The failed file mechanism prevents subsequent executions:
+
 1. First execution (01:00): Fails → Sends alert → Creates file
 2. Second execution (02:00): Detects file → Exits without sending alert
 3. Third execution (03:00): Detects file → Exits without sending alert
@@ -235,10 +240,11 @@ Only **ONE alert** is sent until you delete the failed file.
 
 ### How do I disable email alerts?
 
-Set `SEND_ALERT_EMAIL="false"` in `etc/properties.sh`. The failed file will
-still be created to prevent subsequent executions, but no email will be sent.
+Set `SEND_ALERT_EMAIL="false"` in `etc/properties.sh`. The failed file will still be created to
+prevent subsequent executions, but no email will be sent.
 
 This is useful for:
+
 - Development/testing environments
 - When using an external monitoring system
 - When you don't have mail configured
@@ -262,14 +268,17 @@ The system sends emails in **3 different scenarios**:
    - Triggered: When differences are found between Planet file and API calls
    - Uses: `mutt` (always used for this script)
 
-All three locations use the same email configuration (`ADMIN_EMAIL` or `EMAILS` 
-environment variables) and require `mutt` as a prerequisite.
+All three locations use the same email configuration (`ADMIN_EMAIL` or `EMAILS` environment
+variables) and require `mutt` as a prerequisite.
 
 ## Related Documentation
 
 - **[Documentation.md](./Documentation.md)**: System architecture and error handling overview
 - **[Process_API.md](./Process_API.md)**: API processing error handling implementation
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing error handling implementation
-- **[Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide)**: Troubleshooting guide with error recovery procedures
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable configuration (ADMIN_EMAIL, SEND_ALERT_EMAIL)
-- **[examples/alert-configuration.example](../examples/alert-configuration.example)**: Example alert configuration
+- **[Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide)**:
+  Troubleshooting guide with error recovery procedures
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable
+  configuration (ADMIN_EMAIL, SEND_ALERT_EMAIL)
+- **[examples/alert-configuration.example](../examples/alert-configuration.example)**: Example alert
+  configuration

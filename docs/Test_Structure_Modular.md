@@ -2,7 +2,9 @@
 
 ## Overview
 
-The OSM-Notes-Ingestion test suite uses a **modular structure** to improve maintainability, readability, and test execution efficiency. Tests are organized in smaller, focused modules grouped by functionality.
+The OSM-Notes-Ingestion test suite uses a **modular structure** to improve maintainability,
+readability, and test execution efficiency. Tests are organized in smaller, focused modules grouped
+by functionality.
 
 ## Structure Summary
 
@@ -16,6 +18,7 @@ The OSM-Notes-Ingestion test suite uses a **modular structure** to improve maint
 ### Organization Criteria
 
 Modules are organized by:
+
 - **Functionality**: Related tests grouped together
 - **Size**: Modules typically kept under 400 lines
 - **Purpose**: Clear separation of concerns (common, validation, integration, etc.)
@@ -66,6 +69,7 @@ Modules are organized by:
 ### 1. Note Processing (6 modules)
 
 **Modules**:
+
 - `note_processing_common.test.bats` (5 tests) - Common functionality
 - `note_processing_network.test.bats` (6 tests) - Network operations
 - `note_processing_download_queue.test.bats` (11 tests) - Download queue
@@ -76,6 +80,7 @@ Modules are organized by:
 ### 2. Security Functions (4 modules)
 
 **Modules**:
+
 - `security_functions_sanitize.test.bats` (32 tests) - SQL sanitization
 - `security_functions_injection.test.bats` (6 tests) - Injection prevention
 - `security_functions_edge_cases.test.bats` (6 tests) - Edge cases
@@ -84,6 +89,7 @@ Modules are organized by:
 ### 3. Prerequisites (9 modules)
 
 **Modules**:
+
 - `prerequisites_commands.test.bats` (10 tests) - Command checks
 - `prerequisites_database.test.bats` (3 tests) - Database connectivity
 - `prerequisites_filesystem.test.bats` (4 tests) - Filesystem checks
@@ -96,6 +102,7 @@ Modules are organized by:
 ### 4. Boundary Processing (4 modules)
 
 **Modules**:
+
 - `boundary_processing_common.test.bats` (1 test) - Common functionality
 - `boundary_processing_logging.test.bats` (14 tests) - Logging
 - `boundary_processing_utils.test.bats` (10 tests) - Utility functions
@@ -104,6 +111,7 @@ Modules are organized by:
 ### 5. Overpass Functions (5 modules)
 
 **Modules**:
+
 - `overpass_functions_common.test.bats` (3 tests) - Common functions
 - `overpass_functions_overpass.test.bats` (10 tests) - Overpass API
 - `overpass_functions_json.test.bats` (4 tests) - JSON processing
@@ -113,6 +121,7 @@ Modules are organized by:
 ### 6. CSV Validation (5 modules)
 
 **Modules**:
+
 - `csv_comma_awk_basic.test.bats` (2 tests) - Basic comma handling
 - `csv_comma_awk_multiline.test.bats` (1 test) - Multiline text
 - `csv_comma_awk_quotes.test.bats` (4 tests) - Quote handling
@@ -122,6 +131,7 @@ Modules are organized by:
 ### 7. Extended Validation (4 modules)
 
 **Modules**:
+
 - `extended_validation_json.test.bats` (18 tests) - JSON validation
 - `extended_validation_database.test.bats` (7 tests) - Database validation
 - `extended_validation_coordinates.test.bats` (10 tests) - Coordinates
@@ -130,6 +140,7 @@ Modules are organized by:
 ### 8. XML Processing (3 modules)
 
 **Modules**:
+
 - `functionsProcess_xml_counting_api.test.bats` (9 tests) - API counting
 - `functionsProcess_xml_counting_planet.test.bats` (3 tests) - Planet counting
 - `functionsProcess_database_integration.test.bats` (1 test) - Integration
@@ -137,6 +148,7 @@ Modules are organized by:
 ### 9. Monitoring (3 modules)
 
 **Modules**:
+
 - `monitoring_detection.test.bats` (6 tests) - Issue detection
 - `monitoring_infrastructure.test.bats` (2 tests) - Infrastructure
 - `monitoring_historical.test.bats` (4 tests) - Historical data
@@ -144,6 +156,7 @@ Modules are organized by:
 ### 10. ProcessAPI Historical (3 modules)
 
 **Modules**:
+
 - `processAPI_historical_scenarios.test.bats` (3 tests) - Scenarios
 - `processAPI_historical_sql.test.bats` (3 tests) - SQL validation
 - `processAPI_historical_integration.test.bats` (4 tests) - Integration
@@ -151,6 +164,7 @@ Modules are organized by:
 ### 11. Binary Division (3 modules)
 
 **Modules**:
+
 - `binary_division_basic.test.bats` (3 tests) - Basic functionality
 - `binary_division_performance.test.bats` (8 tests) - Performance
 - `binary_division_error_handling.test.bats` (3 tests) - Error handling
@@ -158,6 +172,7 @@ Modules are organized by:
 ### 12. JSON Validation (4 modules)
 
 **Modules**:
+
 - `json_validation_basic.test.bats` (2 tests) - Basic validation
 - `json_validation_errors.test.bats` (10 tests) - Error scenarios
 - `json_validation_advanced.test.bats` (7 tests) - Advanced tests
@@ -166,6 +181,7 @@ Modules are organized by:
 ### 13. Edge Cases (4 modules)
 
 **Modules**:
+
 - `edge_cases_files.test.bats` (2 tests) - File handling
 - `edge_cases_database.test.bats` (4 tests) - Database scenarios
 - `edge_cases_infrastructure.test.bats` (5 tests) - Infrastructure
@@ -174,6 +190,7 @@ Modules are organized by:
 ### 14. Utility Scripts (3 modules)
 
 **Modules**:
+
 - `export_countries_backup.test.bats` (5 tests) - Country export
 - `export_maritimes_backup.test.bats` (5 tests) - Maritime export
 - `generate_note_location_backup.test.bats` (6 tests) - Location backup
@@ -181,6 +198,7 @@ Modules are organized by:
 ### 15. AWK CSV Validation (3 modules)
 
 **Modules**:
+
 - `awk_csv_column_count.test.bats` (6 tests) - Column count
 - `awk_csv_sql_order.test.bats` (4 tests) - SQL order
 - `awk_csv_consistency.test.bats` (1 test) - Consistency
@@ -263,4 +281,3 @@ find tests/unit/bash -name "*_error*.test.bats" -exec bats {} \;
 - [Test Execution Guide](./Test_Execution_Guide.md) - Test execution procedures
 - [tests/README.md](../tests/README.md) - Test directory overview
 - [tests/unit/bash/README.md](../tests/unit/bash/README.md) - Bash unit tests overview
-

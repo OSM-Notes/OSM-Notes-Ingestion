@@ -4,8 +4,8 @@ This directory contains configuration files for the OSM-Notes-Ingestion project.
 
 ## Initial Setup
 
-**IMPORTANT**: The actual configuration file (`properties.sh`) is not tracked in Git
-for security reasons. You must create it from the example file:
+**IMPORTANT**: The actual configuration file (`properties.sh`) is not tracked in Git for security
+reasons. You must create it from the example file:
 
 ```bash
 # Copy example file to create your local configuration
@@ -15,9 +15,8 @@ cp etc/properties.sh.example etc/properties.sh
 vi etc/properties.sh
 ```
 
-The example files contain default values and detailed comments. Replace the
-example values (like `notes`, `changeme`, `your-email@domain.com`) with your
-actual configuration.
+The example files contain default values and detailed comments. Replace the example values (like
+`notes`, `changeme`, `your-email@domain.com`) with your actual configuration.
 
 ## Files
 
@@ -26,8 +25,7 @@ actual configuration.
 Main configuration file with general project settings.
 
 - **Example file**: `properties.sh.example` (tracked in Git)
-- **Your local file**: `properties.sh` (not tracked in Git, contains your
-  credentials)
+- **Your local file**: `properties.sh` (not tracked in Git, contains your credentials)
 
 ## WMS Configuration
 
@@ -49,15 +47,12 @@ source etc/properties.sh
 
 ## Best Practices
 
-1. **Use Example Files**: Always copy from `.example` files to create your local
-   configuration
-2. **Never Commit Secrets**: The actual `properties.sh` file is in `.gitignore`
-   and should never be committed
-3. **Environment-Specific Files**: Create custom property files for different
-   environments using the `_local` suffix (e.g., `properties.sh_local`)
-4. **Secure Credentials**: Use environment variables for sensitive data when
-   possible
+1. **Use Example Files**: Always copy from `.example` files to create your local configuration
+2. **Never Commit Secrets**: The actual `properties.sh` file is in `.gitignore` and should never be
+   committed
+3. **Environment-Specific Files**: Create custom property files for different environments using the
+   `_local` suffix (e.g., `properties.sh_local`)
+4. **Secure Credentials**: Use environment variables for sensitive data when possible
 5. **Validation**: Always validate properties before use
 6. **Documentation**: Document custom configurations in your local files
-7. **Version Control**: Only the `.example` files are tracked in Git (excluding
-   secrets)
+7. **Version Control**: Only the `.example` files are tracked in Git (excluding secrets)

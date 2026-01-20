@@ -2,8 +2,8 @@
 
 ## Overview
 
-This guide explains how to test and measure the performance improvements from HTTP
-optimizations (keep-alive, HTTP/2, compression, conditional caching).
+This guide explains how to test and measure the performance improvements from HTTP optimizations
+(keep-alive, HTTP/2, compression, conditional caching).
 
 **Version:** 2025-12-20
 
@@ -96,12 +96,14 @@ Standalone script for detailed performance analysis:
 ### Single Request Performance
 
 **Typical improvements:**
+
 - **Connection reuse**: 50-200ms saved per request
 - **HTTP/2**: 10-30% improvement on high-latency connections
 - **Compression**: 60-80% bandwidth reduction
 - **Total improvement**: 10-40% faster
 
 **Example:**
+
 ```
 With optimizations:    0.300s
 Without optimizations: 0.500s
@@ -111,11 +113,13 @@ Improvement:           40%
 ### Multiple Requests (Connection Reuse)
 
 **Typical improvements:**
+
 - **First request**: Same as single request (connection setup)
 - **Subsequent requests**: 50-200ms saved per request (no connection setup)
 - **Total improvement**: 20-50% for 5+ requests
 
 **Example (5 requests):**
+
 ```
 With optimizations:    1.200s
 Without optimizations: 2.000s
@@ -125,11 +129,13 @@ Improvement:           40%
 ### Conditional Caching (304 Response)
 
 **Typical improvements:**
+
 - **Full download**: 300-500ms
 - **304 response**: 50-100ms
 - **Improvement**: 80-90% when no changes
 
 **Example:**
+
 ```
 First request:         0.400s
 Conditional request:   0.080s
@@ -146,7 +152,7 @@ Results are stored in JSON format:
 {
   "test_name": "http_optimizations",
   "metric": "osm_api_time_with",
-  "value": 0.300,
+  "value": 0.3,
   "unit": "seconds",
   "timestamp": "2025-12-20T10:30:00",
   "version": "2025-12-20"
@@ -156,11 +162,13 @@ Results are stored in JSON format:
 ### Analyzing Results
 
 1. **View results:**
+
    ```bash
    cat benchmark_results/http_optimizations_benchmark_*.json | jq '.'
    ```
 
 2. **Compare metrics:**
+
    ```bash
    # Extract specific metric
    jq 'select(.metric == "osm_api_improvement_percent")' \
@@ -170,7 +178,7 @@ Results are stored in JSON format:
 3. **Calculate averages:**
    ```bash
    # Average improvement across runs
-   jq -s 'map(select(.metric == "osm_api_improvement_percent") | .value) | 
+   jq -s 'map(select(.metric == "osm_api_improvement_percent") | .value) |
           add / length' \
      benchmark_results/http_optimizations_benchmark_*.json
    ```
@@ -200,6 +208,7 @@ Results are stored in JSON format:
 ### Tests Skipped
 
 If tests are skipped:
+
 - Check network connectivity
 - Verify OSM/Overpass APIs are accessible
 - Check if curl supports HTTP/2: `curl --version`
@@ -207,6 +216,7 @@ If tests are skipped:
 ### No Improvement Detected
 
 If no improvement is detected:
+
 - Verify optimizations are enabled: `echo $ENABLE_HTTP_OPTIMIZATIONS`
 - Check if server supports optimizations
 - Run more iterations for statistical accuracy
@@ -215,6 +225,7 @@ If no improvement is detected:
 ### Negative Improvement
 
 If results show negative improvement (slower with optimizations):
+
 - May be within measurement variance
 - Run more iterations
 - Check for network issues during test
@@ -239,6 +250,7 @@ If results show negative improvement (slower with optimizations):
 ### Reporting Results
 
 Include in reports:
+
 - Number of iterations
 - Average improvement percentage
 - Network conditions (if known)
@@ -280,6 +292,4 @@ VERSION=$(git describe --tags) \
 
 ## Author
 
-Andres Gomez (AngocA)
-OSM-LatAm, OSM-Colombia, MaptimeBogota
-
+Andres Gomez (AngocA) OSM-LatAm, OSM-Colombia, MaptimeBogota

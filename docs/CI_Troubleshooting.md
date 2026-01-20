@@ -2,7 +2,8 @@
 
 ## Overview
 
-This document provides solutions for common issues encountered when running GitHub Actions workflows for the OSM-Notes-Ingestion project.
+This document provides solutions for common issues encountered when running GitHub Actions workflows
+for the OSM-Notes-Ingestion project.
 
 ## Common Issues and Solutions
 
@@ -16,7 +17,8 @@ ERROR: connection to server at localhost (127.0.0.1), port 5432 failed: FATAL: p
 
 #### Solution
 
-The issue is typically caused by authentication method conflicts. The workflow has been updated to use `POSTGRES_HOST_AUTH_METHOD: trust` for CI environments.
+The issue is typically caused by authentication method conflicts. The workflow has been updated to
+use `POSTGRES_HOST_AUTH_METHOD: trust` for CI environments.
 
 **Check these points:**
 
@@ -34,7 +36,7 @@ services:
       POSTGRES_DB: osm_notes_test
       POSTGRES_USER: testuser
       POSTGRES_PASSWORD: testpass
-      POSTGRES_HOST_AUTH_METHOD: trust  # This is crucial
+      POSTGRES_HOST_AUTH_METHOD: trust # This is crucial
 ```
 
 ### 2. PostGIS Installation Failures
@@ -47,14 +49,15 @@ ERROR: could not open extension control file "postgis.control"
 
 #### Solution
 
-The workflow now uses the official PostGIS Docker image instead of trying to install PostGIS extensions manually.
+The workflow now uses the official PostGIS Docker image instead of trying to install PostGIS
+extensions manually.
 
 **Updated configuration:**
 
 ```yaml
 services:
   postgres:
-    image: postgis/postgis:16-3.4  # Official PostGIS image
+    image: postgis/postgis:16-3.4 # Official PostGIS image
 ```
 
 ### 3. Environment Variable Conflicts
@@ -122,7 +125,8 @@ The workflow now includes comprehensive tool installation and verification:
 
 #### Problem
 
-Integration tests fail because Docker containers are not properly configured or services are not healthy.
+Integration tests fail because Docker containers are not properly configured or services are not
+healthy.
 
 #### Solution
 
@@ -149,7 +153,8 @@ restart: unless-stopped
 
 #### Problem
 
-When running GitHub Actions workflows locally using `act`, multiple jobs try to use the same PostgreSQL port (5432), causing conflicts:
+When running GitHub Actions workflows locally using `act`, multiple jobs try to use the same
+PostgreSQL port (5432), causing conflicts:
 
 ```
 failed to start container: Error response from daemon: driver failed programming external connectivity on endpoint act-CI-CD-Pipeline-Unit-Tests-1-...: Bind for 0.0.0.0:5432 failed: port is already allocated
@@ -187,6 +192,7 @@ docker stop <postgres_container_id>
 **Long-term Solutions:**
 
 1. **Run jobs sequentially** (not recommended for CI/CD, but works for local testing):
+
    ```bash
    # Run one job at a time
    act -j unit-tests --matrix test-group:process-api-planet
@@ -195,21 +201,24 @@ docker stop <postgres_container_id>
    ```
 
 2. **Run only specific test groups** instead of the full matrix:
+
    ```bash
    # Run only one test group
    act -j unit-tests --matrix test-group:process-api-planet
    ```
 
 3. **Use act with specific job filtering**:
+
    ```bash
    # Run only quick-checks job (no PostgreSQL needed)
    act -j quick-checks
-   
+
    # Run only security scan (no PostgreSQL needed)
    act -j security-scan
    ```
 
 4. **Configure act to use different port mapping** (requires act configuration):
+
    ```bash
    # Create .actrc file in your home directory
    echo "--container-architecture linux/amd64" > ~/.actrc
@@ -245,7 +254,9 @@ sudo ss -tulpn | grep 5432
 # If nothing is listening on 5432, you're good to go
 ```
 
-**Note:** This issue does not occur in GitHub Actions runners because each job runs in an isolated environment. It's specific to local execution with `act`. The workflow is designed for GitHub Actions infrastructure, not for local execution with multiple parallel jobs.
+**Note:** This issue does not occur in GitHub Actions runners because each job runs in an isolated
+environment. It's specific to local execution with `act`. The workflow is designed for GitHub
+Actions infrastructure, not for local execution with multiple parallel jobs.
 
 ### 7. Test Execution Failures
 

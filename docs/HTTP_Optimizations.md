@@ -2,10 +2,9 @@
 
 ## Overview
 
-This document describes the HTTP optimizations implemented to improve performance
-of API calls to OpenStreetMap and Overpass APIs. These optimizations reduce
-connection overhead and improve response times without requiring complex connection
-pooling infrastructure.
+This document describes the HTTP optimizations implemented to improve performance of API calls to
+OpenStreetMap and Overpass APIs. These optimizations reduce connection overhead and improve response
+times without requiring complex connection pooling infrastructure.
 
 **Version:** 2025-12-14
 
@@ -14,16 +13,19 @@ pooling infrastructure.
 ### 1. HTTP Keep-Alive Connections
 
 **What it does:**
+
 - Reuses TCP connections for multiple HTTP requests within the same execution
 - Reduces connection establishment overhead (TCP handshake, TLS negotiation)
 - Uses `Connection: keep-alive` header to maintain connections
 
 **Benefits:**
+
 - Saves 50-200ms per request by avoiding connection setup
 - Reduces server load on OSM/Overpass APIs
 - More efficient use of network resources
 
 **Implementation:**
+
 - Added `--http1.1` flag to curl commands
 - Added `Connection: keep-alive` header
 - curl automatically manages connection reuse
@@ -31,16 +33,19 @@ pooling infrastructure.
 ### 2. HTTP/2 Support
 
 **What it does:**
+
 - Automatically detects if servers support HTTP/2
 - Uses HTTP/2 when available (multiplexing, header compression)
 - Falls back to HTTP/1.1 with keep-alive if HTTP/2 is not supported
 
 **Benefits:**
+
 - HTTP/2 multiplexing allows multiple requests over single connection
 - Header compression reduces bandwidth
 - Better performance on high-latency connections
 
 **Implementation:**
+
 - Tests HTTP/2 support before making requests
 - Uses `--http2` flag when supported
 - Gracefully falls back to HTTP/1.1 if not available
@@ -48,11 +53,13 @@ pooling infrastructure.
 ### 3. HTTP Compression
 
 **What it does:**
+
 - Requests compressed responses using `Accept-Encoding: gzip, deflate, br`
 - Uses `--compressed` flag to automatically decompress responses
 - Reduces bandwidth usage, especially for large XML/JSON responses
 
 **Benefits:**
+
 - Reduces download time for large responses (10MB+ XML files)
 - Saves bandwidth costs
 - Faster transfers over slow connections
@@ -60,16 +67,19 @@ pooling infrastructure.
 ### 4. Conditional Caching (If-Modified-Since)
 
 **What it does:**
+
 - Sends `If-Modified-Since` header based on cached file modification time
 - Server returns 304 Not Modified if data hasn't changed
 - Avoids re-downloading unchanged data
 
 **Benefits:**
+
 - Saves bandwidth when data hasn't changed
 - Faster execution when no updates available
 - Reduces server load on OSM API
 
 **Implementation:**
+
 - Checks file modification time before requests
 - Sends HTTP date in RFC 7231 format
 - Handles 304 responses by using cached file
@@ -78,8 +88,8 @@ pooling infrastructure.
 
 ### Enable/Disable Optimizations
 
-All optimizations are enabled by default. You can control them via environment
-variables in `etc/properties.sh`:
+All optimizations are enabled by default. You can control them via environment variables in
+`etc/properties.sh`:
 
 ```bash
 # Enable HTTP optimizations (keep-alive, HTTP/2, compression)
@@ -117,15 +127,18 @@ Based on typical execution patterns:
 For a typical `processAPINotes.sh` execution:
 
 **Before optimizations:**
+
 - OSM API request: ~500ms (connection + download)
 - Total HTTP overhead: ~500ms
 
 **After optimizations:**
+
 - OSM API request: ~300ms (reused connection + compressed download)
 - Total HTTP overhead: ~300ms
 - **Improvement: ~200ms (40% faster)**
 
 When no updates available (304 response):
+
 - OSM API request: ~50ms (connection check only)
 - **Improvement: ~450ms (90% faster)**
 
@@ -180,6 +193,7 @@ To verify optimizations are working:
 ### HTTP/2 Not Working
 
 If HTTP/2 is not being used:
+
 - Check curl version: `curl --version` (needs 7.47.0+)
 - Check server support: `curl -I --http2 https://api.openstreetmap.org`
 - System will automatically fall back to HTTP/1.1
@@ -187,6 +201,7 @@ If HTTP/2 is not being used:
 ### Conditional Caching Not Working
 
 If 304 responses are not received:
+
 - Verify `ENABLE_HTTP_CACHE="true"` in properties
 - Check file modification times are correct
 - Some servers may not support If-Modified-Since
@@ -194,6 +209,7 @@ If 304 responses are not received:
 ### Performance Not Improved
 
 If you don't see performance improvements:
+
 - Verify optimizations are enabled in properties
 - Check network latency (benefits are larger on high-latency connections)
 - Monitor actual execution times (improvements may be small for fast connections)
@@ -216,6 +232,4 @@ Potential future optimizations (not currently implemented):
 
 ## Author
 
-Andres Gomez (AngocA)
-OSM-LatAm, OSM-Colombia, MaptimeBogota
-
+Andres Gomez (AngocA) OSM-LatAm, OSM-Colombia, MaptimeBogota

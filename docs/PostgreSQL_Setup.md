@@ -1,7 +1,6 @@
 # PostgreSQL Setup Guide
 
-This guide helps you configure PostgreSQL for the OSM-Notes-Ingestion
-project.
+This guide helps you configure PostgreSQL for the OSM-Notes-Ingestion project.
 
 ## Quick Start
 
@@ -72,11 +71,10 @@ If this works, you're ready to go!
 
 ### Issue 1: "FATAL: Peer authentication failed"
 
-**Problem**: PostgreSQL is using "peer" authentication which requires the
-system username to match the database username.
+**Problem**: PostgreSQL is using "peer" authentication which requires the system username to match
+the database username.
 
-**Solution**: Change authentication method to "md5" in `pg_hba.conf` (see
-Step 5 above).
+**Solution**: Change authentication method to "md5" in `pg_hba.conf` (see Step 5 above).
 
 ### Issue 2: "User does not exist"
 
@@ -114,8 +112,7 @@ sudo apt-get install postgresql-postgis
 
 ## Alternative: Use Current System User
 
-If you don't want to configure a separate PostgreSQL user, you can use your
-current system user:
+If you don't want to configure a separate PostgreSQL user, you can use your current system user:
 
 1. Create PostgreSQL user matching your system username:
 
@@ -128,10 +125,10 @@ current system user:
    ```bash
    # Copy the example file
    cp etc/properties.sh.example etc/properties.sh
-   
+
    # Edit with your settings
    vi etc/properties.sh
-   
+
    # Or set environment variable to override:
    export DB_USER=$(whoami)
    ```
@@ -214,9 +211,8 @@ echo "✅ All checks passed! Your PostgreSQL setup is ready."
 
 ### `etc/properties.sh`
 
-The database configuration is defined in `etc/properties.sh`. **Important**: This
-file is not tracked in Git for security reasons. You must create it from the
-example file:
+The database configuration is defined in `etc/properties.sh`. **Important**: This file is not
+tracked in Git for security reasons. You must create it from the example file:
 
 ```bash
 # Copy the example file
@@ -248,10 +244,8 @@ export DB_USER="my-custom-user"
 ## Security Considerations
 
 1. **Production**: Always use password authentication (md5 or scram-sha-256)
-2. **Development**: You can use "trust" for local development, but this is
-   not secure
-3. **Network Access**: If accessing from another machine, use appropriate
-   host-based authentication
+2. **Development**: You can use "trust" for local development, but this is not secure
+3. **Network Access**: If accessing from another machine, use appropriate host-based authentication
 4. **Strong Passwords**: Use strong passwords for database users
 
 ---
@@ -266,9 +260,10 @@ export DB_USER="my-custom-user"
 
 - **[Documentation.md](./Documentation.md)**: System architecture and database schema
 - **[sql/README.md](../sql/README.md)**: SQL scripts and database functions documentation
-- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Database troubleshooting and common issues
-- **[Process_Planet.md](./Process_Planet.md)**: Initial database setup with `--base` mode
-For **WMS database setup and configuration**, see the
-[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
+- **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Database troubleshooting and common
+  issues
+- **[Process_Planet.md](./Process_Planet.md)**: Initial database setup with `--base` mode For **WMS
+  database setup and configuration**, see the
+  [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ---

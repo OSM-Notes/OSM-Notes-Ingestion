@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document provides a comprehensive reference of all BATS testing suites in the OSM-Notes-Ingestion project. The project contains **78 total testing suites** organized into different categories for comprehensive coverage of all system components.
+This document provides a comprehensive reference of all BATS testing suites in the
+OSM-Notes-Ingestion project. The project contains **78 total testing suites** organized into
+different categories for comprehensive coverage of all system components.
 
 ## 📊 Testing Suites Statistics
 
@@ -69,7 +71,8 @@ The project has been simplified from 36 redundant test runners to 9 consolidated
 - **Features**: End-to-end workflows, note processing integration
 - **Usage**: `./run_integration_tests.sh`
 
-> **Note:** DWH/ETL integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+> **Note:** DWH/ETL integration tests are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 #### 7. `run_mock_tests.sh` - Mock Environment Tests
 
@@ -112,8 +115,11 @@ Integration tests validate complete workflows and system interactions:
   - Planet notes processing workflow
   - Large XML file handling
 
-> **Note:** ETL and datamart integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
-- **Key Tests**: See [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) repository
+> **Note:** ETL and datamart integration tests are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+
+- **Key Tests**: See [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
+  repository
   - Bridge table integration
   - Application version integration
   - Season integration
@@ -164,9 +170,8 @@ Integration tests validate complete workflows and system interactions:
 
 - **database_variables.test.bats** - Database variable management
 
-> **Note:** Tests for datamartCountries, datamartUsers, ETL, and profile are
-> maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
-> repository.
+> **Note:** Tests for datamartCountries, datamartUsers, ETL, and profile are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) repository.
 
 ### 🔧 Functions and Scripts (8 suites)
 
@@ -359,13 +364,15 @@ find tests/unit/bash -name "*error*.bats" -exec bats {} \;
 ## 📚 Related Documentation
 
 - [Testing Guide](./Testing_Guide.md) - General testing guidelines
+
 ## Related Documentation
 
-- **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide with procedures and best practices
+- **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide with procedures and best
+  practices
 - **[Test_Matrix.md](./Test_Matrix.md)**: Comprehensive test matrix and coverage
 - **[Test_Execution_Guide.md](./Test_Execution_Guide.md)**: Test execution guide and sequence
-- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows explanation
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows
+  explanation
 - **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD integration and automated testing
 - **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
 - **[Input_Validation.md](./Input_Validation.md)**: Validation strategies and testing
-

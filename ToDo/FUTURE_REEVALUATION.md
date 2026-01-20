@@ -1,12 +1,14 @@
 # Future Reevaluation Tasks
 
-This document lists technical decisions and architectural choices that should be reconsidered once the system reaches a stable version.
+This document lists technical decisions and architectural choices that should be reconsidered once
+the system reaches a stable version.
 
 ## Directory Structure
 
 - **Current**: Linux root-style structure (`bin/`, `etc/`, `sql/`, `tests/`, `docs/`)
 - **Consideration**: Refactor to Maven-style structure (`main/tests/examples`)
-- **Rationale**: `docs` and `tests` were not present from the beginning, and a more standard structure may improve maintainability
+- **Rationale**: `docs` and `tests` were not present from the beginning, and a more standard
+  structure may improve maintainability
 
 ## Database Optimization
 
@@ -15,15 +17,20 @@ This document lists technical decisions and architectural choices that should be
   - Sharding
   - Specialized indexes
   - Separate tables
-- **Rationale**: Partitions were created to avoid lock contention, but other approaches may be more efficient at scale
+- **Rationale**: Partitions were created to avoid lock contention, but other approaches may be more
+  efficient at scale
 
 ## Processing Frequency
 
-- **Current**: `processAPI` executed via daemon (`processAPINotesDaemon.sh`) running continuously in memory, checking every minute (default `DAEMON_SLEEP_INTERVAL=60` seconds)
-- **Status**: ✅ **COMPLETED** - Frequency has been reduced to 1 minute for near real-time processing
+- **Current**: `processAPI` executed via daemon (`processAPINotesDaemon.sh`) running continuously in
+  memory, checking every minute (default `DAEMON_SLEEP_INTERVAL=60` seconds)
+- **Status**: ✅ **COMPLETED** - Frequency has been reduced to 1 minute for near real-time
+  processing
 - **Previous**: Was called every 15 minutes via cron
-- **Implementation**: Daemon runs continuously in memory with adaptive sleep interval (default 60 seconds)
-- **Note**: The daemon provides lower latency (30-60 seconds) compared to cron (15 minutes), and the system has been optimized to handle this higher frequency successfully
+- **Implementation**: Daemon runs continuously in memory with adaptive sleep interval (default 60
+  seconds)
+- **Note**: The daemon provides lower latency (30-60 seconds) compared to cron (15 minutes), and the
+  system has been optimized to handle this higher frequency successfully
 
 ## Language and Dependencies
 
@@ -45,7 +52,8 @@ This document lists technical decisions and architectural choices that should be
 
 - **Current**: Independent scripts (`processPlanet`, `processAPI`) with shared library scripts
 - **Consideration**: Further refactoring to improve modularity and reduce duplication
-- **Rationale**: Scripts became very long and complex, requiring division. Further improvements may be needed
+- **Rationale**: Scripts became very long and complex, requiring division. Further improvements may
+  be needed
 
 ## Data Processing Pipeline
 
@@ -61,7 +69,8 @@ This document lists technical decisions and architectural choices that should be
   - Memory usage with very large XML files (2.2GB+)
   - Error handling and recovery mechanisms
   - Parallel processing capabilities
-- **Rationale**: CSV intermediate step was chosen for memory efficiency and bulk loading performance, but direct XML insertion could simplify the pipeline if performance is acceptable
+- **Rationale**: CSV intermediate step was chosen for memory efficiency and bulk loading
+  performance, but direct XML insertion could simplify the pipeline if performance is acceptable
 
 ## Performance Optimization
 
@@ -82,7 +91,8 @@ This document lists technical decisions and architectural choices that should be
   - Version comparison functionality added
   - Results stored in JSON format
 - **Consideration**: Continue optimizing test execution time (Phase 3, low priority)
-- **Rationale**: Performance testing has been implemented. Future focus is on execution time optimization.
+- **Rationale**: Performance testing has been implemented. Future focus is on execution time
+  optimization.
 
 ## Documentation
 
@@ -92,5 +102,5 @@ This document lists technical decisions and architectural choices that should be
 
 ---
 
-**Note**: These items should be evaluated after the first stable version is released. Priority should be given to items that impact scalability and maintainability.
-
+**Note**: These items should be evaluated after the first stable version is released. Priority
+should be given to items that impact scalability and maintainability.

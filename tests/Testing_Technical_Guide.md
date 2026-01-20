@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document provides comprehensive guidance for testing the OSM-Notes-Ingestion project. The testing framework includes unit tests, integration tests, and performance tests to ensure code quality and reliability.
+This document provides comprehensive guidance for testing the OSM-Notes-Ingestion project. The
+testing framework includes unit tests, integration tests, and performance tests to ensure code
+quality and reliability.
 
 ## Test Structure
 
@@ -29,7 +31,8 @@ The project now uses enhanced XML validation functions that handle large files m
 
 #### `__validate_xml_with_enhanced_error_handling`
 
-This is the main validation function that automatically chooses the appropriate validation strategy based on file size:
+This is the main validation function that automatically chooses the appropriate validation strategy
+based on file size:
 
 - **Small files** (< 500MB): Standard validation with schema
 - **Large files** (500MB - 1GB): Basic validation without schema

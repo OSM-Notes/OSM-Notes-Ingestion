@@ -6,16 +6,17 @@
 
 ## Summary
 
-This guide provides comprehensive information about the implemented integration tests, use cases, and troubleshooting for the OSM-Notes-Ingestion project.
+This guide provides comprehensive information about the implemented integration tests, use cases,
+and troubleshooting for the OSM-Notes-Ingestion project.
 
 ## GitHub Actions Workflows
 
-The project uses three main GitHub Actions workflows that run automatically on each push or pull request:
+The project uses three main GitHub Actions workflows that run automatically on each push or pull
+request:
 
 ### 1. Tests (tests.yml)
 
-**Purpose:** Runs the main battery of unit and integration tests.
-**What it validates:**
+**Purpose:** Runs the main battery of unit and integration tests. **What it validates:**
 
 - Bash functions and scripts work correctly in isolation
 - System components interact correctly with each other
@@ -24,8 +25,7 @@ The project uses three main GitHub Actions workflows that run automatically on e
 
 ### 2. Quality Tests (quality-tests.yml)
 
-**Purpose:** Ensures source code quality and compliance with best practices.
-**What it validates:**
+**Purpose:** Ensures source code quality and compliance with best practices. **What it validates:**
 
 - Bash and SQL scripts comply with defined format and style standards
 - No duplicate variables, syntax errors, or permission issues in scripts
@@ -33,8 +33,8 @@ The project uses three main GitHub Actions workflows that run automatically on e
 
 ### 3. Integration Tests (integration-tests.yml)
 
-**Purpose:** Validates system module integration, especially in environments that simulate real infrastructure.
-**What it validates:**
+**Purpose:** Validates system module integration, especially in environments that simulate real
+infrastructure. **What it validates:**
 
 - Scripts can interact correctly with PostgreSQL databases and external services
 - Note processing works end-to-end
@@ -42,22 +42,22 @@ The project uses three main GitHub Actions workflows that run automatically on e
 
 ## Testing Scripts Summary Table
 
-| Script / Workflow                      | Location                                 | Main Purpose                                                                 |
-|----------------------------------------|-------------------------------------------|-------------------------------------------------------------------------------|
-| `run_all_tests.sh`                     | tests/                                    | Runs all main tests (unit, integration, mock, etc.)                           |
-| `run_integration_tests.sh`             | tests/                                    | Runs complete integration tests                                                |
-| `run_quality_tests.sh`                 | tests/                                    | Validates code quality, format, and conventions                               |
-| `run_logging_validation_tests.sh`      | tests/                                    | Validates logging pattern compliance across all bash scripts                  |
-| `run_mock_tests.sh`                    | tests/                                    | Runs tests using mocks and simulated environments                             |
-| `run_enhanced_tests.sh`                | tests/                                    | Advanced testability and robustness tests                                     |
-| `run_real_data_tests.sh`               | tests/                                    | Tests with real data and special cases                                        |
-| `run_parallel_tests.sh`                | tests/                                    | Validates parallel processing and concurrency                                 |
-| `run_error_handling_tests.sh`          | tests/                                    | Error handling and edge case validation tests                                 |
-| `run_ci_tests.sh`                      | tests/docker/                             | CI/CD tests in Docker environment                                             |
-| `run_integration_tests.sh`             | tests/docker/                             | Integration tests in Docker environment                                       |
-| `quality-tests.yml`                    | .github/workflows/                        | GitHub Actions workflow for quality tests                                     |
-| `integration-tests.yml`                | .github/workflows/                        | GitHub Actions workflow for integration tests                                 |
-| `tests.yml`                            | .github/workflows/                        | GitHub Actions workflow for main unit and integration tests                   |
+| Script / Workflow                 | Location           | Main Purpose                                                 |
+| --------------------------------- | ------------------ | ------------------------------------------------------------ |
+| `run_all_tests.sh`                | tests/             | Runs all main tests (unit, integration, mock, etc.)          |
+| `run_integration_tests.sh`        | tests/             | Runs complete integration tests                              |
+| `run_quality_tests.sh`            | tests/             | Validates code quality, format, and conventions              |
+| `run_logging_validation_tests.sh` | tests/             | Validates logging pattern compliance across all bash scripts |
+| `run_mock_tests.sh`               | tests/             | Runs tests using mocks and simulated environments            |
+| `run_enhanced_tests.sh`           | tests/             | Advanced testability and robustness tests                    |
+| `run_real_data_tests.sh`          | tests/             | Tests with real data and special cases                       |
+| `run_parallel_tests.sh`           | tests/             | Validates parallel processing and concurrency                |
+| `run_error_handling_tests.sh`     | tests/             | Error handling and edge case validation tests                |
+| `run_ci_tests.sh`                 | tests/docker/      | CI/CD tests in Docker environment                            |
+| `run_integration_tests.sh`        | tests/docker/      | Integration tests in Docker environment                      |
+| `quality-tests.yml`               | .github/workflows/ | GitHub Actions workflow for quality tests                    |
+| `integration-tests.yml`           | .github/workflows/ | GitHub Actions workflow for integration tests                |
+| `tests.yml`                       | .github/workflows/ | GitHub Actions workflow for main unit and integration tests  |
 
 ## Types of Tests
 
@@ -73,10 +73,14 @@ Integration tests actually run the scripts to detect real problems like:
 
 The project includes specialized tests for consolidated functions that eliminate code duplication:
 
-- **Parallel Processing Functions**: Tests for `bin/lib/parallelProcessingFunctions.sh` ensure XML processing functions work correctly across different formats (API vs Planet)
-- **Validation Functions**: Tests for `bin/consolidatedValidationFunctions.sh` validate XML, CSV, coordinate, and database validation functions
-- **Legacy Compatibility**: Tests ensure that existing scripts continue to work while using the new consolidated implementations
-- **Fallback Mechanisms**: Tests verify that scripts gracefully handle missing consolidated function files
+- **Parallel Processing Functions**: Tests for `bin/lib/parallelProcessingFunctions.sh` ensure XML
+  processing functions work correctly across different formats (API vs Planet)
+- **Validation Functions**: Tests for `bin/consolidatedValidationFunctions.sh` validate XML, CSV,
+  coordinate, and database validation functions
+- **Legacy Compatibility**: Tests ensure that existing scripts continue to work while using the new
+  consolidated implementations
+- **Fallback Mechanisms**: Tests verify that scripts gracefully handle missing consolidated function
+  files
 
 #### Covered Scripts
 
@@ -101,20 +105,25 @@ For **WMS (Web Map Service) scripts**, see the
 
 ### 3. Logging Pattern Validation Tests
 
-Logging pattern validation tests ensure that all bash functions follow the established logging conventions:
+Logging pattern validation tests ensure that all bash functions follow the established logging
+conventions:
 
 - **`__log_start`**: Every function must start with this call
-- **`__log_finish`**: Every function must end with this call and have it before each `return` statement
+- **`__log_finish`**: Every function must end with this call and have it before each `return`
+  statement
 - **Consistent logging**: All functions use the same logging pattern for traceability
 
 **Available Tests:**
 
-- **Unit Tests**: `tests/unit/bash/logging_pattern_validation.test.bats` - Tests individual logging patterns
-- **Integration Tests**: `tests/integration/logging_pattern_validation_integration.test.bats` - Tests validation scripts
+- **Unit Tests**: `tests/unit/bash/logging_pattern_validation.test.bats` - Tests individual logging
+  patterns
+- **Integration Tests**: `tests/integration/logging_pattern_validation_integration.test.bats` -
+  Tests validation scripts
 - **Validation Scripts**:
   - `tests/scripts/validate_logging_patterns.sh` - Comprehensive validation
   - `tests/scripts/validate_logging_patterns_simple.sh` - Simple validation
-- **Test Runner**: `tests/run_logging_validation_tests.sh` - Dedicated logging validation test runner
+- **Test Runner**: `tests/run_logging_validation_tests.sh` - Dedicated logging validation test
+  runner
 
 **Run Logging Validation:**
 
@@ -250,7 +259,8 @@ Edge cases tests cover boundary situations:
 
 ## Overpass Fallback and Continue-on-Error Testing
 
-**Objective:** Validate that boundary downloads use fallback endpoints and the process continues on invalid JSON.
+**Objective:** Validate that boundary downloads use fallback endpoints and the process continues on
+invalid JSON.
 
 **Steps:**
 
@@ -282,7 +292,8 @@ Edge cases tests cover boundary situations:
 **Expected Result:**
 
 - If primary Overpass is degraded, the script retries and then falls back to a secondary endpoint.
-- Invalid JSON responses do not stop the whole process when `CONTINUE_ON_OVERPASS_ERROR=true`; failing boundary IDs are recorded in `failed_boundaries.txt`.
+- Invalid JSON responses do not stop the whole process when `CONTINUE_ON_OVERPASS_ERROR=true`;
+  failing boundary IDs are recorded in `failed_boundaries.txt`.
 
 ## Troubleshooting
 
@@ -354,7 +365,7 @@ Edge cases tests cover boundary situations:
    psql -d osm_notes_ingestion_test -f sql/process/processAPINotes_23_createPropertiesTables.sql
    ```
 
-### Problem 3: "FAIL! (1) - __validation error"
+### Problem 3: "FAIL! (1) - \_\_validation error"
 
 **Symptoms:**
 
@@ -537,23 +548,28 @@ tail -f tests/tmp/*.log
 
 ## Conclusion
 
-Integration tests are essential to detect real problems before they reach production. This guide provides the tools and knowledge needed to:
+Integration tests are essential to detect real problems before they reach production. This guide
+provides the tools and knowledge needed to:
 
 - ✅ **Run tests effectively**
 - ✅ **Debug problems quickly**
 - ✅ **Maintain code quality**
 - ✅ **Integrate with CI/CD**
 
-**Recommendation:** Use this guide as a reference to maintain the quality and reliability of the OSM-Notes-Ingestion project.
+**Recommendation:** Use this guide as a reference to maintain the quality and reliability of the
+OSM-Notes-Ingestion project.
 
 ## Related Documentation
 
 - **[Test_Execution_Guide.md](./Test_Execution_Guide.md)**: Step-by-step test execution procedures
 - **[Test_Matrix.md](./Test_Matrix.md)**: Complete test coverage matrix
-- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Detailed reference for all test suites
-- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows explanation
+- **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Detailed reference for all test
+  suites
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows
+  explanation
 - **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD setup and configuration
 - **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
 - **[Documentation.md](./Documentation.md)**: System architecture and overview
 - **[Process_API.md](./Process_API.md)**: API processing implementation (for testing API components)
-- **[Process_Planet.md](./Process_Planet.md)**: Planet processing implementation (for testing Planet components)
+- **[Process_Planet.md](./Process_Planet.md)**: Planet processing implementation (for testing Planet
+  components)

@@ -6,11 +6,14 @@ This document explains how to run `processAPINotes.sh` in hybrid testing mode:
 
 - **Hybrid Mode**: Real database with mocked internet downloads
 
-This mode allows testing `processAPINotes.sh` without requiring full production setup or internet connectivity.
+This mode allows testing `processAPINotes.sh` without requiring full production setup or internet
+connectivity.
 
 ---
 
-**Note:** Full mock mode (with mocked PostgreSQL) has been removed due to complexity and error-prone nature. Only hybrid mode is supported, which uses a real PostgreSQL database but mocks internet downloads.
+**Note:** Full mock mode (with mocked PostgreSQL) has been removed due to complexity and error-prone
+nature. Only hybrid mode is supported, which uses a real PostgreSQL database but mocks internet
+downloads.
 
 ---
 
@@ -18,7 +21,9 @@ This mode allows testing `processAPINotes.sh` without requiring full production 
 
 ### Description
 
-Run `processAPINotes.sh` in hybrid mock mode, using a real PostgreSQL database but mocking internet downloads. This allows testing the complete database integration without requiring internet connectivity.
+Run `processAPINotes.sh` in hybrid mock mode, using a real PostgreSQL database but mocking internet
+downloads. This allows testing the complete database integration without requiring internet
+connectivity.
 
 ### Requirements
 
@@ -70,9 +75,12 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
 
 3. **Cleans lock files and failed execution markers:**
    - Removes lock files (works in both installed and fallback modes):
-     - `/var/run/osm-notes-ingestion/processAPINotes.lock` or `/tmp/osm-notes-ingestion/locks/processAPINotes.lock`
-     - `/var/run/osm-notes-ingestion/processAPINotes_failed_execution` or `/tmp/osm-notes-ingestion/locks/processAPINotes_failed_execution`
-     - `/var/run/osm-notes-ingestion/processPlanetNotes.lock` or `/tmp/osm-notes-ingestion/locks/processPlanetNotes.lock`
+     - `/var/run/osm-notes-ingestion/processAPINotes.lock` or
+       `/tmp/osm-notes-ingestion/locks/processAPINotes.lock`
+     - `/var/run/osm-notes-ingestion/processAPINotes_failed_execution` or
+       `/tmp/osm-notes-ingestion/locks/processAPINotes_failed_execution`
+     - `/var/run/osm-notes-ingestion/processPlanetNotes.lock` or
+       `/tmp/osm-notes-ingestion/locks/processPlanetNotes.lock`
 
 4. **Sets up hybrid mock environment:**
    - Creates mock commands if they don't exist (curl, aria2c, pgrep)
@@ -87,8 +95,11 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
    - `SKIP_XML_VALIDATION=true`: Skip XML validation
 
 6. **Executes processAPINotes.sh TWICE:**
-   - **First execution**: Drops base tables, which causes `processAPINotes.sh` to execute `processPlanetNotes.sh --base` (REAL script) to create the base structure and load historical data.
-   - **Second execution**: Base tables already exist (created by the first execution), so only `processAPINotes.sh` is executed without calling `processPlanetNotes.sh`.
+   - **First execution**: Drops base tables, which causes `processAPINotes.sh` to execute
+     `processPlanetNotes.sh --base` (REAL script) to create the base structure and load historical
+     data.
+   - **Second execution**: Base tables already exist (created by the first execution), so only
+     `processAPINotes.sh` is executed without calling `processPlanetNotes.sh`.
 
 7. **Cleans up environment:**
    - Deactivates hybrid mock environment when finished
@@ -104,17 +115,17 @@ The `run_processAPINotes_hybrid.sh` script performs the following:
 
 ### Available Environment Variables
 
-| Variable              | Description                                    | Default Value              |
-| --------------------- | ---------------------------------------------- | ------------------------- |
-| `LOG_LEVEL`           | Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL) | `INFO`              |
-| `CLEAN`               | Clean temporary files after execution          | `false`                   |
-| `DBNAME`              | Database name                                  | `osm_notes_ingestion_test` |
-| `DB_USER`             | Database user                                  | Current user (`$USER`)    |
-| `DB_HOST`             | Database host (empty for unix socket)          | Empty                     |
-| `DB_PORT`             | Database port                                  | `5432`                    |
-| `DB_PASSWORD`         | Database password (if required)               | Empty                     |
-| `SEND_ALERT_EMAIL`    | Send email alerts                              | `false`                   |
-| `SKIP_XML_VALIDATION` | Skip XML validation                            | `true`                    |
+| Variable              | Description                                            | Default Value              |
+| --------------------- | ------------------------------------------------------ | -------------------------- |
+| `LOG_LEVEL`           | Logging level (TRACE, DEBUG, INFO, WARN, ERROR, FATAL) | `INFO`                     |
+| `CLEAN`               | Clean temporary files after execution                  | `false`                    |
+| `DBNAME`              | Database name                                          | `osm_notes_ingestion_test` |
+| `DB_USER`             | Database user                                          | Current user (`$USER`)     |
+| `DB_HOST`             | Database host (empty for unix socket)                  | Empty                      |
+| `DB_PORT`             | Database port                                          | `5432`                     |
+| `DB_PASSWORD`         | Database password (if required)                        | Empty                      |
+| `SEND_ALERT_EMAIL`    | Send email alerts                                      | `false`                    |
+| `SKIP_XML_VALIDATION` | Skip XML validation                                    | `true`                     |
 
 ### Usage Examples
 
@@ -153,10 +164,12 @@ CLEAN=true LOG_LEVEL=INFO ./tests/run_processAPINotes_hybrid.sh
 
 The script automatically:
 
-1. **Checks PostgreSQL availability** - Verifies psql is installed and PostgreSQL server is accessible
+1. **Checks PostgreSQL availability** - Verifies psql is installed and PostgreSQL server is
+   accessible
 2. **Creates database if needed** - Creates the database if it doesn't exist
 3. **Installs extensions** - Automatically installs PostGIS and btree_gist extensions
-4. **Drops base tables** - Before first execution, drops base tables to trigger `processPlanetNotes.sh --base`
+4. **Drops base tables** - Before first execution, drops base tables to trigger
+   `processPlanetNotes.sh --base`
 
 ---
 
@@ -178,10 +191,12 @@ The `processAPINotes.sh` script can call `processPlanetNotes.sh` in two situatio
 
 Both scripts execute `processAPINotes.sh` twice to test both scenarios:
 
-1. First execution: Base tables are missing, so `processPlanetNotes.sh --base` is executed to create them
+1. First execution: Base tables are missing, so `processPlanetNotes.sh --base` is executed to create
+   them
 2. Second execution: Base tables exist, so only `processAPINotes.sh` runs
 
-**Important note:** The `processPlanetNotes.sh` script that is executed is the **REAL** one, not a mock. This allows testing the complete integration.
+**Important note:** The `processPlanetNotes.sh` script that is executed is the **REAL** one, not a
+mock. This allows testing the complete integration.
 
 ---
 
@@ -238,7 +253,8 @@ psql -d ${DBNAME} -c "CREATE EXTENSION postgis;"
 
 **Problem:** The database already exists and contains data
 
-**Solution:** The script will use the existing database. If you want to start fresh, drop it manually:
+**Solution:** The script will use the existing database. If you want to start fresh, drop it
+manually:
 
 ```bash
 dropdb ${DBNAME}
@@ -262,7 +278,9 @@ which psql
 
 **Problem:** The script detects that there is a process running
 
-**Solution:** This error is already automatically resolved. The script cleans lock files before executing and uses a `pgrep` mock that always returns that no processes are running. If you still see this error:
+**Solution:** This error is already automatically resolved. The script cleans lock files before
+executing and uses a `pgrep` mock that always returns that no processes are running. If you still
+see this error:
 
 1. Verify that the `pgrep` mock exists:
 
@@ -290,12 +308,18 @@ which psql
 
 ### Hybrid Mode
 
-1. **Real database is used:** All database operations use the real PostgreSQL database. Data will persist between executions.
-2. **Internet downloads are mocked:** All internet downloads (curl, aria2c) are simulated using mock files.
-3. **Base tables are dropped:** Before the first execution, base tables are dropped to ensure `processPlanetNotes.sh --base` is executed.
-4. **Database must exist or be creatable:** The script will create the database if it doesn't exist, but you need proper permissions.
-5. **PostGIS required:** The database must support PostGIS extension for the scripts to work correctly.
-6. **Temporary files:** Temporary files are created in `/tmp/` and can be automatically cleaned if `CLEAN=true`.
+1. **Real database is used:** All database operations use the real PostgreSQL database. Data will
+   persist between executions.
+2. **Internet downloads are mocked:** All internet downloads (curl, aria2c) are simulated using mock
+   files.
+3. **Base tables are dropped:** Before the first execution, base tables are dropped to ensure
+   `processPlanetNotes.sh --base` is executed.
+4. **Database must exist or be creatable:** The script will create the database if it doesn't exist,
+   but you need proper permissions.
+5. **PostGIS required:** The database must support PostGIS extension for the scripts to work
+   correctly.
+6. **Temporary files:** Temporary files are created in `/tmp/` and can be automatically cleaned if
+   `CLEAN=true`.
 7. **Logs:** Logs are generated in the temporary directory created by processAPINotes.sh.
 
 ---

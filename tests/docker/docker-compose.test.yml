@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   test-db:
@@ -44,4 +44,4 @@ services:
     command: ./tests/run_tests.sh
 
 volumes:
-  postgres_test_data: 
+  postgres_test_data:

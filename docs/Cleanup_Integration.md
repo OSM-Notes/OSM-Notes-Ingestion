@@ -2,9 +2,9 @@
 
 ## Overview
 
-The `cleanupAll.sh` script provides comprehensive cleanup functionality for
-the OSM Notes Ingestion system. It can perform both full cleanup (removing all
-components) and partition-only cleanup (removing only partition tables).
+The `cleanupAll.sh` script provides comprehensive cleanup functionality for the OSM Notes Ingestion
+system. It can perform both full cleanup (removing all components) and partition-only cleanup
+(removing only partition tables).
 
 ## Usage
 
@@ -97,12 +97,14 @@ bats tests/unit/bash/cleanupAll_integration.test.bats
 ## When to Use Each Mode
 
 ### Use Full Cleanup When:
+
 - Starting fresh with a new database
 - Removing all data and components
 - Resetting the entire system
 - Before major upgrades or migrations
 
 ### Use Partition-Only Cleanup When:
+
 - Removing old partition tables to free disk space
 - Cleaning up after data retention policies
 - Maintaining base tables while removing historical partitions

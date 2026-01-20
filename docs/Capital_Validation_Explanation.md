@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Capital validation aims to **prevent data cross-contamination**. If Nepal's geometry is mistakenly downloaded when processing Austria, Austria's capital (Vienna) would NOT be inside Nepal's geometry, which would detect the error.
+Capital validation aims to **prevent data cross-contamination**. If Nepal's geometry is mistakenly
+downloaded when processing Austria, Austria's capital (Vienna) would NOT be inside Nepal's geometry,
+which would detect the error.
 
 ## How It Works
 
@@ -19,7 +21,8 @@ node(r:"label");
 out center;
 ```
 
-The "label" node is part of the OSM relation and generally points to the capital or main city of the country.
+The "label" node is part of the OSM relation and generally points to the capital or main city of the
+country.
 
 **Option B: Node with capital=yes tag (fallback)**
 
@@ -30,11 +33,13 @@ node(r)[capital=yes];
 out center;
 ```
 
-If the label node is not found, it searches for nodes within the relation that have the `capital=yes` tag.
+If the label node is not found, it searches for nodes within the relation that have the
+`capital=yes` tag.
 
 ### 2. Spatial Validation
 
-Once the capital coordinates (lat, lon) are obtained, it is verified that this point is **inside the downloaded geometry**:
+Once the capital coordinates (lat, lon) are obtained, it is verified that this point is **inside the
+downloaded geometry**:
 
 ```sql
 SELECT ST_Contains(
@@ -70,9 +75,11 @@ WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon');
 
 **Symptom**: Geometry with "Ring Self-intersection"
 
-**Cause**: The geometry downloaded from OSM has intersections in the polygon rings, causing `ST_IsValid` to return `false`.
+**Cause**: The geometry downloaded from OSM has intersections in the polygon rings, causing
+`ST_IsValid` to return `false`.
 
-**Effect**: Although `ST_Contains` can work with invalid geometries in some cases, there may be unexpected behaviors.
+**Effect**: Although `ST_Contains` can work with invalid geometries in some cases, there may be
+unexpected behaviors.
 
 **Proposed solution**: Use `ST_MakeValid()` before validation:
 
@@ -87,7 +94,8 @@ SELECT ST_Contains(
 
 **Symptom**: Points very close to the edge may fail
 
-**Cause**: `ST_Contains` requires the point to be **strictly inside**. If the point is exactly on the edge, it returns `false`.
+**Cause**: `ST_Contains` requires the point to be **strictly inside**. If the point is exactly on
+the edge, it returns `false`.
 
 **Proposed solution**: Use `ST_Intersects` or add tolerance:
 
@@ -139,7 +147,8 @@ SELECT ST_DWithin(
 
 - Geometry: Invalid (self-intersection)
 - Capital: Inside Austria
-- **Observed result**: `ST_Contains` may return `true` even with invalid geometry, but the behavior is not guaranteed
+- **Observed result**: `ST_Contains` may return `true` even with invalid geometry, but the behavior
+  is not guaranteed
 - **Solution**: Use `ST_MakeValid` to correct the geometry before validating
 
 ## Possible Causes of False Negative
@@ -152,10 +161,12 @@ The code has:
 VALIDATION_RESULT=$(psql ... || echo "false")
 ```
 
-This means that **if the SQL query fails for ANY reason**, it returns "false". Possible failure causes:
+This means that **if the SQL query fails for ANY reason**, it returns "false". Possible failure
+causes:
 
 1. **Empty or non-existent `import` table**: If ogr2ogr failed silently
-2. **PostGIS errors with invalid geometries**: Although `ST_Contains` can work, PostGIS may return an error in some cases with self-intersection
+2. **PostGIS errors with invalid geometries**: Although `ST_Contains` can work, PostGIS may return
+   an error in some cases with self-intersection
 3. **Concurrency problems**: If multiple processes use the same `import` table
 4. **Connection or permission errors**: Temporarily
 
@@ -195,7 +206,7 @@ if [[ "${VALIDATION_RESULT}" != "t" ]] && [[ "${VALIDATION_RESULT}" != "true" ]]
     FROM import
     WHERE ST_GeometryType(geometry) IN ('ST_Polygon', 'ST_MultiPolygon');
   " 2> /dev/null || echo "false")
-  
+
   __logw "ST_Contains failed, ST_Intersects result: ${INTERSECTS_RESULT}"
 fi
 ```
@@ -213,10 +224,14 @@ fi
 
 ## Related Documentation
 
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Detailed explanation of ST_DWithin function used in capital validation
-- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy and spatial operations
-- **[bin/lib/boundaryProcessingFunctions.sh](../bin/lib/boundaryProcessingFunctions.sh)**: Boundary processing functions including capital validation
-- **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Country boundary processing script
+- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Detailed explanation of ST_DWithin
+  function used in capital validation
+- **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy
+  and spatial operations
+- **[bin/lib/boundaryProcessingFunctions.sh](../bin/lib/boundaryProcessingFunctions.sh)**: Boundary
+  processing functions including capital validation
+- **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Country boundary
+  processing script
 - **[PostgreSQL_Setup.md](./PostgreSQL_Setup.md)**: PostGIS installation and spatial function setup
 
 **Date**: 2025-12-07  

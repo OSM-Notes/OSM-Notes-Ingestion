@@ -8,7 +8,8 @@
 
 ## Option 1: Fallback Mode (Recommended for Development)
 
-**You don't need to do anything.** The system automatically detects that it's not installed and uses fallback mode.
+**You don't need to do anything.** The system automatically detects that it's not installed and uses
+fallback mode.
 
 ### What does fallback mode do?
 
@@ -130,15 +131,15 @@ export LOCK_DIR="/home/user/osm-locks"
 
 ## Mode Comparison
 
-| Feature | Fallback Mode | Installed Mode |
-|---------|--------------|----------------|
-| **Log location** | `/tmp/osm-notes-ingestion/logs/` | `/var/log/osm-notes-ingestion/` |
-| **Temp location** | `/tmp/` | `/var/tmp/osm-notes-ingestion/` |
+| Feature           | Fallback Mode                     | Installed Mode                  |
+| ----------------- | --------------------------------- | ------------------------------- |
+| **Log location**  | `/tmp/osm-notes-ingestion/logs/`  | `/var/log/osm-notes-ingestion/` |
+| **Temp location** | `/tmp/`                           | `/var/tmp/osm-notes-ingestion/` |
 | **Lock location** | `/tmp/osm-notes-ingestion/locks/` | `/var/run/osm-notes-ingestion/` |
-| **Requires root** | ❌ No | ✅ Yes |
-| **Persistence** | ❌ Deleted on reboot | ✅ Persistent |
-| **Logrotate** | ❌ No | ✅ Yes (automatic) |
-| **Ideal for** | Development, Testing | Production |
+| **Requires root** | ❌ No                             | ✅ Yes                          |
+| **Persistence**   | ❌ Deleted on reboot              | ✅ Persistent                   |
+| **Logrotate**     | ❌ No                             | ✅ Yes (automatic)              |
+| **Ideal for**     | Development, Testing              | Production                      |
 
 ---
 

@@ -1,7 +1,7 @@
 # Contributing Tests to OSM-Notes-Ingestion
 
-This guide provides comprehensive instructions for contributing tests to the
-OSM-Notes-Ingestion project.
+This guide provides comprehensive instructions for contributing tests to the OSM-Notes-Ingestion
+project.
 
 ## Table of Contents
 
@@ -20,9 +20,8 @@ OSM-Notes-Ingestion project.
 
 ### Test Framework
 
-The project uses **BATS (Bash Automated Testing System)** for all shell script
-testing. BATS provides a simple, powerful framework for testing Bash scripts
-and functions.
+The project uses **BATS (Bash Automated Testing System)** for all shell script testing. BATS
+provides a simple, powerful framework for testing Bash scripts and functions.
 
 ### Test Categories
 
@@ -80,10 +79,10 @@ teardown() {
 @test "Descriptive test name that explains what is being tested" {
   # Arrange: Set up test data and conditions
   local test_var="value"
-  
+
   # Act: Execute the function or code being tested
   run function_under_test "${test_var}"
-  
+
   # Assert: Verify the results
   [[ "${status}" -eq 0 ]]
   [[ "${output}" == *"expected"* ]]
@@ -119,10 +118,10 @@ Follow the **Arrange-Act-Assert** pattern:
   # Arrange: Set up test data
   local input_file="${TEST_DIR}/test_input.txt"
   echo "test data" > "${input_file}"
-  
+
   # Act: Execute function
   run process_file "${input_file}"
-  
+
   # Assert: Verify results
   [[ "${status}" -eq 0 ]]
   [[ -f "${TEST_DIR}/test_output.txt" ]]
@@ -132,6 +131,7 @@ Follow the **Arrange-Act-Assert** pattern:
 ### Inline Comments
 
 Add inline comments to explain:
+
 - **Why** a test exists (what scenario it covers)
 - **What** edge cases are being tested
 - **How** complex mocks work
@@ -142,12 +142,12 @@ Add inline comments to explain:
   # Test edge case: empty input file
   # Expected: function should return error code 1
   # and log appropriate error message
-  
+
   local empty_file="${TEST_DIR}/empty.txt"
   touch "${empty_file}"
-  
+
   run process_file "${empty_file}"
-  
+
   # Verify error handling
   [[ "${status}" -eq 1 ]]
   [[ "${output}" == *"empty file"* ]]
@@ -157,11 +157,13 @@ Add inline comments to explain:
 ### Test Naming
 
 Use descriptive test names that explain:
+
 - **What** is being tested
 - **When** or **under what conditions**
 - **What** the expected outcome is
 
 **Good examples**:
+
 ```bash
 @test "process_file should return error when file does not exist"
 @test "validate_coordinates should reject invalid latitude values"
@@ -169,6 +171,7 @@ Use descriptive test names that explain:
 ```
 
 **Bad examples**:
+
 ```bash
 @test "test1"
 @test "process_file test"
@@ -202,6 +205,7 @@ teardown() {
 ### File Header
 
 Every test file should have a header with:
+
 - Component name and category
 - Brief description
 - Author name
@@ -229,6 +233,7 @@ Use section headers to organize related tests:
 ### Inline Comments
 
 Add comments for:
+
 - Complex logic or calculations
 - Mock implementations
 - Edge cases
@@ -243,10 +248,10 @@ Add comments for:
     return 124  # Timeout exit code
   }
   export -f curl
-  
+
   # Function should retry 3 times before failing
   run download_with_retry "http://example.com"
-  
+
   # Verify retry behavior
   [[ "${status}" -eq 1 ]]
   [[ "${output}" == *"retry"* ]]
@@ -268,9 +273,9 @@ Add comments for:
 @test "Process should handle special case XML" {
   # Load fixture from special_cases directory
   local fixture_file="${TEST_BASE_DIR}/tests/fixtures/special_cases/single_note.xml"
-  
+
   run process_xml_file "${fixture_file}"
-  
+
   [[ "${status}" -eq 0 ]]
 }
 ```
@@ -289,7 +294,7 @@ For simple test data, create it inline:
   "properties": {"name": "Test"}
 }
 EOF
-  
+
   run process_json "${json_file}"
   [[ "${status}" -eq 0 ]]
 }
@@ -302,6 +307,7 @@ For complex or reusable test data, add it to `tests/fixtures/`.
 ### Mocking Strategy
 
 The project follows a **consistent mocking strategy** to ensure tests are:
+
 - **Fast**: Avoid slow network calls and external dependencies
 - **Reliable**: Tests don't depend on external service availability
 - **Maintainable**: Use common helpers instead of inline mocks
@@ -312,6 +318,7 @@ The project follows a **consistent mocking strategy** to ensure tests are:
 #### Always Mock Services Requiring Internet
 
 Mock external services that require internet connectivity:
+
 - **OSM Notes API** (`api.openstreetmap.org`)
 - **Overpass API** (`overpass-api.de`)
 - **OSM Planet Server** (`planet.openstreetmap.org`)
@@ -321,6 +328,7 @@ Mock external services that require internet connectivity:
 #### Use Real Services When Local
 
 Use real services when they are local and reliable:
+
 - **PostgreSQL** (local database `osm_notes_ingestion_test`)
 - **System tools** (`xmllint`, `bzip2`, `jq`, `osmtogeojson`, `ogr2ogr`)
 
@@ -372,13 +380,14 @@ __setup_mock_psql_with_tracking "TRACK_FILE" "MATCH_FILE" "PATTERN1:RESULT1" ...
 ```
 
 **Example**:
+
 ```bash
 @test "Function should query database correctly" {
   # Mock psql to return count of 5
   __setup_mock_psql_count "SELECT COUNT" "5"
-  
+
   run function_that_queries_db
-  
+
   [[ "${status}" -eq 0 ]]
   [[ "${output}" == "5" ]]
 }
@@ -395,12 +404,13 @@ __setup_mock_ogr2ogr "true|false" [ERROR_MESSAGE]
 ```
 
 **Example**:
+
 ```bash
 @test "Function should convert JSON to GeoJSON" {
   __setup_mock_osmtogeojson ".*\.json" "/tmp/output.geojson"
-  
+
   run convert_to_geojson "input.json"
-  
+
   [[ "${status}" -eq 0 ]]
   [[ -f "/tmp/output.geojson" ]]
 }
@@ -417,12 +427,13 @@ __setup_mock_curl_overpass "QUERY_PATTERN" "RESPONSE" [STATUS_CODE]
 ```
 
 **Example**:
+
 ```bash
 @test "Function should download from API" {
   __setup_mock_curl_for_api "api.openstreetmap.org" '<?xml version="1.0"?><osm></osm>' 0
-  
+
   run download_from_api
-  
+
   [[ "${status}" -eq 0 ]]
 }
 ```
@@ -437,15 +448,16 @@ load "${BATS_TEST_DIRNAME}/service_availability_helpers"
 @test "Function should work with Overpass API" {
   # Skip if Overpass API is not available
   __skip_if_overpass_api_unavailable "Overpass API not available"
-  
+
   # Test implementation
   run function_that_uses_overpass
-  
+
   [[ "${status}" -eq 0 ]]
 }
 ```
 
 **Available Skip Helpers**:
+
 - `__skip_if_osm_api_unavailable [MESSAGE]`
 - `__skip_if_overpass_api_unavailable [MESSAGE]`
 - `__skip_if_planet_server_unavailable [MESSAGE]`
@@ -474,15 +486,16 @@ load "${BATS_TEST_DIRNAME}/../../test_helpers_common"
 @test "Function should insert into database" {
   # Skip if database is not available
   __skip_if_no_database "${DBNAME}" "Database ${DBNAME} not available"
-  
+
   # Test implementation
   run function_that_inserts_data
-  
+
   [[ "${status}" -eq 0 ]]
 }
 ```
 
-**Note**: The default test database is `osm_notes_ingestion_test`. Set `TEST_DBNAME` environment variable to use a different database.
+**Note**: The default test database is `osm_notes_ingestion_test`. Set `TEST_DBNAME` environment
+variable to use a different database.
 
 ### Mocking Internal Functions
 
@@ -549,6 +562,7 @@ create_mock_json() {
 **Pattern**: `[Component/Function] should [expected behavior] [when condition]`
 
 Examples:
+
 - `__downloadBoundary should return success when JSON is valid`
 - `process_file should handle empty input gracefully`
 - `validate_coordinates should reject values outside valid range`
@@ -645,8 +659,10 @@ When submitting a PR with tests:
 - [Project Testing Guide](../docs/Testing_Guide.md)
 - [Test Suites Reference](../docs/Testing_Suites_Reference.md)
 - [Fixtures Documentation](./fixtures/README.md)
-- [External Services Mocking Analysis](../docs/External_Services_Mocking_Analysis.md) - Detailed analysis of mocking strategy
-- [Service Availability Helpers](./integration/service_availability_helpers.bash) - Helpers for checking service availability
+- [External Services Mocking Analysis](../docs/External_Services_Mocking_Analysis.md) - Detailed
+  analysis of mocking strategy
+- [Service Availability Helpers](./integration/service_availability_helpers.bash) - Helpers for
+  checking service availability
 
 ## Getting Help
 
@@ -654,4 +670,3 @@ When submitting a PR with tests:
 - Review `tests/unit/bash/README.md` for test organization
 - Ask questions in GitHub Discussions
 - Review test documentation in `docs/Testing_Guide.md`
-

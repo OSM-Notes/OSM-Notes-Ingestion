@@ -4,14 +4,14 @@
 
 ## Introduction
 
-This document outlines the privacy policy and GDPR compliance measures for the
-OSM Notes Ingestion system. This system processes data from OpenStreetMap (OSM)
-that may contain personal information of OSM contributors.
+This document outlines the privacy policy and GDPR compliance measures for the OSM Notes Ingestion
+system. This system processes data from OpenStreetMap (OSM) that may contain personal information of
+OSM contributors.
 
 ## Scope
 
-This privacy policy applies to all personal data processed by the OSM Notes
-Ingestion system, including:
+This privacy policy applies to all personal data processed by the OSM Notes Ingestion system,
+including:
 
 - User identifiers and usernames from OSM
 - Geographic location data (coordinates of notes)
@@ -21,17 +21,15 @@ Ingestion system, including:
 
 ## Legal Basis for Processing
 
-The legal basis for processing personal data under GDPR Article 6(1)(f) is
-**legitimate interest**:
+The legal basis for processing personal data under GDPR Article 6(1)(f) is **legitimate interest**:
 
-1. The system processes publicly available data from OpenStreetMap, which is
-   already published under the Open Database License (ODbL).
-2. The processing is necessary for research, analysis, and improvement of OSM
-   data quality and mapping activities.
-3. The system provides value to the OpenStreetMap community by enabling
-   analysis and monitoring of notes.
-4. Data processing is limited to what is strictly necessary for the stated
-   purposes.
+1. The system processes publicly available data from OpenStreetMap, which is already published under
+   the Open Database License (ODbL).
+2. The processing is necessary for research, analysis, and improvement of OSM data quality and
+   mapping activities.
+3. The system provides value to the OpenStreetMap community by enabling analysis and monitoring of
+   notes.
+4. Data processing is limited to what is strictly necessary for the stated purposes.
 
 ## Data Controller Information
 
@@ -53,8 +51,8 @@ The legal basis for processing personal data under GDPR Article 6(1)(f) is
 - **Data Type:** Latitude and Longitude coordinates
 - **Source:** OSM Notes API and Planet dumps
 - **Storage:** PostgreSQL database table `notes`
-- **Risk:** Precise location data can reveal where users live, work, or
-  frequent, potentially identifying individuals
+- **Risk:** Precise location data can reveal where users live, work, or frequent, potentially
+  identifying individuals
 
 ### 3. Temporal Data
 
@@ -68,8 +66,7 @@ The legal basis for processing personal data under GDPR Article 6(1)(f) is
 - **Data Type:** Note and comment text content
 - **Source:** OSM Notes API and Planet dumps
 - **Storage:** PostgreSQL database table `note_comments_text`
-- **Risk:** Text content may contain personal information, opinions, or
-  identifying details
+- **Risk:** Text content may contain personal information, opinions, or identifying details
 
 ## Purpose of Processing
 
@@ -78,34 +75,31 @@ The personal data is processed for the following purposes:
 1. **Data Analysis:** Analyzing OSM notes patterns and trends
 2. **Quality Monitoring:** Monitoring note quality and processing issues
 3. **Research:** Supporting research on mapping activities and user behavior
-4. **Service Provision:** Data may be published via WMS (Web Map Service) layers (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS)) for
-   visualization
+4. **Service Provision:** Data may be published via WMS (Web Map Service) layers (see
+   [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS)) for visualization
 5. **System Maintenance:** Ensuring data integrity and system functionality
 
 ## Data Retention
 
 ### Retention Period
 
-Personal data is retained indefinitely, as it is derived from publicly
-available OSM data that is subject to the Open Database License (ODbL).
+Personal data is retained indefinitely, as it is derived from publicly available OSM data that is
+subject to the Open Database License (ODbL).
 
 However, data subjects have the right to request:
 
 - **Access** to their personal data (GDPR Article 15)
 - **Rectification** of inaccurate data (GDPR Article 16)
-- **Erasure** (Right to be forgotten) under specific conditions (GDPR Article
-  17)
+- **Erasure** (Right to be forgotten) under specific conditions (GDPR Article 17)
 - **Data portability** (GDPR Article 20)
 
 ### Data Deletion Policy
 
 Requests for data deletion will be evaluated on a case-by-case basis:
 
-1. If data can be deleted without affecting the integrity of historical
-   records or research purposes
+1. If data can be deleted without affecting the integrity of historical records or research purposes
 2. If deletion is required by law or regulation
-3. If the data subject provides valid reasons that override legitimate
-   interests
+3. If the data subject provides valid reasons that override legitimate interests
 
 **Note:** Complete deletion may not always be possible due to:
 
@@ -113,8 +107,7 @@ Requests for data deletion will be evaluated on a case-by-case basis:
 - Technical limitations in data relationships
 - License requirements (ODbL) that may require attribution
 
-In such cases, **anonymization** will be considered as an alternative to
-deletion.
+In such cases, **anonymization** will be considered as an alternative to deletion.
 
 ## Data Security Measures
 
@@ -155,21 +148,18 @@ Data subjects can request:
 - Information about the processing purposes
 - Information about data retention periods
 
-**Response Time:** Within 2 months (can be extended to 6 months for complex
-requests)
+**Response Time:** Within 2 months (can be extended to 6 months for complex requests)
 
 ### 2. Right to Rectification (Article 16)
 
 Data subjects can request correction of inaccurate personal data.
 
-**Note:** Since data originates from OpenStreetMap, rectification requests
-should first be directed to OSM. Changes in OSM will be reflected in
-subsequent data updates.
+**Note:** Since data originates from OpenStreetMap, rectification requests should first be directed
+to OSM. Changes in OSM will be reflected in subsequent data updates.
 
 ### 3. Right to Erasure / Right to be Forgotten (Article 17)
 
-Data subjects can request deletion of their personal data under specific
-conditions:
+Data subjects can request deletion of their personal data under specific conditions:
 
 - Data is no longer necessary for the original purpose
 - Data subject withdraws consent (if consent was the legal basis)
@@ -188,8 +178,8 @@ Data subjects can request restriction of processing in certain circumstances.
 
 ### 5. Right to Data Portability (Article 20)
 
-Data subjects can request their personal data in a structured, commonly used,
-and machine-readable format.
+Data subjects can request their personal data in a structured, commonly used, and machine-readable
+format.
 
 ### 6. Right to Object (Article 21)
 
@@ -197,8 +187,7 @@ Data subjects can object to processing based on legitimate interests.
 
 ### 7. Right to Withdraw Consent
 
-If consent was the legal basis (not applicable in this case, as we use
-legitimate interest).
+If consent was the legal basis (not applicable in this case, as we use legitimate interest).
 
 ## How to Exercise Your Rights
 
@@ -215,8 +204,7 @@ Please include:
 3. A clear description of your request
 4. Any relevant documentation
 
-**Verification:** We may need to verify your identity before processing your
-request.
+**Verification:** We may need to verify your identity before processing your request.
 
 ## Data Processing Activities
 
@@ -232,34 +220,33 @@ request.
 3. **Validation:** Data is validated against XML schemas
 4. **Storage:** Data is stored in PostgreSQL database
 5. **Processing:** Geographic assignment, country identification, analysis
-6. **Publication:** Data may be published via WMS layers (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository) (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS))
+6. **Publication:** Data may be published via WMS layers (see
+   [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository) (see
+   [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS))
 7. **Analytics and Visualization:** Data may be processed by related projects:
-   - **OSM-Notes-Analytics:** Data warehouse, ETL processes, and analytics
-     capabilities for generating user and country profiles
-   - **OSM-Notes-Viewer:** Web visualization and interactive exploration of
-     user profiles, country profiles, and note data
+   - **OSM-Notes-Analytics:** Data warehouse, ETL processes, and analytics capabilities for
+     generating user and country profiles
+   - **OSM-Notes-Viewer:** Web visualization and interactive exploration of user profiles, country
+     profiles, and note data
 
 ### Data Sharing
 
-- **WMS Layers:** Simplified, aggregated data may be published via WMS (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS))
-  services
-- **Related Projects:** Data may be processed by related projects within the
-  same organization:
-  - **OSM-Notes-Analytics:** For data warehouse, ETL processes, analytics, and
-    profile generation
-  - **OSM-Notes-Viewer:** For web-based visualization and interactive
-    exploration of user and country profiles
-- **Research:** Anonymized or aggregated data may be shared for research
+- **WMS Layers:** Simplified, aggregated data may be published via WMS (see
+  [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS)) services
+- **Related Projects:** Data may be processed by related projects within the same organization:
+  - **OSM-Notes-Analytics:** For data warehouse, ETL processes, analytics, and profile generation
+  - **OSM-Notes-Viewer:** For web-based visualization and interactive exploration of user and
+    country profiles
+- **Research:** Anonymized or aggregated data may be shared for research purposes
+- **No Third-Party Sharing:** Personal data is not sold or shared with third parties for commercial
   purposes
-- **No Third-Party Sharing:** Personal data is not sold or shared with third
-  parties for commercial purposes
 
 ## International Data Transfers
 
 Data is processed and stored within Colombia.
 
-If data is transferred outside the EU/EEA, appropriate safeguards will be
-implemented in accordance with GDPR Chapter V.
+If data is transferred outside the EU/EEA, appropriate safeguards will be implemented in accordance
+with GDPR Chapter V.
 
 ## Data Protection Officer (DPO)
 
@@ -267,42 +254,40 @@ A Data Protection Officer (DPO) is not required for this data processing activit
 
 ## Complaints
 
-If you are not satisfied with how your personal data is being handled, you
-have the right to lodge a complaint with your local data protection
-authority in the European Union or European Economic Area.
+If you are not satisfied with how your personal data is being handled, you have the right to lodge a
+complaint with your local data protection authority in the European Union or European Economic Area.
 
-Since this is a personal data processing activity operated by an individual
-(natural person) from Colombia, and not by a commercial entity or organization,
-there is no single designated supervisory authority. If you are a resident of
-an EU/EEA member state, you should contact the data protection authority in
-your country of residence.
+Since this is a personal data processing activity operated by an individual (natural person) from
+Colombia, and not by a commercial entity or organization, there is no single designated supervisory
+authority. If you are a resident of an EU/EEA member state, you should contact the data protection
+authority in your country of residence.
 
 **List of EU/EEA Data Protection Authorities:**
 
-You can find the contact information for your local data protection authority
-at: [https://edpb.europa.eu/about-edpb/about-edpb/members_en](https://edpb.europa.eu/about-edpb/about-edpb/members_en)
+You can find the contact information for your local data protection authority at:
+[https://edpb.europa.eu/about-edpb/about-edpb/members_en](https://edpb.europa.eu/about-edpb/about-edpb/members_en)
 
 Common examples include:
 
 - **Spain:** Agencia Española de Protección de Datos (AEPD)
-- **Germany:** Depends on your state (Länder) - e.g., Berliner Beauftragte für Datenschutz und Informationsfreiheit
+- **Germany:** Depends on your state (Länder) - e.g., Berliner Beauftragte für Datenschutz und
+  Informationsfreiheit
 - **France:** Commission Nationale de l'Informatique et des Libertés (CNIL)
 - **United Kingdom:** Information Commissioner's Office (ICO)
 - **Italy:** Garante per la protezione dei dati personali
 
-For residents of other EU/EEA countries, please refer to the EDPB members list
-linked above.
+For residents of other EU/EEA countries, please refer to the EDPB members list linked above.
 
 ## Updates to This Policy
 
-This privacy policy will be reviewed and updated regularly to ensure
-compliance with GDPR and other applicable regulations.
+This privacy policy will be reviewed and updated regularly to ensure compliance with GDPR and other
+applicable regulations.
 
 **Last Updated:** 2025-12-13
 
 ## Contact Information
 
-For questions, concerns, or requests regarding this privacy policy or GDPR
-compliance, please contact:
+For questions, concerns, or requests regarding this privacy policy or GDPR compliance, please
+contact:
 
 Andrés Gómez - `angoca@osm.lat`

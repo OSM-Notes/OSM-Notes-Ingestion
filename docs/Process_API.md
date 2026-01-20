@@ -1,23 +1,27 @@
 # Complete Description of processAPINotes.sh
 
-> **Note:** For a general system overview, see [Documentation.md](./Documentation.md).
-> For project motivation and background, see [Rationale.md](./Rationale.md).
-> 
-> **⚠️ Recommended:** For production use, consider using `processAPINotesDaemon.sh` instead (see [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section). The daemon provides lower latency (30-60 seconds vs 15 minutes) and better efficiency.
+> **Note:** For a general system overview, see [Documentation.md](./Documentation.md). For project
+> motivation and background, see [Rationale.md](./Rationale.md).
+>
+> **⚠️ Recommended:** For production use, consider using `processAPINotesDaemon.sh` instead (see
+> [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section). The daemon provides lower latency
+> (30-60 seconds vs 15 minutes) and better efficiency.
 
 ## General Purpose
 
-The `processAPINotes.sh` script is the incremental synchronization component of the
-OpenStreetMap notes processing system. Its main function is to download the most
-recent notes from the OSM API and synchronize them with the local database that
-maintains the complete history.
+The `processAPINotes.sh` script is the incremental synchronization component of the OpenStreetMap
+notes processing system. Its main function is to download the most recent notes from the OSM API and
+synchronize them with the local database that maintains the complete history.
 
-> **Note:** This script can be run manually for testing, but for production environments, the daemon mode (`processAPINotesDaemon.sh`) is **REQUIRED**. The daemon provides better performance and lower latency than manual execution.
+> **Note:** This script can be run manually for testing, but for production environments, the daemon
+> mode (`processAPINotesDaemon.sh`) is **REQUIRED**. The daemon provides better performance and
+> lower latency than manual execution.
 
 ## Main Features
 
 - **Incremental Processing**: Only downloads and processes new or modified notes
-- **Intelligent Synchronization**: Automatically determines when to perform complete synchronization from Planet
+- **Intelligent Synchronization**: Automatically determines when to perform complete synchronization
+  from Planet
 - **Sequential Processing**: Efficient sequential processing optimized for incremental updates
 - **Planet Integration**: Integrates with `processPlanetNotes.sh` when necessary
 
@@ -25,13 +29,17 @@ maintains the complete history.
 
 ### Why This Design?
 
-The API processing design was created to handle incremental updates efficiently while maintaining data consistency with the complete Planet dataset. The key design decisions include:
+The API processing design was created to handle incremental updates efficiently while maintaining
+data consistency with the complete Planet dataset. The key design decisions include:
 
 **Separation of Concerns**:
 
-- `processAPINotes.sh` and `processPlanetNotes.sh` are kept as independent scripts, even though they perform similar operations
-- This separation allows each script to be optimized for its specific use case (incremental vs. bulk processing)
-- Over time, shared library scripts were created to avoid code duplication while maintaining script independence
+- `processAPINotes.sh` and `processPlanetNotes.sh` are kept as independent scripts, even though they
+  perform similar operations
+- This separation allows each script to be optimized for its specific use case (incremental vs. bulk
+  processing)
+- Over time, shared library scripts were created to avoid code duplication while maintaining script
+  independence
 
 **Intelligent Synchronization Threshold**:
 
@@ -39,24 +47,29 @@ The API processing design was created to handle incremental updates efficiently 
 - This prevents processing large API datasets inefficiently
 - Leverages the proven Planet processing pipeline for better reliability
 
-
 ### Design Patterns Used
 
-- **Singleton Pattern**: Ensures only one instance of `processAPINotes.sh` runs at a time (also used by the daemon)
+- **Singleton Pattern**: Ensures only one instance of `processAPINotes.sh` runs at a time (also used
+  by the daemon)
 - **Retry Pattern**: Implements exponential backoff for API calls and network operations
 - **Circuit Breaker Pattern**: Prevents cascading failures when API is unavailable
 - **Resource Management Pattern**: Uses `trap` handlers for cleanup of temporary files and resources
 
 ### Alternatives Considered
 
-- **Single Script Approach**: Considered combining API and Planet processing into one script, but rejected to maintain separation of concerns and allow independent optimization
-- **Partitioning Strategy**: Evaluated partitioning for API processing but chose sequential processing for simpler architecture and better suitability for incremental updates
+- **Single Script Approach**: Considered combining API and Planet processing into one script, but
+  rejected to maintain separation of concerns and allow independent optimization
+- **Partitioning Strategy**: Evaluated partitioning for API processing but chose sequential
+  processing for simpler architecture and better suitability for incremental updates
 
 ### Trade-offs
 
-- **Simplicity vs. Performance**: Sequential processing provides good performance for incremental updates while maintaining simplicity
-- **Validation Speed**: Optional validations can be skipped (`SKIP_XML_VALIDATION`, `SKIP_CSV_VALIDATION`) for faster processing in production
-- **Error Recovery**: Comprehensive error handling adds overhead but ensures system reliability and easier debugging
+- **Simplicity vs. Performance**: Sequential processing provides good performance for incremental
+  updates while maintaining simplicity
+- **Validation Speed**: Optional validations can be skipped (`SKIP_XML_VALIDATION`,
+  `SKIP_CSV_VALIDATION`) for faster processing in production
+- **Error Recovery**: Comprehensive error handling adds overhead but ensures system reliability and
+  easier debugging
 
 ## Input Arguments
 
@@ -259,12 +272,14 @@ fi
 The script now automatically recovers from temporary network errors:
 
 - **Network errors** (connectivity issues, API timeouts): Do NOT create a failed execution marker
-- **Auto-retry**: On next execution, the script verifies connectivity and continues automatically if restored
+- **Auto-retry**: On next execution, the script verifies connectivity and continues automatically if
+  restored
 - **No manual intervention needed** for temporary network issues
 
 **Manual Recovery for Data/Logic Errors:**
 
-When a critical non-network error occurs (data corruption, logic errors), the script creates a failed execution marker:
+When a critical non-network error occurs (data corruption, logic errors), the script creates a
+failed execution marker:
 
 ```bash
 # 1. Check if previous execution failed
@@ -293,7 +308,8 @@ rm /tmp/processAPINotes_failed_execution
 # Manual execution should only be used for testing/debugging.
 ```
 
-**Note:** Network errors are handled automatically and do not require manual intervention. Only data corruption or logic errors require manual recovery.
+**Note:** Network errors are handled automatically and do not require manual intervention. Only data
+corruption or logic errors require manual recovery.
 
 #### Common Error Scenarios
 
@@ -380,14 +396,17 @@ fi
 # If suspicious, may need to run processPlanetNotes.sh for full sync
 ```
 
-
 # Solution:
+
 # 1. Check memory: free -h
+
 # 2. Reduce MAX_THREADS if memory constrained
+
 # 3. Script will fall back to sequential processing if memory is low
-export MAX_THREADS=2
-./bin/process/processAPINotes.sh
-```
+
+export MAX_THREADS=2 ./bin/process/processAPINotes.sh
+
+````
 
 **CSV validation failures:**
 
@@ -407,7 +426,7 @@ fi
 # 3. Temporarily skip validation (not recommended):
 export SKIP_CSV_VALIDATION=true
 ./bin/process/processAPINotes.sh
-```
+````
 
 **Missing SQL files:**
 
@@ -581,11 +600,18 @@ processAPINotes.sh
 
 ### Automated Execution
 
-> **⚠️ REQUIRED:** For production use, the daemon mode (`processAPINotesDaemon.sh`) is **REQUIRED**. See the [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section for installation and configuration. The daemon provides 30-60 second latency vs 15 minutes with cron, and is the standard production deployment method.
+> **⚠️ REQUIRED:** For production use, the daemon mode (`processAPINotesDaemon.sh`) is **REQUIRED**.
+> See the [Daemon Mode](#daemon-mode-processapinotesdaemonsh) section for installation and
+> configuration. The daemon provides 30-60 second latency vs 15 minutes with cron, and is the
+> standard production deployment method.
 
-**Important:** Do NOT add `processAPINotes.sh` to cron. The daemon mode replaces cron-based execution for API notes processing. Cron is only used for maintenance and monitoring tasks (see `examples/crontab-setup.example`).
+**Important:** Do NOT add `processAPINotes.sh` to cron. The daemon mode replaces cron-based
+execution for API notes processing. Cron is only used for maintenance and monitoring tasks (see
+`examples/crontab-setup.example`).
 
-**Note:** Scripts automatically create detailed logs in `/tmp/processAPINotesDaemon_XXXXXX/processAPINotesDaemon.log` (daemon mode) or `/tmp/processAPINotes_XXXXXX/processAPINotes.log` (manual execution).
+**Note:** Scripts automatically create detailed logs in
+`/tmp/processAPINotesDaemon_XXXXXX/processAPINotesDaemon.log` (daemon mode) or
+`/tmp/processAPINotes_XXXXXX/processAPINotes.log` (manual execution).
 
 ### Database Inspection
 
@@ -656,7 +682,8 @@ export ADMIN_EMAIL="admin@production.com"
 ### Related Documentation
 
 - **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Entry point documentation
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Complete environment variable reference
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Complete environment variable
+  reference
 - **[Documentation.md](./Documentation.md)**: System architecture and general usage examples
 
 ## Table Architecture
@@ -665,7 +692,8 @@ export ADMIN_EMAIL="admin@production.com"
 
 **IMPORTANT: Why API Tables Exist**
 
-API tables are **critical** for the incremental synchronization process. They serve as an intermediate staging area that allows the system to:
+API tables are **critical** for the incremental synchronization process. They serve as an
+intermediate staging area that allows the system to:
 
 1. **Download complete note data** from the OSM API (including all historical comments)
 2. **Filter and deduplicate** before inserting into base tables
@@ -675,18 +703,24 @@ API tables are **critical** for the incremental synchronization process. They se
 **Key Behavior: OSM API Returns Complete Note History**
 
 When querying the OSM Notes API for a note, the API returns:
+
 - **The note itself** (with current status)
 - **ALL comments** associated with that note (not just new ones)
 
-This means if a note has 10 comments and you query it, you'll receive all 10 comments, even if 9 of them already exist in your database. The API tables store this complete data, and the insertion process intelligently filters to only insert what's actually new.
+This means if a note has 10 comments and you query it, you'll receive all 10 comments, even if 9 of
+them already exist in your database. The API tables store this complete data, and the insertion
+process intelligently filters to only insert what's actually new.
 
 **Understanding the Logs: What "Uploaded" vs "Inserted" Means**
 
 When reviewing logs, you may see:
-- `Uploaded new comments: 5` - This means 5 comments were loaded into `note_comments_api` from the API
+
+- `Uploaded new comments: 5` - This means 5 comments were loaded into `note_comments_api` from the
+  API
 - But only 1-2 comments might actually be inserted into `note_comments` table
 
 **This is NORMAL and EXPECTED behavior.** The system is working correctly:
+
 - Most comments already exist in the database (from previous API calls)
 - Only truly new comments are inserted
 - The API tables allow this filtering to happen efficiently
@@ -730,7 +764,7 @@ source bin/lib/processAPIFunctions.sh
 __createApiTables
 
 # Verify tables were created
-psql -d "${DBNAME}" -c "SELECT 
+psql -d "${DBNAME}" -c "SELECT
   schemaname,
   tablename,
   tableowner
@@ -773,7 +807,6 @@ Uses the same base tables as `processPlanetNotes.sh`:
 ### Detailed Sequence Diagram
 
 The following diagram shows the complete execution flow of `processAPINotes.sh`:
-
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -942,7 +975,8 @@ Manual/Daemon
 - Inserts new notes and comments into base tables
 - Processes in chunks if there is much data (>1000 notes)
 - Validates data integrity (checks for notes without comments)
-- Updates last update timestamp (executed in same connection as insertion to preserve integrity check result)
+- Updates last update timestamp (executed in same connection as insertion to preserve integrity
+  check result)
 - Cleans temporary files
 
 **Important: Understanding Insertion Behavior**
@@ -962,10 +996,14 @@ The insertion process (`__insertNewNotesAndComments`) performs intelligent bulk 
 **Why This Matters:**
 
 Since the OSM API returns **all comments** for a note (not just new ones), you will frequently see:
-- Many comments loaded into `note_comments_api` (e.g., "Uploaded new comments: 5")
-- But only a few actually inserted (e.g., "Comments processing completed: 1 actually inserted, 4 already existed")
 
-**This is correct behavior** - the system is avoiding duplicates. The API tables enable this filtering by allowing the system to:
+- Many comments loaded into `note_comments_api` (e.g., "Uploaded new comments: 5")
+- But only a few actually inserted (e.g., "Comments processing completed: 1 actually inserted, 4
+  already existed")
+
+**This is correct behavior** - the system is avoiding duplicates. The API tables enable this
+filtering by allowing the system to:
+
 - Load all data from the API first
 - Then intelligently filter what's actually new
 - Only insert what doesn't already exist
@@ -973,11 +1011,14 @@ Since the OSM API returns **all comments** for a note (not just new ones), you w
 **Log Interpretation:**
 
 When reviewing logs, look for messages like:
+
 - `Lock validated. Starting bulk insertion of 3 notes` - Total notes being processed
 - `Bulk notes insertion completed: 1 new notes, 2 updated` - Summary of bulk operation
-- `Bulk comments insertion completed: 5 new comments inserted, 4 skipped (already exist)` - Summary of bulk operation
+- `Bulk comments insertion completed: 5 new comments inserted, 4 skipped (already exist)` - Summary
+  of bulk operation
 
-This shows the system is working correctly - it processes all data in bulk operations while intelligently handling duplicates.
+This shows the system is working correctly - it processes all data in bulk operations while
+intelligently handling duplicates.
 
 #### Code Example: Data Integration Process
 
@@ -995,7 +1036,7 @@ __insertNewNotesAndComments
 
 # Verify the integration
 psql -d "${DBNAME}" -c "
-  SELECT 
+  SELECT
     COUNT(*) as total_notes,
     COUNT(*) FILTER (WHERE status = 'open') as open_notes,
     COUNT(*) FILTER (WHERE status = 'closed') as closed_notes
@@ -1013,7 +1054,7 @@ The `__insertNewNotesAndComments()` function uses bulk INSERT operations for opt
 
 -- Insert notes with country lookup for new notes only
 WITH notes_with_countries AS (
-  SELECT 
+  SELECT
     na.note_id,
     na.latitude,
     na.longitude,
@@ -1021,7 +1062,7 @@ WITH notes_with_countries AS (
     na.closed_at,
     na.status,
     -- Only lookup country for notes that don't exist yet
-    CASE 
+    CASE
       WHEN n.note_id IS NULL THEN get_country(na.longitude, na.latitude, na.note_id)
       ELSE n.id_country  -- Preserve existing country
     END as id_country
@@ -1031,7 +1072,7 @@ WITH notes_with_countries AS (
 INSERT INTO notes (
   note_id, latitude, longitude, created_at, closed_at, status, id_country
 )
-SELECT 
+SELECT
   note_id, latitude, longitude, created_at, closed_at, status, id_country
 FROM notes_with_countries
 ON CONFLICT (note_id) DO UPDATE SET
@@ -1043,7 +1084,7 @@ ON CONFLICT (note_id) DO UPDATE SET
 INSERT INTO note_comments (
   id, note_id, sequence_action, event, created_at, id_user
 )
-SELECT 
+SELECT
   nextval('note_comments_id_seq'),
   nca.note_id,
   nca.sequence_action,
@@ -1062,69 +1103,91 @@ ON CONFLICT (note_id, sequence_action) DO NOTHING;
 
 ### 7. Data Integrity Check and Gap Management
 
-The API processing system includes a comprehensive data integrity validation mechanism to ensure data consistency and detect potential issues during incremental synchronization.
+The API processing system includes a comprehensive data integrity validation mechanism to ensure
+data consistency and detect potential issues during incremental synchronization.
 
 #### What is the Integrity Check?
 
-The integrity check (`app.integrity_check_passed`) is a PostgreSQL session variable that validates whether the data insertion process completed successfully. Specifically, it verifies that notes have their associated comments properly inserted.
+The integrity check (`app.integrity_check_passed`) is a PostgreSQL session variable that validates
+whether the data insertion process completed successfully. Specifically, it verifies that notes have
+their associated comments properly inserted.
 
 **Purpose:**
-- **Detect insertion failures**: Identifies cases where notes were inserted but their comments failed to insert
+
+- **Detect insertion failures**: Identifies cases where notes were inserted but their comments
+  failed to insert
 - **Prevent data inconsistency**: Blocks timestamp updates when data integrity is compromised
 - **Alert on data gaps**: Logs gaps in the `data_gaps` table for monitoring and later correction
 
 #### How the Integrity Check Works
 
-The integrity check is performed in `processAPINotes_32_insertNewNotesAndComments.sql` after inserting notes and comments:
+The integrity check is performed in `processAPINotes_32_insertNewNotesAndComments.sql` after
+inserting notes and comments:
 
-1. **Count notes without comments**: Identifies notes from the last day that don't have any associated comments
+1. **Count notes without comments**: Identifies notes from the last day that don't have any
+   associated comments
 2. **Calculate gap percentage**: Determines what percentage of notes lack comments
 3. **Apply threshold**: If more than **5%** of notes lack comments, the check **fails**
-4. **Set session variable**: Stores the result in `app.integrity_check_passed` (session-level persistence)
-5. **Conditional timestamp update**: The `max_note_timestamp` is only updated if the integrity check passed
+4. **Set session variable**: Stores the result in `app.integrity_check_passed` (session-level
+   persistence)
+5. **Conditional timestamp update**: The `max_note_timestamp` is only updated if the integrity check
+   passed
 
 **Code Location:**
-- Integrity check logic: `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (lines 193-257)
+
+- Integrity check logic: `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (lines
+  193-257)
 - Timestamp update logic: `sql/process/processAPINotes_34_updateLastValues.sql` (lines 10-113)
 
 #### Integrity Check Threshold: Why 5%?
 
 The **5% threshold** is a balance between:
+
 - **Tolerance for minor issues**: Small gaps (<5%) are acceptable and don't block processing
 - **Detection of real problems**: Larger gaps (>5%) indicate systemic issues that need attention
-- **Practical considerations**: Some notes may legitimately have no comments (e.g., immediately closed notes)
+- **Practical considerations**: Some notes may legitimately have no comments (e.g., immediately
+  closed notes)
 
 **Special Cases:**
-- **Empty database**: If `total_comments_in_db = 0` (e.g., after data cleanup), the check is permissive and passes
+
+- **Empty database**: If `total_comments_in_db = 0` (e.g., after data cleanup), the check is
+  permissive and passes
 - **No recent notes**: If there are no notes from the last day, the check passes (nothing to verify)
 
 #### What Happens When the Check Fails?
 
 When the integrity check fails (>5% of notes without comments):
 
-1. **Timestamp update is blocked**: `max_note_timestamp` is **not updated**, preventing the daemon from advancing
+1. **Timestamp update is blocked**: `max_note_timestamp` is **not updated**, preventing the daemon
+   from advancing
 2. **Gaps are logged**: Details are recorded in the `data_gaps` table:
    - Gap type: `notes_without_comments`
    - Gap count and percentage
    - List of affected `note_id`s (as JSON array)
    - Status: `processed = FALSE` (indicating it needs correction)
 3. **Warnings are logged**: Messages are written to the `logs` table
-4. **Processing continues**: The daemon will retry in the next cycle, potentially fixing transient issues
+4. **Processing continues**: The daemon will retry in the next cycle, potentially fixing transient
+   issues
 
 #### Small Gaps (<5%): Accepted but Tracked
 
 Even when the integrity check **passes**, small gaps (<5%) may still exist. These are:
+
 - **Logged to `data_gaps` table**: For monitoring and later correction
 - **Not blocking**: Processing continues normally
 - **Corrected later**: By `notesCheckVerifier.sh` (see below)
 
 #### Gap Correction: notesCheckVerifier.sh
 
-The `notesCheckVerifier.sh` script is responsible for correcting data gaps and problems that accumulate over time from API calls. It works in conjunction with `processCheckPlanetNotes.sh`:
+The `notesCheckVerifier.sh` script is responsible for correcting data gaps and problems that
+accumulate over time from API calls. It works in conjunction with `processCheckPlanetNotes.sh`:
 
 **Main purposes:**
-1. **Correct problems from API calls**: Inserts missing notes/comments that were not captured by the API ingestion process
-2. **Identify hidden notes**: Marks notes as hidden that exist in the system but not in Planet (these can only be detected by comparing with Planet dump)
+
+1. **Correct problems from API calls**: Inserts missing notes/comments that were not captured by the
+   API ingestion process
+2. **Identify hidden notes**: Marks notes as hidden that exist in the system but not in Planet
+   (these can only be detected by comparing with Planet dump)
 3. **Data integrity**: Ensures the database matches the authoritative Planet dump
 
 **How it works:**
@@ -1145,13 +1208,19 @@ The `notesCheckVerifier.sh` script is responsible for correcting data gaps and p
    - `notesCheckVerifier_54_markMissingNotesAsHidden.sql`
 
 **Why this works:**
+
 - **Planet dumps are authoritative**: They contain the complete, verified dataset
-- **Periodic correction**: Running `notesCheckVerifier.sh` regularly (e.g., daily) corrects accumulated gaps from API calls
-- **Hidden notes detection**: Only Planet dump comparison can identify notes that were hidden by the Data Working Group
-- **Comprehensive coverage**: Compares all historical data (excluding today) to catch gaps from any period
-- **Normal operation**: It's normal for this script to do nothing if tables are already correct - it only acts when differences are found
+- **Periodic correction**: Running `notesCheckVerifier.sh` regularly (e.g., daily) corrects
+  accumulated gaps from API calls
+- **Hidden notes detection**: Only Planet dump comparison can identify notes that were hidden by the
+  Data Working Group
+- **Comprehensive coverage**: Compares all historical data (excluding today) to catch gaps from any
+  period
+- **Normal operation**: It's normal for this script to do nothing if tables are already correct - it
+  only acts when differences are found
 
 **Typical Usage:**
+
 ```bash
 # Run daily via cron to correct accumulated gaps and identify hidden notes
 0 6 * * * cd /path/to/OSM-Notes-Ingestion && EMAILS="your-email@example.com" ./bin/monitor/notesCheckVerifier.sh
@@ -1210,10 +1279,13 @@ Periodic Gap Correction (notesCheckVerifier.sh)
 
 #### Session Variable Persistence
 
-The `app.integrity_check_passed` variable must persist between the integrity check and the timestamp update. This is achieved by:
+The `app.integrity_check_passed` variable must persist between the integrity check and the timestamp
+update. This is achieved by:
 
-1. **Session-level storage**: Using `set_config('app.integrity_check_passed', ..., true)` (the `true` parameter makes it session-level)
-2. **Same connection execution**: Both SQL scripts are executed in the **same `psql` connection** within `__insertNewNotesAndComments()`:
+1. **Session-level storage**: Using `set_config('app.integrity_check_passed', ..., true)` (the
+   `true` parameter makes it session-level)
+2. **Same connection execution**: Both SQL scripts are executed in the **same `psql` connection**
+   within `__insertNewNotesAndComments()`:
    ```bash
    # Both scripts executed in single psql call
    cat > "${TEMP_SQL_FILE}" << EOF
@@ -1225,6 +1297,7 @@ The `app.integrity_check_passed` variable must persist between the integrity che
    ```
 
 **Why same connection?**
+
 - PostgreSQL session variables persist across transactions **within the same connection**
 - Each `psql` command creates a **new connection**, so separate calls would lose the variable
 - Executing both scripts in one `psql` call ensures the variable is available to both
@@ -1242,7 +1315,7 @@ ORDER BY processing DESC
 LIMIT 10;
 
 -- Check current gaps in data_gaps table
-SELECT 
+SELECT
   gap_type,
   gap_count,
   total_count,
@@ -1265,7 +1338,8 @@ WHERE n.created_at > (SELECT timestamp FROM max_note_timestamp) - INTERVAL '1 da
 
 ### API Processing Sequence Diagram
 
-The following diagram shows the detailed sequence of interactions between components during API processing:
+The following diagram shows the detailed sequence of interactions between components during API
+processing:
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -1400,7 +1474,8 @@ Main Script      GNU Parallel    Thread 1    Thread 2    Thread N    PostgreSQL
 
 ### When Complete Synchronization is Required
 
-When the number of notes downloaded from the API exceeds the configured threshold (MAX_NOTES), the script triggers a complete synchronization from Planet:
+When the number of notes downloaded from the API exceeds the configured threshold (MAX_NOTES), the
+script triggers a complete synchronization from Planet:
 
 1. **Stops API Processing**: Halts current API processing
 2. **Calls Planet Script**: Executes `processPlanetNotes.sh --base`
@@ -1451,19 +1526,19 @@ The script uses several environment variables for configuration:
 
 ### Signal and Trap Handling
 
-The API processing uses refined trap management to ensure safe termination,
-consistent cleanup, and clear error reporting when the process is interrupted
-or an unexpected error occurs.
+The API processing uses refined trap management to ensure safe termination, consistent cleanup, and
+clear error reporting when the process is interrupted or an unexpected error occurs.
 
 - Trapped signals: `INT`, `TERM`, `ERR`.
 - On trap:
   - Flushes and closes log sections properly.
   - Marks partial runs to enable recovery on next execution.
-  - Cleans temporary directories when safe (`CLEAN=true`), preserving artifacts
-    for debugging otherwise.
+  - Cleans temporary directories when safe (`CLEAN=true`), preserving artifacts for debugging
+    otherwise.
   - Exits with a non-zero error code aligned with the error category.
 
 Operational guarantees:
+
 - No orphan temporary directories when `CLEAN=true`.
 - No silent exits; traps always log the call stack and failure reason.
 - Compatible with parallel execution; each worker logs its own context.
@@ -1472,10 +1547,13 @@ Operational guarantees:
 
 ### Optimization Strategies
 
-- **Bulk Operations**: Uses bulk INSERT operations instead of row-by-row processing for optimal performance
+- **Bulk Operations**: Uses bulk INSERT operations instead of row-by-row processing for optimal
+  performance
 - **Lock Optimization**: Validates process lock once per batch instead of per record
-- **Country Lookup Optimization**: Only performs country lookups for new notes (existing notes preserve their country)
-- **Duplicate Filtering**: Uses efficient NOT EXISTS queries to filter duplicates before INSERT operations
+- **Country Lookup Optimization**: Only performs country lookups for new notes (existing notes
+  preserve their country)
+- **Duplicate Filtering**: Uses efficient NOT EXISTS queries to filter duplicates before INSERT
+  operations
 - **Memory Management**: Efficient memory usage for large XML files
 - **Database Optimization**: Uses optimized queries and indexes
 
@@ -1497,18 +1575,21 @@ Operational guarantees:
 
 ### Troubleshooting
 
-This section covers common issues specific to API processing. For a comprehensive troubleshooting guide, see [Troubleshooting_Guide.md](./Troubleshooting_Guide.md).
+This section covers common issues specific to API processing. For a comprehensive troubleshooting
+guide, see [Troubleshooting_Guide.md](./Troubleshooting_Guide.md).
 
 #### Common API Processing Issues
 
 **1. API Rate Limiting or Timeout**
 
 **Symptoms:**
+
 - Error: "API unreachable or download failed"
 - Timeout errors during API calls
 - Script fails during download phase
 
 **Diagnosis:**
+
 ```bash
 # Test API connectivity
 curl -I "https://api.openstreetmap.org/api/0.6/notes"
@@ -1526,6 +1607,7 @@ fi
 ```
 
 **Solutions:**
+
 - **Automatic Recovery**: Network errors are handled automatically - no manual intervention needed
 - The script will automatically retry on the next execution when connectivity is restored
 - Check internet connectivity: `ping -c 3 api.openstreetmap.org`
@@ -1536,17 +1618,19 @@ fi
 **2. Base Tables Missing**
 
 **Symptoms:**
+
 - Error: "Base tables missing or incomplete"
 - Script exits with error code 238
 - Failed execution marker created
 
 **Diagnosis:**
+
 ```bash
 # Check if base tables exist
 psql -d "${DBNAME:-notes}" -c "
-  SELECT table_name 
-  FROM information_schema.tables 
-  WHERE table_schema = 'public' 
+  SELECT table_name
+  FROM information_schema.tables
+  WHERE table_schema = 'public'
     AND table_name IN ('notes', 'note_comments', 'countries');
 "
 
@@ -1555,6 +1639,7 @@ cat /tmp/processAPINotes_failed_execution
 ```
 
 **Solutions:**
+
 - Run initial Planet processing to create base tables:
   ```bash
   ./bin/process/processPlanetNotes.sh --base
@@ -1565,11 +1650,13 @@ cat /tmp/processAPINotes_failed_execution
 **3. Large Data Gap Detected**
 
 **Symptoms:**
+
 - Warning: "Large gap detected (X notes), consider manual intervention"
 - Script continues but logs warning
 - May indicate API was down for extended period
 
 **Diagnosis:**
+
 ```bash
 # Review gap details in logs
 LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
@@ -1586,6 +1673,7 @@ psql -d "${DBNAME:-notes}" -c "
 ```
 
 **Solutions:**
+
 - If gap is legitimate (API was down), script will continue normally
 - If gap is suspicious, consider running Planet sync:
   ```bash
@@ -1596,11 +1684,13 @@ psql -d "${DBNAME:-notes}" -c "
 **4. Parallel Processing Failures**
 
 **Symptoms:**
+
 - Error: "Parallel processing failed"
 - Low memory warnings
 - Script falls back to sequential processing
 
 **Diagnosis:**
+
 ```bash
 # Check memory usage
 free -h
@@ -1618,6 +1708,7 @@ fi
 ```
 
 **Solutions:**
+
 - Reduce MAX_THREADS if memory constrained:
   ```bash
   export MAX_THREADS=2
@@ -1629,11 +1720,13 @@ fi
 **5. CSV Validation Failures**
 
 **Symptoms:**
+
 - Error: "CSV validation failed"
 - Enum compatibility errors
 - Script exits during validation phase
 
 **Diagnosis:**
+
 ```bash
 # Review validation errors
 LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
@@ -1649,6 +1742,7 @@ head -5 "$LATEST_DIR"/*.csv
 ```
 
 **Solutions:**
+
 - Review validation errors in logs to identify specific issues
 - Check if OSM data format changed (rare)
 - Temporarily skip validation for debugging (not recommended for production):
@@ -1660,11 +1754,13 @@ head -5 "$LATEST_DIR"/*.csv
 **6. Planet Sync Triggered**
 
 **Symptoms:**
+
 - Message: "Starting full synchronization from Planet"
 - Script calls processPlanetNotes.sh
 - Processing takes much longer than usual
 
 **Diagnosis:**
+
 ```bash
 # Check why Planet sync was triggered
 LATEST_LOG=$(find /var/log/osm-notes-ingestion/processing /tmp/osm-notes-ingestion/logs/processing \
@@ -1679,6 +1775,7 @@ grep -i "MAX_NOTES" etc/properties.sh
 ```
 
 **Solutions:**
+
 - This is normal behavior when API returns >= 10,000 notes
 - Planet sync ensures complete data consistency
 - Wait for Planet processing to complete (may take 1-2 hours)
@@ -1718,39 +1815,47 @@ psql -d "${DBNAME:-notes}" -c "
 
 #### Getting More Help
 
-- **Comprehensive Guide**: See [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for detailed troubleshooting across all components
-- **Error Codes**: See [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference) for complete error code reference
+- **Comprehensive Guide**: See [Troubleshooting_Guide.md](./Troubleshooting_Guide.md) for detailed
+  troubleshooting across all components
+- **Error Codes**: See
+  [Troubleshooting_Guide.md#error-code-reference](./Troubleshooting_Guide.md#error-code-reference)
+  for complete error code reference
 - **Logs**: All logs are stored in `/tmp/processAPINotes_XXXXXX/processAPINotes.log`
-- **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture overview
+- **System Documentation**: See [Documentation.md](./Documentation.md) for system architecture
+  overview
 
 ## Daemon Mode: processAPINotesDaemon.sh (Recommended)
 
-> **Status:** **Recommended for production** - Provides lower latency and better efficiency than cron-based execution
+> **Status:** **Recommended for production** - Provides lower latency and better efficiency than
+> cron-based execution
 
 ### Overview
 
-`processAPINotesDaemon.sh` is the **recommended production solution**, replacing cron-based execution of `processAPINotes.sh`. It provides the same functionality with significant improvements:
+`processAPINotesDaemon.sh` is the **recommended production solution**, replacing cron-based
+execution of `processAPINotes.sh`. It provides the same functionality with significant improvements:
 
 - **Lower Latency**: 30-60 seconds between checks (vs 15 minutes with cron)
 - **Better Efficiency**: One-time setup instead of recreating structures each execution
 - **Adaptive Sleep**: Adjusts wait time based on processing duration
 - **Continuous Operation**: Runs indefinitely, automatically recovering from errors
-- **Auto-Initialization**: Automatically detects empty database and triggers `processPlanetNotes.sh --base` for initial data load
-- **Gap Detection**: Includes `__recover_from_gaps()` and `__check_and_log_gaps()` functions to detect data integrity issues (notes without comments)
+- **Auto-Initialization**: Automatically detects empty database and triggers
+  `processPlanetNotes.sh --base` for initial data load
+- **Gap Detection**: Includes `__recover_from_gaps()` and `__check_and_log_gaps()` functions to
+  detect data integrity issues (notes without comments)
 - **Feature Parity**: Complete feature parity with `processAPINotes.sh` to prevent regressions
 
 ### Comparison: Cron Script vs Daemon
 
-| Aspect | processAPINotes.sh (Cron) | processAPINotesDaemon.sh (Daemon) ⭐ |
-|--------|---------------------------|--------------------------------------|
-| **Status** | Legacy/Alternative | **Recommended for production** |
-| **Execution** | Periodic (every 15 min) | Continuous (loop) |
-| **Latency** | 15 minutes | 30-60 seconds |
-| **Setup Overhead** | Every execution (1.8-4.5s) | Once at startup |
-| **Table Management** | DROP + CREATE each time | TRUNCATE (reuses structure) |
-| **Error Recovery** | Wait for next cron | Immediate retry |
-| **Memory Usage** | 23-39 MB (normal operation) | 23-39 MB (normal operation) |
-| **Use Case** | Legacy systems, testing | **Production, real-time systems, messaging** |
+| Aspect               | processAPINotes.sh (Cron)   | processAPINotesDaemon.sh (Daemon) ⭐         |
+| -------------------- | --------------------------- | -------------------------------------------- |
+| **Status**           | Legacy/Alternative          | **Recommended for production**               |
+| **Execution**        | Periodic (every 15 min)     | Continuous (loop)                            |
+| **Latency**          | 15 minutes                  | 30-60 seconds                                |
+| **Setup Overhead**   | Every execution (1.8-4.5s)  | Once at startup                              |
+| **Table Management** | DROP + CREATE each time     | TRUNCATE (reuses structure)                  |
+| **Error Recovery**   | Wait for next cron          | Immediate retry                              |
+| **Memory Usage**     | 23-39 MB (normal operation) | 23-39 MB (normal operation)                  |
+| **Use Case**         | Legacy systems, testing     | **Production, real-time systems, messaging** |
 
 ### Memory Usage
 
@@ -1763,11 +1868,13 @@ The daemon has very low memory footprint during normal operation:
 - **CPU Usage**: Low (<1% average)
 - **Cycle Duration**: 9-11 seconds per cycle
 
-This is because normal API processing handles small incremental updates (typically <100 notes per minute).
+This is because normal API processing handles small incremental updates (typically <100 notes per
+minute).
 
 #### Planet Sync Operation
 
-When the daemon triggers `processPlanetNotes.sh` (when `TOTAL_NOTES >= MAX_NOTES`), memory usage increases significantly:
+When the daemon triggers `processPlanetNotes.sh` (when `TOTAL_NOTES >= MAX_NOTES`), memory usage
+increases significantly:
 
 - **Peak Memory**: 6-7 GB (observed in production)
 - **Duration**: 1-2 hours (depending on data volume)
@@ -1777,57 +1884,73 @@ When the daemon triggers `processPlanetNotes.sh` (when `TOTAL_NOTES >= MAX_NOTES
   - Geographic integrity verification (spatial queries on millions of records)
   - Database consolidation operations
 
-**Note**: This high memory usage is **expected and normal** for Planet processing. The system is designed to handle this, and the daemon automatically recovers to normal memory usage after Planet sync completes.
+**Note**: This high memory usage is **expected and normal** for Planet processing. The system is
+designed to handle this, and the daemon automatically recovers to normal memory usage after Planet
+sync completes.
 
 **Recommendations**:
+
 - Ensure system has at least 8 GB RAM available during Planet sync operations
 - Monitor memory usage during Planet sync (it's normal to see 6-7 GB peak)
 - Planet sync operations are infrequent (only triggered when >=10,000 notes accumulate)
 
-**⚠️ Important:** Do NOT run both scripts simultaneously. They use the same database tables and will conflict.
+**⚠️ Important:** Do NOT run both scripts simultaneously. They use the same database tables and will
+conflict.
 
-**Recommendation:** Use the daemon for all production deployments. The cron approach is only recommended for legacy systems or when systemd is not available.
+**Recommendation:** Use the daemon for all production deployments. The cron approach is only
+recommended for legacy systems or when systemd is not available.
 
 ### Installation
 
 #### Using systemd (Recommended)
 
 1. **Copy service file:**
+
    ```bash
    sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
    ```
 
 2. **Edit service file** (REQUIRED - adjust paths and user):
+
    ```bash
    sudo nano /etc/systemd/system/osm-notes-ingestion-daemon.service
    ```
 
    **Important:** Update these lines:
    - `User=notes` → Your production user (may be different from login user)
-   - `Group=notes` → **OPTIONAL** - Comment out or remove if you get `status=216/GROUP` error. systemd will use the user's primary group automatically.
+   - `Group=notes` → **OPTIONAL** - Comment out or remove if you get `status=216/GROUP` error.
+     systemd will use the user's primary group automatically.
    - `WorkingDirectory=/home/notes/OSM-Notes-Ingestion` → Actual project path
-   - `ExecStart=/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh` → Actual script path
+   - `ExecStart=/home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh` → Actual
+     script path
    - `Documentation=file:///home/notes/OSM-Notes-Ingestion/docs/Process_API.md` → Actual docs path
 
-   **Note:** If you login as `angoca` but the process should run as `notes`, set `User=notes`. The `Group=` line is optional - if you get `status=216/GROUP` error, remove the `Group=` line and systemd will use the user's primary group automatically.
+   **Note:** If you login as `angoca` but the process should run as `notes`, set `User=notes`. The
+   `Group=` line is optional - if you get `status=216/GROUP` error, remove the `Group=` line and
+   systemd will use the user's primary group automatically.
 
-   **Troubleshooting:** 
-   
+   **Troubleshooting:**
+
    **Error 217/USER (user not found):**
    - Verify user exists: `getent passwd notes`
    - Update `User=` in service file to an existing user
-   
+
    **Error 216/GROUP (group not found):**
-   - Remove the `Group=` line from the service file (systemd will use user's primary group automatically)
+   - Remove the `Group=` line from the service file (systemd will use user's primary group
+     automatically)
    - Or find primary group: `id -gn notes` and use that name
-   
+
    **Error 127 (command not found):**
-   - Make script executable: `sudo chmod +x /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh`
-   - Use explicit bash in ExecStart: `ExecStart=/bin/bash /path/to/processAPINotesDaemon.sh` (instead of relying on shebang)
-   - Verify script runs manually: `sudo -u notes /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh --help`
+   - Make script executable:
+     `sudo chmod +x /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh`
+   - Use explicit bash in ExecStart: `ExecStart=/bin/bash /path/to/processAPINotesDaemon.sh`
+     (instead of relying on shebang)
+   - Verify script runs manually:
+     `sudo -u notes /home/notes/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh --help`
    - Check PATH is set in service file (should include `/usr/bin:/bin`)
 
 3. **Enable and start:**
+
    ```bash
    sudo systemctl daemon-reload
    sudo systemctl enable osm-notes-ingestion-daemon
@@ -1864,6 +1987,7 @@ The daemon implements intelligent sleep calculation:
 - **Processing ≥ interval**: Continues immediately (no sleep)
 
 **Examples:**
+
 - Processed in 25s → Sleeps 35s (maintains 60s interval)
 - Processed in 80s → Sleeps 0s (continues immediately)
 - No notes → Sleeps 60s
@@ -1881,6 +2005,7 @@ crontab -e
 ```
 
 **Verify cron is stopped:**
+
 ```bash
 crontab -l | grep processAPINotes
 # Should return nothing or show commented line
@@ -1897,13 +2022,16 @@ sudo nano /etc/systemd/system/osm-notes-ingestion-daemon.service
 ```
 
 **Edit these lines in the service file:**
+
 - `User=osmuser` → Change to your user
-- `Group=osmuser` → Change to your group  
+- `Group=osmuser` → Change to your group
 - `WorkingDirectory=/path/to/OSM-Notes-Ingestion` → Change to actual path
-- `ExecStart=/path/to/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh` → Change to actual path
+- `ExecStart=/path/to/OSM-Notes-Ingestion/bin/process/processAPINotesDaemon.sh` → Change to actual
+  path
 - `Documentation=file:///path/to/OSM-Notes-Ingestion/docs/Process_API.md` → Change to actual path
 
 **Optional:** Adjust environment variables:
+
 - `LOG_LEVEL=INFO` (or DEBUG, WARN, ERROR)
 - `DAEMON_SLEEP_INTERVAL=60` (seconds between checks)
 - `CLEAN=true` (clean temporary files)
@@ -1940,14 +2068,14 @@ sudo journalctl -u osm-notes-ingestion-daemon -n 50
 ```bash
 # Check that notes are being processed
 psql -d "${DBNAME}" -c "
-  SELECT COUNT(*), MAX(created_at) 
-  FROM notes 
+  SELECT COUNT(*), MAX(created_at)
+  FROM notes
   WHERE created_at > NOW() - INTERVAL '1 hour';
 "
 
 # Check last processed timestamp
 psql -d "${DBNAME}" -c "
-  SELECT timestamp, NOW() - timestamp AS age 
+  SELECT timestamp, NOW() - timestamp AS age
   FROM max_note_timestamp;
 "
 ```
@@ -1966,6 +2094,7 @@ psql -d "${DBNAME}" -c "
 #### Common Issues
 
 **Service Fails to Start:**
+
 ```bash
 # Check service status
 sudo systemctl status osm-notes-ingestion-daemon
@@ -1981,6 +2110,7 @@ sudo journalctl -u osm-notes-ingestion-daemon -n 100
 ```
 
 **Daemon Exits Immediately:**
+
 ```bash
 # Check if lock file exists (another instance running)
 # Find and display daemon lock file (works in both modes)
@@ -1998,6 +2128,7 @@ psql -d "${DBNAME}" -c "SELECT 1;"
 ```
 
 **No Data Processing:**
+
 ```bash
 # Check if daemon is checking API
 sudo journalctl -u osm-notes-ingestion-daemon | grep -i "check\|api\|notes"
@@ -2073,6 +2204,7 @@ When running manually (not recommended for production), logs are written to:
 Where `XXXXXX` is a random suffix. The directory persists for the daemon's lifetime.
 
 **View logs:**
+
 ```bash
 # Find latest log directory
 LATEST_DIR=$(ls -1rtd /tmp/processAPINotesDaemon_* | tail -1)
@@ -2090,7 +2222,8 @@ if [[ -n "${LATEST_LOG}" ]] && [[ -f "${LATEST_LOG}" ]]; then
 fi
 ```
 
-**Log rotation:** Logs accumulate in the same file while daemon runs. For long-running daemons, consider log rotation or use systemd.
+**Log rotation:** Logs accumulate in the same file while daemon runs. For long-running daemons,
+consider log rotation or use systemd.
 
 ### Troubleshooting
 
@@ -2122,13 +2255,17 @@ sudo journalctl -u osm-notes-ingestion-daemon | grep -i error
 
 #### Daemon Fails After Planet Sync
 
-If the daemon fails immediately after `processPlanetNotes.sh` completes successfully, it may be due to API tables being dropped during Planet sync. This has been fixed in the code, but if you encounter this issue:
+If the daemon fails immediately after `processPlanetNotes.sh` completes successfully, it may be due
+to API tables being dropped during Planet sync. This has been fixed in the code, but if you
+encounter this issue:
 
 **Symptoms:**
+
 - Daemon fails with exit code 1 after Planet sync completes
 - Error about missing tables (`notes_api`, `note_comments_api`, `note_comments_text_api`)
 
 **Solution:**
+
 - The daemon now checks if API tables exist before truncating them
 - If tables don't exist (dropped by `processPlanetNotes.sh`), the daemon skips truncation
 - Restart the daemon: `sudo systemctl restart osm-notes-ingestion-daemon`
@@ -2156,10 +2293,12 @@ fi
 ### Files Reference
 
 **Essential Files:**
+
 - `bin/process/processAPINotesDaemon.sh` - Main daemon script
 - `examples/systemd/osm-notes-ingestion-daemon.service` - systemd service file
 
 **Dependencies** (already in repository):
+
 - Same as `processAPINotes.sh`: `etc/properties.sh`, `lib/osm-common/`, SQL scripts, etc.
 
 ### Technical Details
@@ -2173,6 +2312,6 @@ fi
 ## Related Documentation
 
 - **System Overview**: See [Documentation.md](./Documentation.md) for general architecture
-- **Planet Processing**: See [Process_Planet.md](./Process_Planet.md) for Planet data processing details
+- **Planet Processing**: See [Process_Planet.md](./Process_Planet.md) for Planet data processing
+  details
 - **Project Background**: See [Rationale.md](./Rationale.md) for project motivation and goals
-

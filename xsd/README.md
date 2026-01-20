@@ -2,10 +2,9 @@
 
 ## Overview
 
-The `xsd` directory contains XML Schema Definition (XSD) files that define the
-structure and validation rules for OSM notes XML data. These schemas ensure data
-integrity and provide documentation for the expected XML formats from different
-OSM data sources.
+The `xsd` directory contains XML Schema Definition (XSD) files that define the structure and
+validation rules for OSM notes XML data. These schemas ensure data integrity and provide
+documentation for the expected XML formats from different OSM data sources.
 
 ## Directory Structure
 
@@ -48,7 +47,8 @@ These XSD files are used for:
 - Supporting automated testing and quality assurance
 - Ensuring data integrity throughout the processing pipeline
 
-**Note**: XML validation is optional and can be skipped by setting `SKIP_XML_VALIDATION=true` for faster processing. See [Rationale.md](../docs/Rationale.md) for design decisions.
+**Note**: XML validation is optional and can be skipped by setting `SKIP_XML_VALIDATION=true` for
+faster processing. See [Rationale.md](../docs/Rationale.md) for design decisions.
 
 ## Validation Examples
 
@@ -80,12 +80,12 @@ xmllint --noout --schema OSM-notes-planet-schema.xsd planet-notes-latest.osn.xml
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<osm version="0.6" generator="OpenStreetMap server" 
-     copyright="OpenStreetMap and contributors" 
-     attribution="http://www.openstreetmap.org/copyright" 
+<osm version="0.6" generator="OpenStreetMap server"
+     copyright="OpenStreetMap and contributors"
+     attribution="http://www.openstreetmap.org/copyright"
      license="http://opendatacommons.org/licenses/odbl/1-0/">
   <note id="12345" lat="40.7128" lon="-74.0060">
-    <comment action="opened" timestamp="2025-12-07T10:00:00Z" 
+    <comment action="opened" timestamp="2025-12-07T10:00:00Z"
              uid="123" user="testuser">
       Sample note comment
     </comment>

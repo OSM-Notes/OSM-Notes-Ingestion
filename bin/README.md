@@ -2,9 +2,9 @@
 
 ## Overview
 
-The `bin` directory contains all the executable scripts and processing components
-of the OSM-Notes-Ingestion system. This is the core operational directory where
-the main processing logic resides.
+The `bin` directory contains all the executable scripts and processing components of the
+OSM-Notes-Ingestion system. This is the core operational directory where the main processing logic
+resides.
 
 ## Directory Structure
 
@@ -37,10 +37,10 @@ Function libraries used by other scripts (not executed directly):
 
 Utility scripts for data management and maintenance:
 
-- **`generateNoteLocationBackup.sh`**: Generates a CSV backup of note locations
-  (note_id, id_country) to speed up subsequent processing runs. The script exports
-  all notes with country assignments from the database and creates a compressed
-  ZIP file that can be used as a baseline for faster location processing.
+- **`generateNoteLocationBackup.sh`**: Generates a CSV backup of note locations (note_id,
+  id_country) to speed up subsequent processing runs. The script exports all notes with country
+  assignments from the database and creates a compressed ZIP file that can be used as a baseline for
+  faster location processing.
 
 ### `/bin/cleanupAll.sh`
 
@@ -48,7 +48,8 @@ Database maintenance script for comprehensive cleanup operations:
 
 - **Full cleanup**: Removes all components (base tables, temporary files)
 - **Partition-only cleanup**: Removes only partition tables (use `-p` or `--partitions-only` flag)
-- **Database**: Configured via `etc/properties.sh` (DBNAME variable, created from `etc/properties.sh.example`)
+- **Database**: Configured via `etc/properties.sh` (DBNAME variable, created from
+  `etc/properties.sh.example`)
 
 ## Software Components
 
@@ -64,12 +65,12 @@ Database maintenance script for comprehensive cleanup operations:
 
 - **Verification**: `bin/monitor/` scripts ensure data quality
 - **Backup Generation**:
-  - `bin/scripts/generateNoteLocationBackup.sh` creates CSV backups of note location
-    data for faster processing
+  - `bin/scripts/generateNoteLocationBackup.sh` creates CSV backups of note location data for faster
+    processing
   - `bin/scripts/exportCountriesBackup.sh` exports country boundaries to GeoJSON
   - `bin/scripts/exportMaritimesBackup.sh` exports maritime boundaries to GeoJSON
-- **Cleanup**: `bin/cleanupAll.sh` maintains database performance and cleanup operations
-  (uses database configured in `etc/properties.sh`)
+- **Cleanup**: `bin/cleanupAll.sh` maintains database performance and cleanup operations (uses
+  database configured in `etc/properties.sh`)
 
 ## Configuration
 
@@ -87,8 +88,8 @@ For allowed script entry points and their parameters, see:
 
 ## Usage
 
-All scripts in this directory are designed to be run from the project root and
-require proper database configuration and dependencies to be installed.
+All scripts in this directory are designed to be run from the project root and require proper
+database configuration and dependencies to be installed.
 
 ### Quick Start Examples
 
@@ -241,10 +242,10 @@ export LOG_LEVEL=DEBUG
 - `245`: No last update timestamp (run `processPlanetNotes.sh --base` first)
 - `246`: Planet process is currently running
 
-
 #### processPlanetNotes.sh
 
-Processes OSM notes from Planet dump files. Can run in two modes: base (from scratch) or sync (incremental).
+Processes OSM notes from Planet dump files. Can run in two modes: base (from scratch) or sync
+(incremental).
 
 **Base Mode (Initial Setup):**
 
@@ -312,7 +313,8 @@ export CLEAN=false
 ./bin/process/processPlanetNotes.sh --help
 ```
 
-**Note:** After running `--base`, you must also run `updateCountries.sh --base` to load geographic boundaries.
+**Note:** After running `--base`, you must also run `updateCountries.sh --base` to load geographic
+boundaries.
 
 #### updateCountries.sh
 
@@ -475,7 +477,8 @@ grep -i "recommendation\|warning\|error" performance_report.txt
 
 **Monthly Performance Monitoring (Recommended):**
 
-⚠️ **IMPORTANT**: This script is resource-intensive and can take 30+ minutes. Monthly execution is recommended.
+⚠️ **IMPORTANT**: This script is resource-intensive and can take 30+ minutes. Monthly execution is
+recommended.
 
 ```bash
 # Add to crontab for monthly analysis (first day of month at 3 AM)
@@ -483,6 +486,7 @@ grep -i "recommendation\|warning\|error" performance_report.txt
 ```
 
 **Not Recommended:**
+
 - Daily or weekly execution: Too resource-intensive
 - Peak hours: Can impact production performance
 
@@ -569,8 +573,8 @@ This script:
 - Compresses the CSV into a ZIP file
 - Stores the result in `data/noteLocation.csv.zip`
 
-The backup file is automatically imported during the location processing phase
-to avoid re-calculating countries for notes that already have assignments.
+The backup file is automatically imported during the location processing phase to avoid
+re-calculating countries for notes that already have assignments.
 
 #### Boundaries Backup (Countries and Maritimes)
 
@@ -625,8 +629,8 @@ DBNAME=osm_notes_ingestion_test ./bin/scripts/exportCountriesBackup.sh
 - Are automatically used by `processPlanet base` and `updateCountries`
 - Compare IDs before downloading to avoid unnecessary Overpass API calls
 
-See [Boundaries_Backup.md](../docs/Boundaries_Backup.md) for complete
-documentation on boundaries backup functionality.
+See [Boundaries_Backup.md](../docs/Boundaries_Backup.md) for complete documentation on boundaries
+backup functionality.
 
 ### Common Use Cases
 
@@ -661,7 +665,7 @@ Normal production workflow:
 
 # Check processing status
 psql -d osm_notes -c "
-  SELECT 
+  SELECT
     COUNT(*) as total_notes,
     COUNT(*) FILTER (WHERE status = 'open') as open_notes,
     MAX(created_at) as latest_note
@@ -831,7 +835,8 @@ export ADMIN_EMAIL="admin@example.com"
 export SEND_ALERT_EMAIL=true
 ```
 
-For complete environment variable documentation, see [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md).
+For complete environment variable documentation, see
+[ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md).
 
 ## Dependencies
 

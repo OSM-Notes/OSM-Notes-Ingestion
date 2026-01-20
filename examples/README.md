@@ -1,6 +1,7 @@
 # Examples Directory
 
-This directory contains practical examples and configuration templates for the OSM Notes Ingestion project.
+This directory contains practical examples and configuration templates for the OSM Notes Ingestion
+project.
 
 ## Available Examples
 
@@ -22,7 +23,8 @@ This directory contains practical examples and configuration templates for the O
   - Required extensions
   - Testing and troubleshooting
 
-- **[properties-configuration.example](./properties-configuration.example)** - Properties file configuration
+- **[properties-configuration.example](./properties-configuration.example)** - Properties file
+  configuration
   - Basic configuration
   - Customizations
   - Validation steps
@@ -53,16 +55,19 @@ This directory contains practical examples and configuration templates for the O
 After applying any configuration:
 
 1. **Test database connection**:
+
    ```bash
    psql -U $DB_USER -d $DBNAME -c "SELECT 1;"
    ```
 
 2. **Test email configuration**:
+
    ```bash
    echo "Test email" | mail -s "Test" $ADMIN_EMAIL
    ```
 
 3. **Test script execution**:
+
    ```bash
    ./bin/process/processAPINotes.sh
    ```
@@ -91,4 +96,5 @@ For additional help:
 
 ---
 
-**Note**: These examples are provided as templates. Always customize them for your specific environment and requirements.
+**Note**: These examples are provided as templates. Always customize them for your specific
+environment and requirements.

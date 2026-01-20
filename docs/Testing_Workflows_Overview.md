@@ -2,16 +2,20 @@
 
 ## Summary
 
-This document explains the GitHub Actions workflows used in the OSM-Notes-Ingestion project to automate testing and ensure code quality.
+This document explains the GitHub Actions workflows used in the OSM-Notes-Ingestion project to
+automate testing and ensure code quality.
 
 ## Why are there three workflows?
 
-When you make a push or pull request, you see three different "workflow runs" because the project has several independent workflows configured in `.github/workflows/`. Each one is designed to run a specific type of test.
+When you make a push or pull request, you see three different "workflow runs" because the project
+has several independent workflows configured in `.github/workflows/`. Each one is designed to run a
+specific type of test.
 
 **Advantages of this configuration:**
 
 - ✅ **Parallelization:** Tests run simultaneously, getting results faster
-- ✅ **Specialization:** Each workflow focuses on a specific aspect (quality, integration, functionality)
+- ✅ **Specialization:** Each workflow focuses on a specific aspect (quality, integration,
+  functionality)
 - ✅ **Independence:** If one type of test fails, it doesn't stop the others
 - ✅ **Clarity:** You can see the status of each category separately
 
@@ -19,7 +23,8 @@ When you make a push or pull request, you see three different "workflow runs" be
 
 ### 1. Tests (tests.yml)
 
-**Purpose:** Runs the main battery of unit and integration tests for the project's Bash and SQL scripts.
+**Purpose:** Runs the main battery of unit and integration tests for the project's Bash and SQL
+scripts.
 
 **What it validates:**
 
@@ -28,7 +33,8 @@ When you make a push or pull request, you see three different "workflow runs" be
 - Main data processing flows, XML validation, error handling, and parallelism work as expected
 - Includes tests with real data, mock tests, and hybrid tests
 
-**When it runs:** On each push or pull request to the main branch (`main`), or when manually requested.
+**When it runs:** On each push or pull request to the main branch (`main`), or when manually
+requested.
 
 **Main test files:**
 
@@ -45,12 +51,14 @@ When you make a push or pull request, you see three different "workflow runs" be
 
 **What it validates:**
 
-- Bash and SQL scripts comply with defined format and style standards (shellcheck, shfmt, markdownlint)
+- Bash and SQL scripts comply with defined format and style standards (shellcheck, shfmt,
+  markdownlint)
 - No duplicate variables, syntax errors, or permission issues in scripts
 - Documentation and configuration files are present and properly formatted
 - Validation of naming conventions and code structure
 
-**When it runs:** On each push or pull request to the main branch (`main`), or when manually requested.
+**When it runs:** On each push or pull request to the main branch (`main`), or when manually
+requested.
 
 **Main test files:**
 
@@ -62,18 +70,23 @@ When you make a push or pull request, you see three different "workflow runs" be
 
 ### 3. Integration Tests (integration-tests.yml)
 
-**Purpose:** Validates the integration of different system modules, especially in environments that simulate real infrastructure (using Docker).
+**Purpose:** Validates the integration of different system modules, especially in environments that
+simulate real infrastructure (using Docker).
 
 **What it validates:**
 
-- Scripts can interact correctly with PostgreSQL databases and simulated external services (mock API)
+- Scripts can interact correctly with PostgreSQL databases and simulated external services (mock
+  API)
 - Note processing works end-to-end
 - Integration with external tools (Docker, PostGIS, etc.) is successful
 
-> **Note:** ETL flow tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+> **Note:** ETL flow tests are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+
 - Network connectivity and configuration tests
 
-**When it runs:** On each push or pull request to the main branch (`main`), or when manually requested.
+**When it runs:** On each push or pull request to the main branch (`main`), or when manually
+requested.
 
 **Main test files:**
 
@@ -86,22 +99,24 @@ When you make a push or pull request, you see three different "workflow runs" be
 
 ## Testing Scripts Summary Table
 
-| Script / Workflow                      | Location                                 | Main Purpose                                                                 |
-|----------------------------------------|-------------------------------------------|-------------------------------------------------------------------------------|
-| `run_all_tests.sh`                     | tests/                                    | Runs all main tests (unit, integration, mock, etc.)                           |
-| `run_integration_tests.sh`             | tests/                                    | Runs complete integration tests                                                |
-| `run_quality_tests.sh`                 | tests/                                    | Validates code quality, format, and conventions                               |
-| `run_mock_tests.sh`                    | tests/                                    | Runs tests using mocks and simulated environments                             |
-| `run_enhanced_tests.sh`                | tests/                                    | Advanced testability and robustness tests                                     |
-| `run_real_data_tests.sh`               | tests/                                    | Tests with real data and special cases                                        |
-| `run_parallel_tests.sh`                | tests/                                    | Validates parallel processing and concurrency                                 |
-| `run_error_handling_tests.sh`          | tests/                                    | Error handling and edge case validation tests                                 |
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
-| `run_ci_tests.sh`                      | tests/docker/                             | CI/CD tests in Docker environment                                             |
-| `run_integration_tests.sh`             | tests/docker/                             | Integration tests in Docker environment                                       |
-| `quality-tests.yml`                    | .github/workflows/                        | GitHub Actions workflow for quality tests                                     |
-| `integration-tests.yml`                | .github/workflows/                        | GitHub Actions workflow for integration tests                                 |
-| `tests.yml`                            | .github/workflows/                        | GitHub Actions workflow for main unit and integration tests                   |
+| Script / Workflow             | Location | Main Purpose                                        |
+| ----------------------------- | -------- | --------------------------------------------------- |
+| `run_all_tests.sh`            | tests/   | Runs all main tests (unit, integration, mock, etc.) |
+| `run_integration_tests.sh`    | tests/   | Runs complete integration tests                     |
+| `run_quality_tests.sh`        | tests/   | Validates code quality, format, and conventions     |
+| `run_mock_tests.sh`           | tests/   | Runs tests using mocks and simulated environments   |
+| `run_enhanced_tests.sh`       | tests/   | Advanced testability and robustness tests           |
+| `run_real_data_tests.sh`      | tests/   | Tests with real data and special cases              |
+| `run_parallel_tests.sh`       | tests/   | Validates parallel processing and concurrency       |
+| `run_error_handling_tests.sh` | tests/   | Error handling and edge case validation tests       |
+
+> **Note:** DWH/ETL tests are maintained in
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics). | `run_ci_tests.sh` |
+> tests/docker/ | CI/CD tests in Docker environment | | `run_integration_tests.sh` | tests/docker/ |
+> Integration tests in Docker environment | | `quality-tests.yml` | .github/workflows/ | GitHub
+> Actions workflow for quality tests | | `integration-tests.yml` | .github/workflows/ | GitHub
+> Actions workflow for integration tests | | `tests.yml` | .github/workflows/ | GitHub Actions
+> workflow for main unit and integration tests |
 
 ## How to Interpret Results
 
@@ -175,5 +190,5 @@ The three workflows work together to ensure code quality:
 - **Quality Tests:** Validates clean and well-structured code
 - **Integration Tests:** Validates operation in real environments
 
-This configuration allows quick problem detection and maintains the quality of the OSM-Notes-Ingestion project.
-
+This configuration allows quick problem detection and maintains the quality of the
+OSM-Notes-Ingestion project.

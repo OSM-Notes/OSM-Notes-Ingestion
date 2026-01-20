@@ -2,16 +2,16 @@
 
 **Version:** 2025-12-13
 
-This checklist should be completed annually to ensure GDPR compliance. Ideally,
-perform this review in January to assess the previous year's compliance.
+This checklist should be completed annually to ensure GDPR compliance. Ideally, perform this review
+in January to assess the previous year's compliance.
 
 ## Annual Review Checklist
 
 ### Request Review
 
 - [ ] Review all GDPR requests received during the previous year
-- [ ] Verify that all requests were processed within the required timeframe (2
-  months standard, 6 months for complex requests)
+- [ ] Verify that all requests were processed within the required timeframe (2 months standard, 6
+      months for complex requests)
 - [ ] Check open GitHub Issues with `gdpr` label
 - [ ] Close any completed GDPR requests/issues
 - [ ] Document any delays or issues encountered
@@ -79,7 +79,7 @@ After completing the checklist:
 ## Completion Record
 
 | Year | Review Date | Completed By | Notes |
-|------|-------------|--------------|-------|
+| ---- | ----------- | ------------ | ----- |
 | 2025 |             |              |       |
 | 2026 |             |              |       |
 | 2027 |             |              |       |
@@ -95,4 +95,3 @@ After completing the checklist:
 - [GDPR Privacy Policy](./GDPR_Privacy_Policy.md)
 - [GDPR Procedures](./GDPR_Procedures.md)
 - [GDPR SQL Scripts](../sql/gdpr/README.md)
-

@@ -2,10 +2,9 @@
 
 ## Overview
 
-The `overpass` directory contains Overpass API query files used to extract
-geographic and administrative data from OpenStreetMap. These queries support the
-OSM-Notes-Ingestion system by providing country boundaries, maritime areas, and
-other geographic reference data.
+The `overpass` directory contains Overpass API query files used to extract geographic and
+administrative data from OpenStreetMap. These queries support the OSM-Notes-Ingestion system by
+providing country boundaries, maritime areas, and other geographic reference data.
 
 ## Directory Structure
 
@@ -63,6 +62,7 @@ out ids;
 ```
 
 **Usage in scripts**:
+
 ```bash
 # Query is executed by updateCountries.sh
 ./bin/process/updateCountries.sh
@@ -83,6 +83,7 @@ out ids;
 ```
 
 **Usage in scripts**:
+
 ```bash
 # Query is executed by updateCountries.sh
 ./bin/process/updateCountries.sh
@@ -119,21 +120,25 @@ The Overpass API has rate limits to prevent abuse:
 The processing scripts implement several mechanisms to respect rate limits:
 
 **Semaphore Pattern**:
+
 - Limits concurrent downloads to 8 slots (2 servers × 4 slots)
 - Uses atomic file operations (`flock`, `mkdir`) to acquire/release slots
 - Automatically cleans up stale locks from crashed processes
 
 **FIFO Queue System**:
+
 - Ensures orderly processing of boundary downloads
 - Prevents race conditions in parallel processing
 - Thread-safe ticket-based queue management
 
 **Smart Waiting**:
+
 - Checks Overpass API status before downloading
 - Waits for available slots when API is busy
 - Implements exponential backoff for HTTP 429 errors
 
 **Configuration**:
+
 ```bash
 # Configure rate limit (default: 8)
 export RATE_LIMIT=8
@@ -152,6 +157,7 @@ When HTTP 429 (Too Many Requests) is detected:
 4. Continues processing other boundaries while waiting
 
 **Example error handling**:
+
 ```bash
 # Rate limit detected in logs
 ERROR 429: Too many requests to Overpass API for boundary 12345

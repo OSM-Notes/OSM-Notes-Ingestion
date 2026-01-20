@@ -1,13 +1,19 @@
 # Maritime Boundaries Verification
 
-> **Note:** For general boundary processing, see [Process_Planet.md](./Process_Planet.md) and [bin/process/updateCountries.sh](../bin/process/updateCountries.sh).  
-> For country boundary processing, see [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md).
+> **Note:** For general boundary processing, see [Process_Planet.md](./Process_Planet.md) and
+> [bin/process/updateCountries.sh](../bin/process/updateCountries.sh).  
+> For country boundary processing, see
+> [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md).
 
 ## Overview
 
-The maritime boundaries verification process identifies missing Exclusive Economic Zones (EEZ) and other maritime boundaries in the database by comparing reference data from the World_EEZ shapefile with OpenStreetMap (OSM) data.
+The maritime boundaries verification process identifies missing Exclusive Economic Zones (EEZ) and
+other maritime boundaries in the database by comparing reference data from the World_EEZ shapefile
+with OpenStreetMap (OSM) data.
 
-**Key Principle:** The database contains **only OSM data**. The World_EEZ shapefile is used **only as a reference** to identify what might be missing. Any boundaries found in OSM are automatically imported into the database.
+**Key Principle:** The database contains **only OSM data**. The World_EEZ shapefile is used **only
+as a reference** to identify what might be missing. Any boundaries found in OSM are automatically
+imported into the database.
 
 ## Process Flow
 
@@ -57,7 +63,8 @@ updateCountries.sh::__checkMissingMaritimes()
 
 **Script:** `bin/scripts/generateEEZCentroids.sh`
 
-**Purpose:** Extracts centroid coordinates from the World_EEZ shapefile to create a reference list of EEZ areas.
+**Purpose:** Extracts centroid coordinates from the World_EEZ shapefile to create a reference list
+of EEZ areas.
 
 **Process:**
 
@@ -73,7 +80,8 @@ eez_id,name,territory,sovereign,centroid_lat,centroid_lon
 3293,"Belgian Exclusive Economic Zone","Belgium","Belgium",51.463206,2.721323
 ```
 
-**License:** The CSV is a derivative work of the World_EEZ shapefile and is licensed under CC-BY 4.0. See `data/eez_analysis/LICENSE` for full license details.
+**License:** The CSV is a derivative work of the World_EEZ shapefile and is licensed under CC-BY
+4.0. See `data/eez_analysis/LICENSE` for full license details.
 
 **Usage:**
 
@@ -89,7 +97,8 @@ EEZ_SHAPEFILE=/path/to/World_EEZ_v12_20231025.zip bash bin/scripts/generateEEZCe
 
 **Function:** `__checkMissingMaritimes()` in `bin/process/updateCountries.sh`
 
-**When it runs:** Automatically at the end of `updateCountries.sh`, after processing standard maritime boundaries.
+**When it runs:** Automatically at the end of `updateCountries.sh`, after processing standard
+maritime boundaries.
 
 **Process:**
 
@@ -122,20 +131,17 @@ For each centroid NOT in the database:
    ```
 
 2. **Relation Filtering (Priority Order):**
-
    - **Priority 1:** `boundary=maritime` (explicit maritime boundary)
    - **Priority 2:** `type=boundary` AND `maritime=yes` (alternative maritime tag)
    - **Priority 3:** `type=boundary` (excluding `administrative` boundaries)
 
 3. **Automatic Import:**
-
    - If a maritime relation is found, it is automatically downloaded and imported
    - Uses `__download_and_import_maritime_relation()` function
    - Marks the relation as `is_maritime=true` in the database
    - Status: `imported`
 
 4. **Status Tracking:**
-
    - `imported`: Successfully found in OSM and imported
    - `covered_but_failed_import`: Found in OSM but import failed
    - `covered_no_relation_id`: Found in OSM but no valid relation ID extracted
@@ -158,7 +164,8 @@ The standard process downloads all relations with `boundary=maritime` tag:
 relation["boundary"="maritime"];
 ```
 
-**Limitation:** This only finds boundaries explicitly tagged as `boundary=maritime`. Some maritime boundaries in OSM may have different tags or may not be tagged at all.
+**Limitation:** This only finds boundaries explicitly tagged as `boundary=maritime`. Some maritime
+boundaries in OSM may have different tags or may not be tagged at all.
 
 ### Centroid-Based Verification
 
@@ -167,7 +174,8 @@ The centroid-based approach:
 1. **Uses Reference Data:** World_EEZ shapefile provides authoritative list of EEZ areas
 2. **Spatial Search:** Uses `is_in(lat,lon)` to find ANY relation containing the centroid point
 3. **Tag Filtering:** Filters results to prioritize maritime-related tags
-4. **Automatic Import:** Automatically imports found relations, even if they don't have `boundary=maritime` tag
+4. **Automatic Import:** Automatically imports found relations, even if they don't have
+   `boundary=maritime` tag
 
 **Advantages:**
 
@@ -283,21 +291,25 @@ bash bin/scripts/generateEEZCentroids.sh
 
 ### OpenStreetMap Data
 
-All maritime boundaries imported into the database from OSM are licensed under the **Open Database License (ODbL)**. When using or distributing OSM data, proper attribution is required.
+All maritime boundaries imported into the database from OSM are licensed under the **Open Database
+License (ODbL)**. When using or distributing OSM data, proper attribution is required.
 
 - **License:** [Open Database License (ODbL)](http://opendatacommons.org/licenses/odbl/)
 - **Copyright:** [OpenStreetMap contributors](http://www.openstreetmap.org/copyright)
 - **Attribution:** Required when using or distributing OSM data
 
-For more information about OSM licensing, see: [https://www.openstreetmap.org/copyright](https://www.openstreetmap.org/copyright)
+For more information about OSM licensing, see:
+[https://www.openstreetmap.org/copyright](https://www.openstreetmap.org/copyright)
 
 ### Reference Data (CC-BY 4.0)
 
-The EEZ centroids CSV is a derivative work of the World_EEZ shapefile from MarineRegions.org and is licensed under **Creative Commons Attribution 4.0 International (CC-BY 4.0)**.
+The EEZ centroids CSV is a derivative work of the World_EEZ shapefile from MarineRegions.org and is
+licensed under **Creative Commons Attribution 4.0 International (CC-BY 4.0)**.
 
 **Source:** [MarineRegions.org Downloads](https://www.marineregions.org/downloads.php)  
 **Original Dataset:** World EEZ v12 (2023-10-25)
 
 See `data/eez_analysis/LICENSE` for full license details and attribution requirements.
 
-**Note:** The shapefile and centroids CSV are used **only as reference** to identify missing boundaries. The actual data in the database comes exclusively from OpenStreetMap.
+**Note:** The shapefile and centroids CSV are used **only as reference** to identify missing
+boundaries. The actual data in the database comes exclusively from OpenStreetMap.

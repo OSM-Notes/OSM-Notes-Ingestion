@@ -2,7 +2,8 @@
 
 ## Overview
 
-This document describes the logging pattern validation tools that ensure all bash functions in the OSM-Notes-Ingestion project follow the established logging conventions.
+This document describes the logging pattern validation tools that ensure all bash functions in the
+OSM-Notes-Ingestion project follow the established logging conventions.
 
 ## Logging Pattern Requirements
 
@@ -17,19 +18,19 @@ All bash functions in the project must follow this pattern:
 ```bash
 function __example_function() {
     __log_start
-    
+
     local input="${1:-}"
-    
+
     if [[ -z "$input" ]]; then
         __loge "Input is required"
         __log_finish
         return 1
     fi
-    
+
     __logi "Processing input: $input"
-    
+
     # Function logic here
-    
+
     __log_finish
     return 0
 }
@@ -69,7 +70,8 @@ bats unit/bash/logging_pattern_validation.test.bats
 
 Located at: `tests/scripts/validate_logging_patterns.sh`
 
-This script scans all bash files in the project and validates that functions follow the logging pattern.
+This script scans all bash files in the project and validates that functions follow the logging
+pattern.
 
 **Features:**
 
@@ -303,9 +305,12 @@ To contribute to the validation tools:
 
 ## Conclusion
 
-The logging pattern validation tools help maintain code quality and consistency across the OSM-Notes-Ingestion project. Regular use of these tools ensures that all functions provide proper logging for debugging, monitoring, and maintenance purposes.
+The logging pattern validation tools help maintain code quality and consistency across the
+OSM-Notes-Ingestion project. Regular use of these tools ensures that all functions provide proper
+logging for debugging, monitoring, and maintenance purposes.
 
-For questions or issues, please refer to the project's issue tracker or contact the development team.
+For questions or issues, please refer to the project's issue tracker or contact the development
+team.
 
 ## Related Documentation
 

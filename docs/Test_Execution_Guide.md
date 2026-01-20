@@ -2,7 +2,8 @@
 
 ## Introduction
 
-This guide allows you to execute tests **in parts**, organized by priority, complexity, and functional category. Ideal for:
+This guide allows you to execute tests **in parts**, organized by priority, complexity, and
+functional category. Ideal for:
 
 - Quick verification during development
 - Debugging specific components
@@ -44,17 +45,17 @@ cd /home/angoca/github/OSM-Notes-Ingestion
 
 ### 📊 Level Summary
 
-| Level | Suites | Approx. Tests | Time | Description |
-|-------|--------|---------------|------|-------------|
-| **Level 1 - Basic** | 15 | ~150 | 5-10 min | Fundamental and fast tests |
-| **Level 2 - Validation** | 20 | ~250 | 10-15 min | Data and format validation |
-| **Level 3 - Processing** | 18 | ~220 | 15-25 min | API and Planet processing logic |
-| **Level 4 - Parallel** | 18 | ~220 | 10-15 min | Parallel processing optimization |
-| **Level 5 - Cleanup** | 25 | ~350 | 12-18 min | Cleanup and error handling |
-| **Level 6 - Monitoring** | 18 | ~220 | 8-12 min | Monitoring |
-| **Level 7 - Advanced** | 18 | ~220 | 10-15 min | Advanced tests and edge cases |
-| **Level 8 - Integration** | 8 | ~68 | 10-20 min | End-to-End Integration |
-| **TOTAL** | **~140** | **~1,698** | **81-135 min** | |
+| Level                     | Suites   | Approx. Tests | Time           | Description                      |
+| ------------------------- | -------- | ------------- | -------------- | -------------------------------- |
+| **Level 1 - Basic**       | 15       | ~150          | 5-10 min       | Fundamental and fast tests       |
+| **Level 2 - Validation**  | 20       | ~250          | 10-15 min      | Data and format validation       |
+| **Level 3 - Processing**  | 18       | ~220          | 15-25 min      | API and Planet processing logic  |
+| **Level 4 - Parallel**    | 18       | ~220          | 10-15 min      | Parallel processing optimization |
+| **Level 5 - Cleanup**     | 25       | ~350          | 12-18 min      | Cleanup and error handling       |
+| **Level 6 - Monitoring**  | 18       | ~220          | 8-12 min       | Monitoring                       |
+| **Level 7 - Advanced**    | 18       | ~220          | 10-15 min      | Advanced tests and edge cases    |
+| **Level 8 - Integration** | 8        | ~68           | 10-20 min      | End-to-End Integration           |
+| **TOTAL**                 | **~140** | **~1,698**    | **81-135 min** |                                  |
 
 ---
 
@@ -677,10 +678,11 @@ bats tests/integration/*.bats
 
 ## Related Documentation
 
-- **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide with procedures and best practices
+- **[Testing_Guide.md](./Testing_Guide.md)**: Complete testing guide with procedures and best
+  practices
 - **[Test_Matrix.md](./Test_Matrix.md)**: Comprehensive test matrix and coverage
 - **[Testing_Suites_Reference.md](./Testing_Suites_Reference.md)**: Reference of all testing suites
-- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows explanation
+- **[Testing_Workflows_Overview.md](./Testing_Workflows_Overview.md)**: GitHub Actions workflows
+  explanation
 - **[CI_CD_Integration.md](./CI_CD_Integration.md)**: CI/CD integration and automated testing
 - **[CI_Troubleshooting.md](./CI_Troubleshooting.md)**: CI/CD troubleshooting guide
-

@@ -2,7 +2,10 @@
 
 ## Overview
 
-The `bin/lib/` directory contains reusable function libraries used by processing scripts throughout the OSM-Notes-Ingestion system. These libraries provide modular, well-organized functions for common operations, following the project's naming conventions (functions start with double underscore `__` and are lowercase).
+The `bin/lib/` directory contains reusable function libraries used by processing scripts throughout
+the OSM-Notes-Ingestion system. These libraries provide modular, well-organized functions for common
+operations, following the project's naming conventions (functions start with double underscore `__`
+and are lowercase).
 
 ## Directory Structure
 
@@ -25,8 +28,10 @@ The `bin/lib/` directory contains reusable function libraries used by processing
 
 **Key Functions**:
 
-- **`__retry_file_operation()`**: Retry file operations with exponential backoff and smart waiting for Overpass API
-  - Parameters: `operation_command`, `max_retries`, `base_delay`, `cleanup_command`, `smart_wait`, `explicit_endpoint`
+- **`__retry_file_operation()`**: Retry file operations with exponential backoff and smart waiting
+  for Overpass API
+  - Parameters: `operation_command`, `max_retries`, `base_delay`, `cleanup_command`, `smart_wait`,
+    `explicit_endpoint`
   - Returns: `0` on success, `1` on failure
   - Usage: Used for downloading files with retry logic and Overpass rate limit handling
 
@@ -44,7 +49,8 @@ The `bin/lib/` directory contains reusable function libraries used by processing
   - Returns: `0` on success, `1` on failure
   - Usage: Validates data files before processing
 
-**Dependencies**: Loads `lib/osm-common/commonFunctions.sh`, `validationFunctions.sh`, `errorHandlingFunctions.sh`, and project-specific libraries.
+**Dependencies**: Loads `lib/osm-common/commonFunctions.sh`, `validationFunctions.sh`,
+`errorHandlingFunctions.sh`, and project-specific libraries.
 
 **Usage Example**:
 
@@ -167,7 +173,8 @@ __consolidatePartitions
 - **`__getLocationNotes_impl()`**: Assign countries to notes using location data
   - Usage: Main function for country assignment, uses backup CSV for speed
   - Supports hybrid/test mode for faster testing
-  - Related SQL: `sql/functionsProcess_32_loadsBackupNoteLocation.sql`, `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
+  - Related SQL: `sql/functionsProcess_32_loadsBackupNoteLocation.sql`,
+    `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
 
 - **`__verifyNoteIntegrity()`**: Verify note location integrity
   - Usage: Validates that note coordinates match assigned country
@@ -209,8 +216,11 @@ __reassignAffectedNotes
 
 - **`__validate_capital_location()`**: Validate capital city location within country boundary
   - Parameters: `country_id`, `capital_lat`, `capital_lon`
-  - Usage: Ensures capital coordinates are within country geometry (prevents data cross-contamination)
-  - Related Documentation: See [docs/Capital_Validation_Explanation.md](../../docs/Capital_Validation_Explanation.md) for detailed explanation
+  - Usage: Ensures capital coordinates are within country geometry (prevents data
+    cross-contamination)
+  - Related Documentation: See
+    [docs/Capital_Validation_Explanation.md](../../docs/Capital_Validation_Explanation.md) for
+    detailed explanation
 
 - **`__compareIdsWithBackup()`**: Compare boundary IDs with backup files
   - Usage: Determines which boundaries need updating vs. using backup
@@ -258,7 +268,8 @@ __execute_overpass_query "${QUERY_FILE}" "${OUTPUT_FILE}" "${ENDPOINT}"
 
 ### `parallelProcessingFunctions.sh`
 
-**Purpose**: Functions for coordinating parallel processing operations, resource management, and XML file splitting.
+**Purpose**: Functions for coordinating parallel processing operations, resource management, and XML
+file splitting.
 
 **Key Functions**:
 
@@ -280,11 +291,11 @@ __execute_overpass_query "${QUERY_FILE}" "${OUTPUT_FILE}" "${ENDPOINT}"
     ```
 
 - **`__adjust_workers_for_resources()`**: Adjust number of workers based on available resources
-  - **Parameters**: 
+  - **Parameters**:
     - `requested_workers`: Desired number of workers
   - **Returns**: Adjusted worker count (may be less than requested)
   - **Usage**: Dynamically adjusts parallelism based on system capacity
-  - **Logic**: 
+  - **Logic**:
     - Checks available CPU cores
     - Checks available memory
     - Reduces workers if resources are limited
@@ -297,7 +308,7 @@ __execute_overpass_query "${QUERY_FILE}" "${OUTPUT_FILE}" "${ENDPOINT}"
     ```
 
 - **`__processXmlPartsParallel()`**: Process XML file parts in parallel using GNU Parallel
-  - **Parameters**: 
+  - **Parameters**:
     - `xml_file`: Path to XML file to process
     - `num_parts`: Number of parts to split into
     - `processing_function`: Function name to call for each part
@@ -313,7 +324,7 @@ __execute_overpass_query "${QUERY_FILE}" "${OUTPUT_FILE}" "${ENDPOINT}"
     ```
 
 - **`__splitXmlForParallelSafe()`**: Split XML file safely for parallel processing
-  - **Parameters**: 
+  - **Parameters**:
     - `xml_file`: Path to XML file
     - `num_parts`: Number of parts to create
     - `output_dir`: Directory to write parts
@@ -330,7 +341,7 @@ __execute_overpass_query "${QUERY_FILE}" "${OUTPUT_FILE}" "${ENDPOINT}"
     ```
 
 - **`__divide_xml_file()`**: Divide XML file into parts using binary division
-  - **Parameters**: 
+  - **Parameters**:
     - `xml_file`: Path to XML file
     - `num_parts`: Number of parts to create
     - `output_dir`: Directory to write parts
@@ -347,14 +358,14 @@ __execute_overpass_query "${QUERY_FILE}" "${OUTPUT_FILE}" "${ENDPOINT}"
     ```
 
 - **`__wait_for_resources()`**: Wait for system resources to become available
-  - **Parameters**: 
+  - **Parameters**:
     - `required_memory_mb`: Required memory in MB
     - `timeout_seconds`: Maximum time to wait
   - **Returns**: `0` if resources available, `1` if timeout
   - **Usage**: Waits for system resources before starting processing
 
 - **`__configure_system_limits()`**: Configure system limits for parallel processing
-  - **Parameters**: 
+  - **Parameters**:
     - `max_workers`: Maximum number of workers
   - **Returns**: `0` on success, `1` on failure
   - **Usage**: Sets ulimit and other system limits for optimal performance
@@ -487,12 +498,14 @@ Functions are tested via:
 - **[docs/Documentation.md](../../docs/Documentation.md)**: Complete system documentation
 - **[docs/Process_API.md](../../docs/Process_API.md)**: API processing details
 - **[docs/Process_Planet.md](../../docs/Process_Planet.md)**: Planet processing details
-- **[docs/Capital_Validation_Explanation.md](../../docs/Capital_Validation_Explanation.md)**: Capital validation to prevent data cross-contamination
-- **[docs/Country_Assignment_2D_Grid.md](../../docs/Country_Assignment_2D_Grid.md)**: Country assignment strategy
-- **[docs/ST_DWithin_Explanation.md](../../docs/ST_DWithin_Explanation.md)**: PostGIS spatial functions
+- **[docs/Capital_Validation_Explanation.md](../../docs/Capital_Validation_Explanation.md)**:
+  Capital validation to prevent data cross-contamination
+- **[docs/Country_Assignment_2D_Grid.md](../../docs/Country_Assignment_2D_Grid.md)**: Country
+  assignment strategy
+- **[docs/ST_DWithin_Explanation.md](../../docs/ST_DWithin_Explanation.md)**: PostGIS spatial
+  functions
 - **[bin/ENVIRONMENT_VARIABLES.md](../ENVIRONMENT_VARIABLES.md)**: Environment variable reference
 
 ## Version
 
 This documentation was last updated: 2025-12-08
-
