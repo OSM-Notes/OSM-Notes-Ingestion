@@ -2,8 +2,8 @@
 
 # Boundary Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-07
-VERSION="2026-01-07"
+# Version: 2026-01-20
+VERSION="2026-01-20"
 
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
@@ -2960,11 +2960,51 @@ function __processMaritimes_impl {
    -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
    -lco GEOMETRY_NAME=geom -lco FID=country_id \
    --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+   # Verify temporary table structure and get actual column names
+   # ogr2ogr may create columns with different names or types
+   __logd "Verifying temporary table structure..."
+   local TABLE_INFO
+   TABLE_INFO=$(psql -d "${DBNAME}" -Atq -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' ORDER BY ordinal_position;" 2> /dev/null || echo "")
+
+   if [[ -z "${TABLE_INFO}" ]]; then
+    __loge "Failed to query temporary table structure"
+    psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+    rm -f "${OGR_ERROR}"
+    __log_finish
+    return 1
+   fi
+
+   __logd "Temporary table structure: ${TABLE_INFO}"
+
    # Insert from temporary table with is_maritime = TRUE explicitly
    # All boundaries from maritime backup are maritime by definition
+   # Use quoted identifiers and explicit type casting to handle ogr2ogr column variations
    local COUNTRIES_TABLE
    COUNTRIES_TABLE=$(__get_countries_table_name)
-   if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO ${COUNTRIES_TABLE} (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), TRUE FROM ${TEMP_TABLE} ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = TRUE, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+
+   # Try with explicit column names and type casting
+   # Handle case where country_id might be VARCHAR or INTEGER
+   if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_ERROR}" 2>&1; then
+INSERT INTO ${COUNTRIES_TABLE} (country_id, country_name, country_name_es, country_name_en, geom, is_maritime)
+SELECT
+  CAST("country_id" AS INTEGER) AS country_id,
+  COALESCE("country_name", '') AS country_name,
+  COALESCE("country_name_es", '') AS country_name_es,
+  COALESCE("country_name_en", '') AS country_name_en,
+  ST_SetSRID("geom", 4326) AS geom,
+  TRUE AS is_maritime
+FROM ${TEMP_TABLE}
+WHERE "country_id" IS NOT NULL
+  AND "geom" IS NOT NULL
+  AND ST_IsValid("geom")
+ON CONFLICT (country_id) DO UPDATE SET
+  country_name = EXCLUDED.country_name,
+  country_name_es = EXCLUDED.country_name_es,
+  country_name_en = EXCLUDED.country_name_en,
+  is_maritime = TRUE,
+  geom = ST_SetSRID(EXCLUDED.geom, 4326);
+DROP TABLE ${TEMP_TABLE};
+EOF
     __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
     rm -f "${OGR_ERROR}"
     __log_finish
@@ -2973,7 +3013,12 @@ function __processMaritimes_impl {
     __loge "Failed to insert maritime boundaries from temporary table"
     local SQL_ERROR_CONTENT
     SQL_ERROR_CONTENT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
-    __logd "SQL error output: ${SQL_ERROR_CONTENT}"
+    __loge "SQL error output: ${SQL_ERROR_CONTENT}"
+    __logd "Temporary table columns: ${TABLE_INFO}"
+    # Try to get row count for debugging
+    local ROW_COUNT
+    ROW_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM ${TEMP_TABLE};" 2> /dev/null || echo "unknown")
+    __logd "Temporary table row count: ${ROW_COUNT}"
     psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
     rm -f "${OGR_ERROR}"
     __log_finish
@@ -3081,11 +3126,51 @@ function __processMaritimes_impl {
     -nln "${TEMP_TABLE}" -nlt PROMOTE_TO_MULTI -a_srs EPSG:4326 \
     -lco GEOMETRY_NAME=geom -lco FID=country_id \
     --config PG_USE_COPY YES 2> "${OGR_ERROR}"; then
+    # Verify temporary table structure and get actual column names
+    # ogr2ogr may create columns with different names or types
+    __logd "Verifying temporary table structure..."
+    local TABLE_INFO
+    TABLE_INFO=$(psql -d "${DBNAME}" -Atq -c "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' ORDER BY ordinal_position;" 2> /dev/null || echo "")
+
+    if [[ -z "${TABLE_INFO}" ]]; then
+     __loge "Failed to query temporary table structure"
+     psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
+     rm -f "${OGR_ERROR}"
+     __log_finish
+     return 1
+    fi
+
+    __logd "Temporary table structure: ${TABLE_INFO}"
+
     # Insert from temporary table with is_maritime = TRUE explicitly
     # All boundaries from maritime backup are maritime by definition
+    # Use quoted identifiers and explicit type casting to handle ogr2ogr column variations
     local COUNTRIES_TABLE
     COUNTRIES_TABLE=$(__get_countries_table_name)
-    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "INSERT INTO ${COUNTRIES_TABLE} (country_id, country_name, country_name_es, country_name_en, geom, is_maritime) SELECT country_id, country_name, country_name_es, country_name_en, ST_SetSRID(geom, 4326), TRUE FROM ${TEMP_TABLE} ON CONFLICT (country_id) DO UPDATE SET country_name = EXCLUDED.country_name, country_name_es = EXCLUDED.country_name_es, country_name_en = EXCLUDED.country_name_en, is_maritime = TRUE, geom = ST_SetSRID(EXCLUDED.geom, 4326); DROP TABLE ${TEMP_TABLE};" >> "${OGR_ERROR}" 2>&1; then
+
+    # Try with explicit column names and type casting
+    # Handle case where country_id might be VARCHAR or INTEGER
+    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_ERROR}" 2>&1; then
+INSERT INTO ${COUNTRIES_TABLE} (country_id, country_name, country_name_es, country_name_en, geom, is_maritime)
+SELECT
+  CAST("country_id" AS INTEGER) AS country_id,
+  COALESCE("country_name", '') AS country_name,
+  COALESCE("country_name_es", '') AS country_name_es,
+  COALESCE("country_name_en", '') AS country_name_en,
+  ST_SetSRID("geom", 4326) AS geom,
+  TRUE AS is_maritime
+FROM ${TEMP_TABLE}
+WHERE "country_id" IS NOT NULL
+  AND "geom" IS NOT NULL
+  AND ST_IsValid("geom")
+ON CONFLICT (country_id) DO UPDATE SET
+  country_name = EXCLUDED.country_name,
+  country_name_es = EXCLUDED.country_name_es,
+  country_name_en = EXCLUDED.country_name_en,
+  is_maritime = TRUE,
+  geom = ST_SetSRID(EXCLUDED.geom, 4326);
+DROP TABLE ${TEMP_TABLE};
+EOF
      __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
      rm -f "${OGR_ERROR}"
      __log_finish
@@ -3096,7 +3181,12 @@ function __processMaritimes_impl {
      # shellcheck disable=SC2312
      # Intentional: cat may fail if file doesn't exist, default to message
      ERROR_OUTPUT=$(cat "${OGR_ERROR}" 2> /dev/null || echo 'No error output')
-     __logd "SQL error output: ${ERROR_OUTPUT}"
+     __loge "SQL error output: ${ERROR_OUTPUT}"
+     __logd "Temporary table columns: ${TABLE_INFO}"
+     # Try to get row count for debugging
+     local ROW_COUNT
+     ROW_COUNT=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM ${TEMP_TABLE};" 2> /dev/null || echo "unknown")
+     __logd "Temporary table row count: ${ROW_COUNT}"
      psql -d "${DBNAME}" -c "DROP TABLE IF EXISTS ${TEMP_TABLE};" > /dev/null 2>&1 || true
      rm -f "${OGR_ERROR}"
      __log_finish
