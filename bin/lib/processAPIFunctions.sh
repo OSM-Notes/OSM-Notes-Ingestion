@@ -4,8 +4,8 @@
 # This file contains functions for processing API data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-19
-VERSION="2026-01-19"
+# Version: 2026-01-20
+VERSION="2026-01-20"
 
 # Show help function
 function __show_help() {
@@ -144,7 +144,7 @@ function __getNewNotesFromApi() {
    __log_finish
    return 1
   fi
-  
+
   # File exists - check if it has content (empty XML with just <osm></osm> is valid)
   # An empty file (0 bytes) indicates download failure, but a file with XML structure
   # (even without <note> elements) is valid and indicates 0 notes scenario
@@ -154,7 +154,7 @@ function __getNewNotesFromApi() {
    __log_finish
    return 1
   fi
-  
+
   # File has content - validate it's XML (even if empty of notes)
   # Check if file contains XML structure (at minimum <osm> tag)
   if ! grep -q '<osm' "${API_NOTES_FILE}" 2> /dev/null; then
@@ -163,7 +163,7 @@ function __getNewNotesFromApi() {
    __log_finish
    return 1
   fi
-  
+
   # File exists, has content, and contains XML structure - success
   # Even if it has no <note> elements (0 notes scenario), this is valid
   __logi "Successfully downloaded notes from API: ${API_NOTES_FILE}"
