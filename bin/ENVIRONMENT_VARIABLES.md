@@ -191,7 +191,7 @@ export LOG_LEVEL=WARN
 ```
 
 For **WMS (Web Map Service) configuration**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### `cleanupAll.sh` Specific
 No script-specific variables. Accepts database name as **argument**.

@@ -25,7 +25,7 @@ The workflow is defined in `.github/workflows/tests.yml` and includes:
    - Uses PostgreSQL service container with PostGIS
    - Includes SQL unit tests and integration tests
 
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 3. **Integration Tests** (`integration-tests`)
    - Runs end-to-end tests using Docker containers

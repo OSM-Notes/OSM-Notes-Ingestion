@@ -92,7 +92,7 @@ The project includes specialized tests for consolidated functions that eliminate
 - `cleanupAll.sh` - Comprehensive cleanup (full or partition-only)
 
 For **WMS (Web Map Service) scripts**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 **Monitor Scripts:**
 

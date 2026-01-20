@@ -27,7 +27,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`External_Dependencies_and_Risks.md`**: External dependencies, risks, and potential impacts on the project
 
 > **Note:** DWH (Data Warehouse), ETL, and Analytics documentation has been moved to
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### Technical Implementation
 
@@ -49,7 +49,7 @@ For detailed navigation paths by role, see [Documentation Navigation Guide](#doc
 - **`XML_Validation_Improvements.md`**: XML processing and validation improvements
 
 For **WMS (Web Map Service) documentation**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### GDPR Compliance
 
@@ -214,7 +214,7 @@ For **WMS (Web Map Service) documentation**, see the
   - [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for spatial functions
 
 For **WMS (Web Map Service) documentation**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ## Software Components
 
@@ -231,7 +231,7 @@ For **WMS (Web Map Service) documentation**, see the
 - **Planet Processing**: Large-scale data processing from Planet files
 
 > **Note:** ETL Processes, Data Marts, and DWH features are maintained in
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### Technical Specifications
 
@@ -256,7 +256,7 @@ For **WMS (Web Map Service) documentation**, see the
 - Study [Process_API.md](./Process_API.md) and [Process_Planet.md](./Process_Planet.md) for implementation details
 
 > **Note:** For ETL procedures and analytics capabilities, see
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### For Data Analysts
 
@@ -265,7 +265,7 @@ For **WMS (Web Map Service) documentation**, see the
 
 > **Note:** For data warehouse queries, data marts, and advanced analytics features
 > (timezones, seasons, continents, application versions), see
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### For End Users
 
@@ -273,8 +273,8 @@ For **WMS (Web Map Service) documentation**, see the
 - Read [Rationale.md](./Rationale.md) to understand the project's purpose
 
 > **Note:** For interactive web visualization of user and country profiles, hashtag analysis, and campaign performance,
-> see [OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer).
-> For data warehouse and analytics backend, see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> see [OSM-Notes-Viewer](https://github.com/OSM-Notes/OSM-Notes-Viewer).
+> For data warehouse and analytics backend, see [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ## Dependencies
 

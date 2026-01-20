@@ -29,7 +29,7 @@ OSM-Notes-Ingestion is a data ingestion system for OpenStreetMap notes. It:
 - **Stores** processed data in PostgreSQL/PostGIS database
 - **Monitors** data quality and synchronization
 
-> **Note:** Analytics, ETL, and Data Warehouse components are maintained separately in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** Analytics, ETL, and Data Warehouse components are maintained separately in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### Key Design Principles
 
@@ -102,7 +102,7 @@ Output:
     └─▶ Analytics (external repository)
 
 For **WMS (Web Map Service)**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 ```
 
 ### Core Components
@@ -162,7 +162,7 @@ For **WMS (Web Map Service)**, see the
    ```
 
 For **WMS (Web Map Service) flow**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 For detailed flow diagrams, see [docs/Documentation.md](../docs/Documentation.md#processing-sequence-diagram).
 
@@ -248,7 +248,7 @@ Fixes #123
    - **Integration Points**:
      - Check if it affects API processing: [docs/Process_API.md](../docs/Process_API.md)
      - Check if it affects Planet processing: [docs/Process_Planet.md](../docs/Process_Planet.md)
-     - For WMS integration, see the [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository
+     - For WMS integration, see the [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository
    - **Error Handling**:
      - Use standardized error codes from `lib/osm-common/commonFunctions.sh`
      - Document new error codes in [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md)
@@ -457,7 +457,7 @@ declare -r ERROR_INVALID_ARGUMENT=242
 - **Function files**: `functionsProcess_21_createFunctionToGetCountry.sql`
 - **Drop files**: `processAPINotes_12_dropApiTables.sql`
 
-> **Note:** ETL files are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** ETL files are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 #### SQL Code Standards
 
@@ -534,7 +534,7 @@ Familiarize yourself with the project structure:
 
 All contributions must include comprehensive testing. The project uses **BATS testing suites** covering all system components.
 
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### Test Categories
 
@@ -543,7 +543,7 @@ All contributions must include comprehensive testing. The project uses **BATS te
 - **Bash Scripts**: 68 BATS test suites for shell scripts
 - **SQL Functions**: SQL test suites
 
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 #### Integration Tests (8 suites)
 
@@ -560,7 +560,7 @@ All contributions must include comprehensive testing. The project uses **BATS te
 - **Code Quality**: Linting, formatting, conventions
 - **Security**: Vulnerability scanning, best practices
 
-> **Note:** DWH/ETL testing requirements are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL testing requirements are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### Running Tests
 
@@ -585,7 +585,7 @@ bats tests/unit/sql/*.sql
 # Integration tests
 bats tests/integration/*.bats
 
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 ```
 
 #### Test Validation
@@ -605,7 +605,7 @@ All new tests must be documented in:
 - [Testing Suites Reference](./docs/Testing_Suites_Reference.md)
 - [Testing Guide](./docs/Testing_Guide.md)
 
-> **Note:** DWH/ETL testing documentation is maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL testing documentation is maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### CI/CD Integration
 

@@ -122,7 +122,7 @@ check_duplicates() {
 
 # NOTE: Tests for datamartCountries.sh, datamartUsers.sh, profile.sh, and ETL.sh
 # have been moved to OSM-Notes-Analytics repository as these scripts are now
-# part of Analytics. See: https://github.com/OSMLatam/OSM-Notes-Analytics
+# part of Analytics. See: https://github.com/OSM-Notes/OSM-Notes-Analytics
 
 @test "should detect and report duplicate variables with detailed information" {
  # This test provides detailed information about any duplicates found

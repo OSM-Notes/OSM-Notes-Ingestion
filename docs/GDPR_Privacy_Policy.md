@@ -78,7 +78,7 @@ The personal data is processed for the following purposes:
 1. **Data Analysis:** Analyzing OSM notes patterns and trends
 2. **Quality Monitoring:** Monitoring note quality and processing issues
 3. **Research:** Supporting research on mapping activities and user behavior
-4. **Service Provision:** Data may be published via WMS (Web Map Service) layers (see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS)) for
+4. **Service Provision:** Data may be published via WMS (Web Map Service) layers (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS)) for
    visualization
 5. **System Maintenance:** Ensuring data integrity and system functionality
 
@@ -232,7 +232,7 @@ request.
 3. **Validation:** Data is validated against XML schemas
 4. **Storage:** Data is stored in PostgreSQL database
 5. **Processing:** Geographic assignment, country identification, analysis
-6. **Publication:** Data may be published via WMS layers (see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository) (see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS))
+6. **Publication:** Data may be published via WMS layers (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository) (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS))
 7. **Analytics and Visualization:** Data may be processed by related projects:
    - **OSM-Notes-Analytics:** Data warehouse, ETL processes, and analytics
      capabilities for generating user and country profiles
@@ -241,7 +241,7 @@ request.
 
 ### Data Sharing
 
-- **WMS Layers:** Simplified, aggregated data may be published via WMS (see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS))
+- **WMS Layers:** Simplified, aggregated data may be published via WMS (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS))
   services
 - **Related Projects:** Data may be processed by related projects within the
   same organization:

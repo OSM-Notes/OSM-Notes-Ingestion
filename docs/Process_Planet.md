@@ -1117,7 +1117,7 @@ psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 ### Analytics Integration
 
 > **Note:** ETL processes, data warehouse, and data marts are maintained in
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 - Provides raw data for analytics processing
 - Ensures data quality and integrity for downstream systems

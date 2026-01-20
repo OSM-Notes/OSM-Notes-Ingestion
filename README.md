@@ -10,7 +10,7 @@ It provides:
 - Data monitoring and validation
 
 > **Note:** The analytics, data warehouse, and ETL components have been moved to
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ## Data License
 
@@ -100,10 +100,10 @@ These are the main functions of this project:
   This is optional and can be configured daily with a cron.
 
 For **analytics, data warehouse, ETL, and profile generation**, see the
-[OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
+[OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) repository.
 
 For **web visualization and interactive exploration** of user and country profiles, see the
-[OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer) repository.
+[OSM-Notes-Viewer](https://github.com/OSM-Notes/OSM-Notes-Viewer) repository.
 
 ## Shared Functions (Git Submodule)
 
@@ -114,7 +114,7 @@ This project uses a Git submodule for shared code (`lib/osm-common/`):
 - **Error Handling** (`errorHandlingFunctions.sh`): Error handling and recovery
 - **Logger** (`bash_logger.sh`): Logging library (log4j-style)
 
-These functions are shared with [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+These functions are shared with [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
 via the [OSM-Notes-Common](https://github.com/OSM-Notes/OSM-Notes-Common) submodule.
 
 ### Cloning with Submodules
@@ -408,7 +408,7 @@ While the main API notes processing runs as a daemon, you still need to configur
 
 See `examples/crontab-setup.example` for detailed cron configuration examples.
 
-For **ETL and Analytics scheduling**, see the [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository.
+For **ETL and Analytics scheduling**, see the [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) repository.
 
 ## Components description
 
@@ -519,7 +519,7 @@ These are the table types on the database:
 - Sync tables contain the data from the recent planet download.
   They don't belong to a specific schema, but a suffix.
 - `dwh` schema contains the data warehouse tables (managed by OSM-Notes-Analytics).
-  See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for details.
+  See [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) for details.
 - Check tables are used for monitoring to compare the notes on the previous day
   between the normal behavior with API and the notes on the last day of the
   Planet.
@@ -550,8 +550,8 @@ These files include details about how to run or troubleshoot the scripts.
 - `sql/monitor` scripts to check the notes database, comparing it with a Planet
   dump.
 - `sql/process` has all SQL scripts to load the notes database.
-- **For DWH/ETL SQL scripts**, see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
-- **For WMS layer publishing**, see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS).
+- **For DWH/ETL SQL scripts**, see [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+- **For WMS layer publishing**, see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS).
 - `test` set of scripts to perform tests.
   This is not part of a Unit Test set.
 - `xsd` contains the structure of the XML documents to be retrieved - XML
@@ -574,7 +574,7 @@ This repository includes local monitoring scripts for data quality verification:
 - **`bin/monitor/analyzeDatabasePerformance.sh`**: Analyzes database performance
 
 > **Note:** For centralized monitoring, alerting, and API security across all
-> OSM Notes repositories, see [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> OSM Notes repositories, see [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring).
 > The scripts in `bin/monitor/` are specific to this repository and focus on
 > data quality verification for ingestion.
 
@@ -585,7 +585,7 @@ It is also recommended to create an issue in this GitHub repository, providing
 as much information as possible.
 
 For **WMS (Web Map Service) layer publication**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ## Dependencies and libraries
 

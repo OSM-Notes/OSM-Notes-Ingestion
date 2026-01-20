@@ -292,7 +292,7 @@ available, this would significantly change the project landscape.
 
 If the OSM database can be queried directly:
 
-- The sibling project [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+- The sibling project [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
   could download data directly from the OSM database
 - The complex data ingestion pipeline in this project would become less
   necessary for analytics purposes

@@ -103,7 +103,7 @@ Unit tests for individual components:
   - **`tables_final_fixed.test.sql`**: Database table structure tests
   - **`functions_final_corrected.test.sql`**: Database function tests
 
-> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 #### Test File Organization
 

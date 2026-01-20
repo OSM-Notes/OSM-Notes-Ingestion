@@ -269,6 +269,6 @@ export DB_USER="my-custom-user"
 - **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Database troubleshooting and common issues
 - **[Process_Planet.md](./Process_Planet.md)**: Initial database setup with `--base` mode
 For **WMS database setup and configuration**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ---

@@ -118,13 +118,13 @@ Subsequently, data marts are created for users and for countries, so that the da
 
 Once the base information is stored in the database, different services could be provided:
 
-* **WMS Map**: With the location of open and closed notes (see [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository)
+* **WMS Map**: With the location of open and closed notes (see [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository)
 * **Data Warehouse**: To perform analytical queries and create user and country profiles about the status of the notes
 * **Web Viewer**: Interactive web interface to visualize and explore user and country profiles, statistics, and analytics
 
 As part of the data warehouse, the ETL converts the note's data into a star schema, calculating several facts. Then, the last part is to build a Data Mart with all the necessary values for a user or country profile, reducing the time and impact on the database while executing.
 
-The web viewer provides an intuitive interface to explore these profiles and statistics. For the web viewer implementation, see [OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer).
+The web viewer provides an intuitive interface to explore these profiles and statistics. For the web viewer implementation, see [OSM-Notes-Viewer](https://github.com/OSM-Notes/OSM-Notes-Viewer).
 
 ## Technical Decisions
 

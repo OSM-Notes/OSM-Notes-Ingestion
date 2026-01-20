@@ -69,7 +69,7 @@ The project has been simplified from 36 redundant test runners to 9 consolidated
 - **Features**: End-to-end workflows, note processing integration
 - **Usage**: `./run_integration_tests.sh`
 
-> **Note:** DWH/ETL integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** DWH/ETL integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 #### 7. `run_mock_tests.sh` - Mock Environment Tests
 
@@ -112,8 +112,8 @@ Integration tests validate complete workflows and system interactions:
   - Planet notes processing workflow
   - Large XML file handling
 
-> **Note:** ETL and datamart integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
-- **Key Tests**: See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) repository
+> **Note:** ETL and datamart integration tests are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
+- **Key Tests**: See [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) repository
   - Bridge table integration
   - Application version integration
   - Season integration
@@ -165,7 +165,7 @@ Integration tests validate complete workflows and system interactions:
 - **database_variables.test.bats** - Database variable management
 
 > **Note:** Tests for datamartCountries, datamartUsers, ETL, and profile are
-> maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+> maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
 > repository.
 
 ### 🔧 Functions and Scripts (8 suites)
@@ -218,7 +218,7 @@ Integration tests validate complete workflows and system interactions:
 - **script_help_validation.test.bats** - Script help validation
 
 For **WMS (Web Map Service) test suites**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### 📝 Logging Pattern Validation (1 suite)
 

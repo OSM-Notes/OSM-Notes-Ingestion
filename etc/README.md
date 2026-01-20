@@ -32,7 +32,7 @@ Main configuration file with general project settings.
 ## WMS Configuration
 
 For **WMS (Web Map Service) layer publication** configuration, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ## Usage
 

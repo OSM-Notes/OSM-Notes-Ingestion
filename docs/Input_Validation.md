@@ -359,7 +359,7 @@ The validation functions are demonstrated in the comprehensive test suite at `te
 - **Overpass API Support**: Used for validating Overpass API responses and GeoJSON conversions
 - **Comprehensive Coverage**: Support for SQL, XML, CSV, and configuration file validation
 
-> **Note:** ETL scripts are maintained in [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> **Note:** ETL scripts are maintained in [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ## Date Validation Functions
     - `__validate_iso8601_date()` - Validates ISO 8601 date formats

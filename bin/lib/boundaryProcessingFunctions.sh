@@ -8,7 +8,7 @@ VERSION="2026-01-07"
 # GitHub repository URL for boundaries data (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
 if ! declare -p DEFAULT_BOUNDARIES_DATA_REPO_URL > /dev/null 2>&1; then
- declare -r DEFAULT_BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data"
+ declare -r DEFAULT_BOUNDARIES_DATA_REPO_URL="https://raw.githubusercontent.com/OSM-Notes/OSM-Notes-Data/main/data"
 fi
 
 # Directory lock for ogr2ogr imports
@@ -133,7 +133,7 @@ function __resolve_geojson_file() {
  fi
 
  # Default GitHub repository URL for boundaries data
- local BOUNDARIES_DATA_REPO_URL="${BOUNDARIES_DATA_REPO_URL:-https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data}"
+ local BOUNDARIES_DATA_REPO_URL="${BOUNDARIES_DATA_REPO_URL:-https://raw.githubusercontent.com/OSM-Notes/OSM-Notes-Data/main/data}"
  local BOUNDARIES_DATA_BRANCH="${BOUNDARIES_DATA_BRANCH:-main}"
 
  # Try local files first (for development or offline use)

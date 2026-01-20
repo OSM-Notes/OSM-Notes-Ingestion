@@ -525,7 +525,7 @@ fi
 # GitHub repository URL for note location backup (can be overridden via environment variable)
 # Only set if not already declared (e.g., when sourced from another script)
 if ! declare -p DEFAULT_NOTE_LOCATION_DATA_REPO_URL > /dev/null 2>&1; then
- declare -r DEFAULT_NOTE_LOCATION_DATA_REPO_URL="${DEFAULT_NOTE_LOCATION_DATA_REPO_URL:-https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data}"
+ declare -r DEFAULT_NOTE_LOCATION_DATA_REPO_URL="${DEFAULT_NOTE_LOCATION_DATA_REPO_URL:-https://raw.githubusercontent.com/OSM-Notes/OSM-Notes-Data/main/data}"
 fi
 
 # ogr2ogr GeoJSON test file.

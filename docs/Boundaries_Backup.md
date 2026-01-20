@@ -3,16 +3,16 @@
 > **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  
 > For country boundary processing details, see [Process_Planet.md](./Process_Planet.md) and [bin/process/updateCountries.sh](../bin/process/updateCountries.sh).
 
-Boundary backup files are stored in the [OSM-Notes-Data](https://github.com/OSMLatam/OSM-Notes-Data) repository
+Boundary backup files are stored in the [OSM-Notes-Data](https://github.com/OSM-Notes/OSM-Notes-Data) repository
 to keep this repository focused on code only. The backups are automatically downloaded from GitHub
 when needed.
 
 ## Files Location
 
 The backup files are stored in the external repository:
-- **Repository**: [OSM-Notes-Data](https://github.com/OSMLatam/OSM-Notes-Data)
+- **Repository**: [OSM-Notes-Data](https://github.com/OSM-Notes/OSM-Notes-Data)
 - **Path**: `data/countries.geojson.gz` and `data/maritimes.geojson.gz`
-- **URL**: `https://raw.githubusercontent.com/OSMLatam/OSM-Notes-Data/main/data/`
+- **URL**: `https://raw.githubusercontent.com/OSM-Notes/OSM-Notes-Data/main/data/`
 
 ## Files
 
@@ -142,7 +142,7 @@ gzip -k data/maritimes.geojson
 
 # Step 3: Upload to OSM-Notes-Data repository manually
 # Clone or update the repository
-git clone https://github.com/OSMLatam/OSM-Notes-Data.git /tmp/OSM-Notes-Data
+git clone https://github.com/OSM-Notes/OSM-Notes-Data.git /tmp/OSM-Notes-Data
 # Or if already cloned:
 cd /tmp/OSM-Notes-Data && git pull
 

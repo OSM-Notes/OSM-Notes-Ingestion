@@ -497,7 +497,7 @@ bats tests/unit/bash/cleanup*.bats tests/unit/bash/clean*.bats
 ```
 
 For **WMS (Web Map Service) tests**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Error Handling
 

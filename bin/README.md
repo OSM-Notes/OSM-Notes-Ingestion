@@ -58,7 +58,7 @@ Database maintenance script for comprehensive cleanup operations:
 - **API Processing**: `bin/process/processAPINotes.sh` processes real-time API data
 
 > **Note:** ETL, Data Warehouse, and Analytics components have been moved to
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### Monitoring & Maintenance
 
@@ -549,7 +549,7 @@ DBNAME=osm_notes_ingestion_test ./bin/cleanupAll.sh
 **Warning:** This script permanently removes data. Always backup before running!
 
 For **WMS (Web Map Service) layer publication**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Generating Backups
 
@@ -647,7 +647,7 @@ Complete setup from scratch:
 ./bin/scripts/exportMaritimesBackup.sh
 
 # For WMS (Web Map Service) components, see the
-# OSM-Notes-WMS repository: https://github.com/OSMLatam/OSM-Notes-WMS
+# OSM-Notes-WMS repository: https://github.com/OSM-Notes/OSM-Notes-WMS
 ```
 
 #### Daily Operations

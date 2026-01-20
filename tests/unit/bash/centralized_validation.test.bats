@@ -77,7 +77,7 @@ teardown() {
 
 # NOTE: Tests for datamartUsers.sh and datamartCountries.sh have been moved
 # to OSM-Notes-Analytics repository as these scripts are now part of Analytics
-# See: https://github.com/OSMLatam/OSM-Notes-Analytics
+# See: https://github.com/OSM-Notes/OSM-Notes-Analytics
 
 @test "Centralized validation: notesCheckVerifier.sh should use validation functions" {
  # Test that the script loads validation functions
@@ -97,7 +97,7 @@ teardown() {
 
 
 # NOTE: Test for ETL.sh has been moved to OSM-Notes-Analytics repository
-# See: https://github.com/OSMLatam/OSM-Notes-Analytics
+# See: https://github.com/OSM-Notes/OSM-Notes-Analytics
 
 @test "Centralized validation: processPlanetNotes.sh should use validation functions" {
  # Test that the script loads validation functions

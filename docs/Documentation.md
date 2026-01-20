@@ -41,7 +41,7 @@ This repository focuses exclusively on **data ingestion** from OpenStreetMap:
 - **Data Storage**: Loading processed data into PostgreSQL/PostGIS
 
 > **Note:** Analytics, ETL, and Data Warehouse components are maintained in a
-> separate repository: [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+> separate repository: [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
 
 ---
 
@@ -165,7 +165,7 @@ The OSM-Notes-Ingestion system consists of the following components:
   - Country assignment for notes
 
 For **WMS (Web Map Service) layer publication**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 - **Style Management**: Different styles for open/closed notes
 - **Client Integration**: JOSM, Vespucci, and web applications
 
@@ -238,7 +238,7 @@ For **WMS (Web Map Service) layer publication**, see the
          └──────────────────┘
 
 For **WMS (Web Map Service) layer publication**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ┌──────────────┐
 │  OSM Notes   │
@@ -731,7 +731,7 @@ Script    Validation Functions    XML Validator    CSV Validator    Database    
 ```
 
 For **WMS (Web Map Service) layer publication**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ---
 
@@ -1229,7 +1229,7 @@ chmod +x /usr/local/bin/check-osm-notes-health.sh
 
 ### Use Case 3: Integration with Analytics System
 
-**Scenario**: Integrating OSM-Notes-Ingestion with [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for data warehouse and analytics.
+**Scenario**: Integrating OSM-Notes-Ingestion with [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) for data warehouse and analytics.
 
 **Workflow**:
 
@@ -1262,18 +1262,18 @@ OSM API → processAPINotes.sh → PostgreSQL (notes)
 psql -d notes -c "SELECT COUNT(*) FROM notes WHERE created_at > NOW() - INTERVAL '1 hour';"
 
 # Check analytics data (if Analytics project is deployed)
-# See [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics) for details
+# See [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics) for details
 ```
 
 For **WMS (Web Map Service) layer publication**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Use Case 4: Data Quality Monitoring
 
 **Scenario**: Monitoring data quality and detecting synchronization issues.
 
 > **Note:** For comprehensive system monitoring across all repositories, see
-> [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring).
 > This use case describes local monitoring scripts specific to ingestion.
 
 **Workflow**:
@@ -1470,7 +1470,7 @@ Server 2 (Database):
 ```
 
 **Note**: For WMS service deployment, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 **Configuration**:
 
@@ -1498,7 +1498,7 @@ DB_PASSWORD=secure_password
 **Scenario**: Integrating with external monitoring systems (Nagios, Prometheus, etc.).
 
 > **Note:** For centralized monitoring across all OSM Notes repositories, see
-> [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring).
 > This use case describes integration with external monitoring systems for this repository.
 
 **Workflow**:
@@ -1836,7 +1836,7 @@ ogr2ogr -f GeoJSON notes_export.geojson \
 ```
 
 For **WMS (Web Map Service) layer usage** in mapping applications, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Use Case 13: Data Analysis Workflows
 
@@ -2074,7 +2074,7 @@ chmod +x /usr/local/bin/check-osm-notes.sh
 ```
 
 For **WMS (Web Map Service) tables and schema**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Core Tables
 
@@ -2111,7 +2111,7 @@ For **WMS (Web Map Service) tables and schema**, see the
   - Used for bulk loading and validation
 
 For **WMS (Web Map Service) tables and schema**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Monitoring Tables
 
@@ -2257,7 +2257,7 @@ fi
   - Database cleanup
 
 For **WMS (Web Map Service) scripts**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Data Transformation
 
@@ -2348,7 +2348,7 @@ note_id,action,text
   - Complete note history
 
 For **WMS (Web Map Service) service configuration**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Data Formats
 
@@ -2362,7 +2362,7 @@ For **WMS (Web Map Service) service configuration**, see the
 ## Monitoring and Maintenance
 
 > **Note:** For centralized monitoring, alerting, and API security across all
-> OSM Notes repositories, see [OSM-Notes-Monitoring](https://github.com/OSMLatam/OSM-Notes-Monitoring).
+> OSM Notes repositories, see [OSM-Notes-Monitoring](https://github.com/OSM-Notes/OSM-Notes-Monitoring).
 > This section describes local monitoring capabilities specific to this repository.
 
 ### System Health
@@ -2575,7 +2575,7 @@ export MAX_THREADS=2
 ```
 
 For **WMS (Web Map Service) troubleshooting**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Error Code Reference
 
@@ -2602,7 +2602,7 @@ See detailed troubleshooting in [Process_API.md](./Process_API.md) and [Process_
 - **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and relationships
 - [Process_API.md](./Process_API.md): API processing troubleshooting
 - [Process_Planet.md](./Process_Planet.md): Planet processing troubleshooting
-For **WMS troubleshooting**, see the [OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+For **WMS troubleshooting**, see the [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 **Check Logs:**
 
@@ -2748,7 +2748,7 @@ The `data/eez_analysis/eez_centroids.csv` file is a derivative work of the World
   workflows
 
 For **WMS (Web Map Service) documentation**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### CI/CD Documentation
 
@@ -2775,9 +2775,9 @@ For **WMS (Web Map Service) documentation**, see the
 
 For analytics, ETL, and data warehouse functionality, see:
 
-- **[OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)**
+- **[OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)**
   - Star schema design
-  - ETL processes (see [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics))
+  - ETL processes (see [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics))
   - Data marts (users, countries)
   - Profile generation
   - Advanced analytics
@@ -2786,7 +2786,7 @@ For analytics, ETL, and data warehouse functionality, see:
 
 For interactive web visualization and exploration of user and country profiles:
 
-- **[OSM-Notes-Viewer](https://github.com/OSMLatam/OSM-Notes-Viewer)**
+- **[OSM-Notes-Viewer](https://github.com/OSM-Notes/OSM-Notes-Viewer)**
   - Interactive web interface
   - User and country profile visualization
   - Statistics and analytics exploration

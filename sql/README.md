@@ -156,7 +156,7 @@ Scripts for processing and loading data, organized by processing type:
   - Usage: Called after all partitions are loaded
 
 > **Note:** DWH (Data Warehouse), ETL, and Analytics SQL scripts have been moved to
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### SQL Functions and Procedures (Root Level)
 
@@ -303,7 +303,7 @@ Performance analysis and validation scripts:
 - **API Integration**: Scripts for incremental API data synchronization
 
 > **Note:** For ETL scripts, data marts, and staging procedures, see
-> [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics).
+> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
 
 ### Functions and Procedures
 

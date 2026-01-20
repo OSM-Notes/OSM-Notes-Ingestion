@@ -714,7 +714,7 @@ fi
 ---
 
 For **WMS (Web Map Service) troubleshooting**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ## Network and Connectivity
 
@@ -1171,7 +1171,7 @@ If database corruption is suspected:
 - **[Process_API.md](./Process_API.md)**: API processing details and troubleshooting
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing details and troubleshooting
 For **WMS (Web Map Service) documentation**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Check Logs
 
@@ -1237,7 +1237,7 @@ Use these scripts for automated diagnostics:
 ### Service Documentation
 
 For **WMS (Web Map Service) documentation**, see the
-[OSM-Notes-WMS](https://github.com/OSMLatam/OSM-Notes-WMS) repository.
+[OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.
 
 ### Script Reference
 

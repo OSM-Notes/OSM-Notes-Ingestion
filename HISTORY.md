@@ -123,7 +123,7 @@ The original recognition categories from the wiki are still relevant:
 - Disciplinado (Disciplined)
 
 These analytics and recognition features are now implemented in the
-[OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
+[OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics)
 repository.
 
 ### Current Status
@@ -139,8 +139,8 @@ Today, OSM-Notes-Ingestion is a production-ready system that:
 ### References
 
 - **Original Wiki**: https://wiki.openstreetmap.org/wiki/ES:LatAm/Proyectos/Resoluci%C3%B3n_de_notas/Preparaci%C3%B3n_premios
-- **OSM Notes Analytics**: https://github.com/OSMLatam/OSM-Notes-Analytics
-- **OSM Notes Viewer**: https://github.com/OSMLatam/OSM-Notes-Viewer
+- **OSM Notes Analytics**: https://github.com/OSM-Notes/OSM-Notes-Analytics
+- **OSM Notes Viewer**: https://github.com/OSM-Notes/OSM-Notes-Viewer
 - **Project Rationale**: See [docs/Rationale.md](./docs/Rationale.md)
 
 
