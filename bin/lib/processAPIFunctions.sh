@@ -4,8 +4,8 @@
 # This file contains functions for processing API data.
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-13
-VERSION="2025-12-13"
+# Version: 2026-01-19
+VERSION="2026-01-19"
 
 # Show help function
 function __show_help() {
@@ -138,16 +138,37 @@ function __getNewNotesFromApi() {
  # Use longer timeout for large note downloads (120 seconds)
  # 30 seconds is insufficient for 10,000 notes (can be 12MB+)
  if __retry_osm_api "${REQUEST}" "${API_NOTES_FILE}" 5 2 120; then
-  if [[ -s "${API_NOTES_FILE}" ]]; then
-   __logi "Successfully downloaded notes from API: ${API_NOTES_FILE}"
+  # Check if file exists (downloaded successfully)
+  if [[ ! -f "${API_NOTES_FILE}" ]]; then
+   __loge "ERROR: API notes file was not created after download"
    __log_finish
-   return 0
-  else
-   __loge "ERROR: Downloaded file is empty"
+   return 1
+  fi
+  
+  # File exists - check if it has content (empty XML with just <osm></osm> is valid)
+  # An empty file (0 bytes) indicates download failure, but a file with XML structure
+  # (even without <note> elements) is valid and indicates 0 notes scenario
+  if [[ ! -s "${API_NOTES_FILE}" ]]; then
+   __loge "ERROR: Downloaded file is completely empty (0 bytes)"
    rm -f "${API_NOTES_FILE}"
    __log_finish
    return 1
   fi
+  
+  # File has content - validate it's XML (even if empty of notes)
+  # Check if file contains XML structure (at minimum <osm> tag)
+  if ! grep -q '<osm' "${API_NOTES_FILE}" 2> /dev/null; then
+   __loge "ERROR: Downloaded file does not contain valid XML structure"
+   rm -f "${API_NOTES_FILE}"
+   __log_finish
+   return 1
+  fi
+  
+  # File exists, has content, and contains XML structure - success
+  # Even if it has no <note> elements (0 notes scenario), this is valid
+  __logi "Successfully downloaded notes from API: ${API_NOTES_FILE}"
+  __log_finish
+  return 0
  else
   __loge "ERROR: Failed to download notes from API"
   rm -f "${API_NOTES_FILE}"

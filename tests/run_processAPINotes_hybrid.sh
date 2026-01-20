@@ -2,7 +2,7 @@
 
 # Script to run processAPINotes.sh in hybrid mode (real DB, mocked downloads)
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-03
+# Version: 2026-01-19
 
 set -euo pipefail
 
@@ -108,7 +108,8 @@ check_postgresql() {
  fi
 
  # Try to connect to PostgreSQL
- local psql_cmd="psql"
+ # Disable pager to prevent blocking in non-interactive mode
+ local psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
@@ -133,7 +134,8 @@ clean_test_database() {
 
  log_info "Cleaning test database: ${DBNAME} using cleanupAll.sh"
 
- local psql_cmd="psql"
+ # Disable pager to prevent blocking in non-interactive mode
+ local psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
@@ -201,7 +203,8 @@ setup_test_database() {
 
  log_info "Setting up test database: ${DBNAME}"
 
- local psql_cmd="psql"
+ # Disable pager to prevent blocking in non-interactive mode
+ local psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
@@ -243,7 +246,8 @@ modify_germany_for_hybrid_test() {
 
  log_info "Modifying Germany geometry for hybrid test (to test both validation cases)..."
 
- local psql_cmd="psql"
+ # Disable pager to prevent blocking in non-interactive mode
+ local psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
@@ -292,8 +296,9 @@ verify_comments_inserted() {
  # shellcheck disable=SC1091
  source "${PROJECT_ROOT}/etc/properties_test.sh" 2> /dev/null || true
 
+ # Disable pager to prevent blocking in non-interactive mode
  local psql_cmd
- psql_cmd="psql"
+ psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST}"
  fi
@@ -381,7 +386,8 @@ verify_timestamp_updated() {
   source "${PROJECT_ROOT}/etc/properties.sh"
  fi
 
- local psql_cmd="psql"
+ # Disable pager to prevent blocking in non-interactive mode
+ local psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
@@ -495,7 +501,8 @@ verify_base_tables_dropped() {
 
  log_info "Verifying base tables are dropped (cleanupAll.sh should have done this)..."
 
- local psql_cmd="psql"
+ # Disable pager to prevent blocking in non-interactive mode
+ local psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
@@ -629,7 +636,8 @@ cleanup_lock_files() {
   source "${PROJECT_ROOT}/etc/properties.sh"
  fi
 
- local psql_cmd="psql"
+ # Disable pager to prevent blocking in non-interactive mode
+ local psql_cmd="psql -P pager=off"
  if [[ -n "${DB_HOST:-}" ]]; then
   psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
  fi
@@ -861,6 +869,11 @@ setup_environment_variables() {
  # Disable email alerts in test mode
  export SEND_ALERT_EMAIL="${SEND_ALERT_EMAIL:-false}"
 
+ # Disable psql pager to prevent vi/less from blocking in non-interactive mode
+ # This is critical when running scripts in background or with timeout
+ export PGPAGER="${PGPAGER:-off}"
+ export PAGER="${PAGER:-off}"
+
  # Set project base directory (MUST be exported for child processes)
  export SCRIPT_BASE_DIRECTORY="${PROJECT_ROOT}"
  export MOCK_FIXTURES_DIR="${PROJECT_ROOT}/tests/fixtures/command/extra"
@@ -968,7 +981,8 @@ run_processAPINotes() {
    # shellcheck disable=SC1091
    source "${PROJECT_ROOT}/etc/properties.sh"
   fi
-  local psql_cmd="psql"
+  # Disable pager to prevent blocking in non-interactive mode
+  local psql_cmd="psql -P pager=off"
   if [[ -n "${DB_HOST:-}" ]]; then
    psql_cmd="${psql_cmd} -h ${DB_HOST} -p ${DB_PORT}"
   fi
@@ -989,29 +1003,124 @@ run_processAPINotes() {
  
  # Capture both stdout and stderr to a temporary file to see errors
  local error_log="/tmp/processAPINotes_hybrid_error_$$.log"
- # Ensure RUNNING_IN_SETSID is exported to prevent re-execution
+ # Ensure RUNNING_IN_SETSID is exported to prevent re-execution with setsid
+ # This is critical: processAPINotes.sh uses setsid -w which blocks when run inside script command
+ # By setting RUNNING_IN_SETSID=1, we prevent the setsid re-execution that causes the hang
  export RUNNING_IN_SETSID=1
  local script_exit_code=0
- # Use script command to capture all output including early failures
- # The -q flag makes script quiet (no script started/ended messages)
- # -c executes the command and exits
- # This ensures we capture output even if script fails very early
- script -q -c "${process_script}" "${error_log}" 2>&1 || script_exit_code=$?
+ # Execute script directly (not through script command) to avoid setsid -w blocking issue
+ # The script command can cause setsid -w to hang when waiting for child processes
+ # Instead, redirect output directly to error log file
+ # Add timeout (30 minutes) to prevent infinite hangs
+ # Exit code 124 means timeout was reached
+ # Use timeout with --kill-after to ensure all processes are terminated
+ # DO NOT run in background - timeout handles process management correctly
+ if command -v timeout > /dev/null 2>&1; then
+  # Run timeout directly (not in background) to properly manage child processes
+  # Execute script directly and redirect both stdout and stderr to error log
+  # Execute the script directly (not through bash -c) to preserve environment and exit codes
+  # Use bash to execute script to ensure proper shell initialization and error handling
+  # This is important because the script might have a shebang that needs proper shell handling
+  timeout --kill-after=10s 1800s bash "${process_script}" > "${error_log}" 2>&1 || script_exit_code=$?
+  
+  if [[ ${script_exit_code} -eq 124 ]] || [[ ${script_exit_code} -eq 137 ]]; then
+   log_error "Script execution timed out or was killed (exit code: ${script_exit_code})"
+   log_error "This may indicate an infinite loop or deadlock in the script"
+   log_error "Killing any remaining child processes..."
+   # Kill any remaining processes from the script (including orphaned children)
+   pkill -f "${process_script}" 2> /dev/null || true
+   # Wait a moment for processes to terminate
+   sleep 2
+   # Force kill if still running
+   pkill -9 -f "${process_script}" 2> /dev/null || true
+  fi
+ else
+  # Fallback if timeout command is not available
+  bash "${process_script}" > "${error_log}" 2>&1 || script_exit_code=$?
+ fi
  
  if [[ ${script_exit_code} -ne 0 ]]; then
   log_error "Script failed with exit code: ${script_exit_code}"
   log_error "Full output (last 200 lines):"
-  if [[ -s "${error_log}" ]]; then
-   sed -n '$(( $(wc -l < "${error_log}" 2>/dev/null || echo 0) - 199 )),$p' "${error_log}" 2>/dev/null | head -200 | while IFS= read -r line || true; do
-    log_error "  ${line}"
-   done
+  
+  # Check if error log file exists and has content
+  if [[ -f "${error_log}" ]]; then
+   if [[ -s "${error_log}" ]]; then
+    # Count total lines first (avoid using arithmetic expansion in sed)
+    local total_lines
+    total_lines=$(wc -l < "${error_log}" 2>/dev/null | tr -d ' ' || echo "0")
+    # Get last 200 lines, filter out empty lines completely, then limit to 200 non-empty lines
+    # Use grep to filter empty lines BEFORE head to avoid processing empty lines
+    # Process directly through pipe to avoid storing in variable (prevents empty line issues)
+    local non_empty_count=0
+    tail -n 200 "${error_log}" 2>/dev/null | grep -v '^[[:space:]]*$' | head -200 | while IFS= read -r line || true; do
+     # Double-check line is not empty before logging
+     if [[ -n "${line}" ]] && [[ -n "${line// /}" ]]; then
+      log_error "  ${line}"
+      non_empty_count=$((non_empty_count + 1))
+     fi
+    done || true
+    
+    # If no non-empty lines were found, show a message
+    # Note: non_empty_count won't be updated in parent shell due to pipe subshell
+    # So we check separately
+    if ! tail -n 200 "${error_log}" 2>/dev/null | grep -q '[^[:space:]]'; then
+     log_error "  Error log contains only empty lines (${total_lines} total lines)"
+    fi
+   else
+    local error_log_size
+    error_log_size=$(stat -c%s "${error_log}" 2>/dev/null || wc -c < "${error_log}" 2>/dev/null || echo "0")
+    log_error "  Error log file exists but is empty or very small (${error_log_size} bytes)"
+    log_error "  This suggests the script failed very early, possibly during initialization"
+    log_error "  Check if the script exists and is executable: ${process_script}"
+    log_error "  Check if all required environment variables are set correctly"
+    # Try to get more information about why it failed
+    if [[ ! -f "${process_script}" ]]; then
+     log_error "  ERROR: Script file does not exist: ${process_script}"
+    elif [[ ! -x "${process_script}" ]]; then
+     log_error "  ERROR: Script file is not executable: ${process_script}"
+    else
+     # Try to show what was written to the error log (even if it's small)
+     log_error "  First 500 bytes of error log:"
+     head -c 500 "${error_log}" 2>/dev/null | while IFS= read -r line || true; do
+      log_error "    ${line}"
+     done || {
+      # If head failed, try cat
+      local error_content
+      error_content=$(cat "${error_log}" 2>/dev/null || echo "")
+      if [[ -n "${error_content}" ]]; then
+       log_error "    ${error_content}"
+      else
+       log_error "    (file is completely empty)"
+      fi
+     }
+    fi
+   fi
   else
-   log_error "  Error log file is empty - script failed before writing any output"
+   log_error "  Error log file does not exist: ${error_log}"
+   log_error "  This suggests the script failed before creating the log file"
+   log_error "  Check if the script exists and is executable: ${process_script}"
   fi
-  rm -f "${error_log}"
+  
+  # Don't delete error log immediately - keep it for debugging
+  # Keep error log file for debugging, especially if it's small (might contain important error info)
+  # Only delete if it's completely empty (0 bytes)
+  if [[ -f "${error_log}" ]]; then
+   local error_log_size
+   error_log_size=$(stat -c%s "${error_log}" 2>/dev/null || wc -c < "${error_log}" 2>/dev/null || echo "0")
+   if [[ ${error_log_size} -eq 0 ]]; then
+    rm -f "${error_log}"
+   else
+    log_error "  Error log preserved for debugging: ${error_log} (${error_log_size} bytes)"
+   fi
+  fi
   return ${script_exit_code}
  fi
- rm -f "${error_log}"
+ 
+ # Script succeeded - clean up error log
+ if [[ -f "${error_log}" ]]; then
+  rm -f "${error_log}"
+ fi
 
  local exit_code=$?
  
