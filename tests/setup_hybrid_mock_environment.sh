@@ -51,7 +51,7 @@ fi
 # Cache file to track if mocks are up-to-date
 MOCK_CACHE_FILE="${MOCK_COMMANDS_DIR}/.mock_cache_version"
 readonly MOCK_CACHE_FILE
-readonly CURRENT_MOCK_VERSION="2025-01-23-example-com-support"
+readonly CURRENT_MOCK_VERSION="2025-01-20-curl-connectivity-simplified"
 
 # Function to check if mock commands need to be regenerated
 needs_mock_regeneration() {
@@ -488,12 +488,22 @@ if echo "$ALL_ARGS" | grep -qE 'raw\.githubusercontent\.com|github\.com.*/raw/';
 fi
 
 # Pattern 6: Network connectivity checks (google.com, cloudflare.com, github.com)
-# Pattern: curl -s --connect-timeout X -H "..." URL > /dev/null
+# Pattern: curl -s --max-time X URL OR curl -s --connect-timeout X URL
+# Handles both --max-time (used by __check_network_connectivity) and --connect-timeout
 # Only match if no output file is specified (pure connectivity check)
 # Exclude raw.githubusercontent.com (handled by Pattern 4)
+# This pattern handles connectivity checks used by __check_network_connectivity
+# The check uses: timeout X curl -s --max-time X URL > /dev/null 2>&1
+# Note: Redirection (> /dev/null) is handled by shell, not passed to curl
+# Simplified pattern matching: if URL matches and no -o flag, it's a connectivity check
 if echo "$ALL_ARGS" | grep -qE 'google\.com|cloudflare\.com|github\.com'; then
  if ! echo "$ALL_ARGS" | grep -qE 'raw\.githubusercontent\.com|github\.com.*/raw/'; then
+  # Check if this is a connectivity check (no -o flag)
+  # Connectivity checks don't use -o flag, output is redirected by shell
   if ! echo "$ALL_ARGS" | grep -qE '\s-o\s+[^ ]+'; then
+   # No output file specified - this is a connectivity check
+   # Match if it has -s (silent) flag OR --max-time OR --connect-timeout
+   # Simplified: if URL matches and no -o, assume it's a connectivity check
    exit 0
   fi
  fi
