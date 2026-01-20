@@ -470,17 +470,27 @@ function __maintainCountriesTableNew {
 
  __logi "Found ${COUNTRIES_COUNT} countries in countries_new, performing maintenance..."
 
- # REINDEX the spatial index to ensure it's properly built
- __logi "Rebuilding spatial index (countries_new_spatial)..."
- if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX CONCURRENTLY countries_new_spatial;" 2> /dev/null; then
-  __logi "Spatial index rebuilt successfully"
+ # Ensure spatial index exists, then REINDEX all indexes in the table
+ __logi "Ensuring spatial index exists and rebuilding all indexes..."
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+CREATE INDEX IF NOT EXISTS countries_new_spatial ON countries_new
+  USING GIST (geom);
+COMMENT ON INDEX countries_new_spatial IS 'Spatial index for countries_new';
+EOF
+
+ # REINDEX TABLE reindexes all indexes without needing to know their names
+ __logi "Rebuilding all indexes for countries_new..."
+ local REINDEX_OUTPUT
+ if REINDEX_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX TABLE CONCURRENTLY countries_new;" 2>&1); then
+  __logi "All indexes rebuilt successfully"
  else
   # If CONCURRENTLY fails (e.g., no concurrent access), try regular REINDEX
   __logw "CONCURRENTLY REINDEX failed, trying regular REINDEX..."
-  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX countries_new_spatial;" 2> /dev/null; then
-   __logi "Spatial index rebuilt successfully"
+  if REINDEX_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX TABLE countries_new;" 2>&1); then
+   __logi "All indexes rebuilt successfully"
   else
-   __logw "REINDEX failed, but continuing..."
+   __logw "REINDEX failed: ${REINDEX_OUTPUT}"
+   __logw "Continuing anyway..."
   fi
  fi
 
@@ -536,17 +546,27 @@ function __maintainCountriesTable {
 
  __logi "Found ${COUNTRIES_COUNT} countries, performing maintenance..."
 
- # REINDEX the spatial index to ensure it's properly built
- __logi "Rebuilding spatial index (countries_spatial)..."
- if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX CONCURRENTLY countries_spatial;" 2> /dev/null; then
-  __logi "Spatial index rebuilt successfully"
+ # Ensure spatial index exists, then REINDEX all indexes in the table
+ __logi "Ensuring spatial index exists and rebuilding all indexes..."
+ PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << 'EOF'
+CREATE INDEX IF NOT EXISTS countries_spatial ON countries
+  USING GIST (geom);
+COMMENT ON INDEX countries_spatial IS 'Spatial index for countries';
+EOF
+
+ # REINDEX TABLE reindexes all indexes without needing to know their names
+ __logi "Rebuilding all indexes for countries..."
+ local REINDEX_OUTPUT
+ if REINDEX_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX TABLE CONCURRENTLY countries;" 2>&1); then
+  __logi "All indexes rebuilt successfully"
  else
   # If CONCURRENTLY fails (e.g., no concurrent access), try regular REINDEX
   __logw "CONCURRENTLY REINDEX failed, trying regular REINDEX..."
-  if PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX INDEX countries_spatial;" 2> /dev/null; then
-   __logi "Spatial index rebuilt successfully"
+  if REINDEX_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "REINDEX TABLE countries;" 2>&1); then
+   __logi "All indexes rebuilt successfully"
   else
-   __logw "REINDEX failed, but continuing..."
+   __logw "REINDEX failed: ${REINDEX_OUTPUT}"
+   __logw "Continuing anyway..."
   fi
  fi
 
