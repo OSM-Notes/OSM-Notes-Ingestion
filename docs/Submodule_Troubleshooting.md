@@ -64,7 +64,7 @@ cd ..
 rm -rf OSM-Notes-Ingestion
 
 # Clone with submodules
-git clone --recurse-submodules git@github.com:OSMLatam/OSM-Notes-Ingestion.git
+git clone --recurse-submodules git@github.com:OSM-Notes/OSM-Notes-Ingestion.git
 
 cd OSM-Notes-Ingestion
 ```
@@ -85,7 +85,7 @@ ls -la lib/osm-common/commonFunctions.sh
 
 This repository uses a Git submodule to share common code with other projects:
 
-- **Submodule repository**: <https://github.com/angoca/OSM-Notes-Common>
+- **Submodule repository**: <https://github.com/OSM-Notes/OSM-Notes-Common>
 - **Submodule path**: `lib/osm-common/`
 - **Purpose**: Share common functions across OSM-Notes-Ingestion and OSM-Notes-Analytics
 
@@ -103,13 +103,13 @@ To avoid this issue in the future:
 1. Always use `--recurse-submodules` when cloning:
 
    ```bash
-   git clone --recurse-submodules git@github.com:OSMLatam/OSM-Notes-Ingestion.git
+   git clone --recurse-submodules git@github.com:OSM-Notes/OSM-Notes-Ingestion.git
    ```
 
 2. Or initialize submodules immediately after cloning:
 
    ```bash
-   git clone git@github.com:OSMLatam/OSM-Notes-Ingestion.git
+   git clone git@github.com:OSM-Notes/OSM-Notes-Ingestion.git
    cd OSM-Notes-Ingestion
    git submodule update --init --recursive
    ```
@@ -165,7 +165,7 @@ Or use it directly in the URL:
 
 ```bash
 # Replace YOUR_TOKEN with your actual token
-git config submodule.lib/osm-common.url https://YOUR_TOKEN@github.com/OSMLatam/OSM-Notes-Common.git
+git config submodule.lib/osm-common.url https://YOUR_TOKEN@github.com/OSM-Notes/OSM-Notes-Common.git
 
 # Then initialize the submodule
 git submodule update --init --recursive

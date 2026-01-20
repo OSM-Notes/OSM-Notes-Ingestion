@@ -115,16 +115,16 @@ This project uses a Git submodule for shared code (`lib/osm-common/`):
 - **Logger** (`bash_logger.sh`): Logging library (log4j-style)
 
 These functions are shared with [OSM-Notes-Analytics](https://github.com/OSMLatam/OSM-Notes-Analytics)
-via the [OSM-Notes-Common](https://github.com/angoca/OSM-Notes-Common) submodule.
+via the [OSM-Notes-Common](https://github.com/OSM-Notes/OSM-Notes-Common) submodule.
 
 ### Cloning with Submodules
 
 ```bash
 # Clone with submodules (recommended)
-git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
+git clone --recurse-submodules https://github.com/OSM-Notes/OSM-Notes-Ingestion.git
 
 # Or initialize after cloning
-git clone https://github.com/angoca/OSM-Notes-Ingestion.git
+git clone https://github.com/OSM-Notes/OSM-Notes-Ingestion.git
 cd OSM-Notes-Ingestion
 git submodule update --init --recursive
 ```
@@ -254,7 +254,7 @@ OSM-Notes-Ingestion/
 
 1. **Clone with submodules:**
    ```bash
-   git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
+   git clone --recurse-submodules https://github.com/OSM-Notes/OSM-Notes-Ingestion.git
    ```
 
 2. **Configure database** (see [Database Configuration](#database-configuration) section)

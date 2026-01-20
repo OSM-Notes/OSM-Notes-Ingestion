@@ -72,7 +72,7 @@ These variables are used across **all scripts** and should be standardized:
 - **Format**: `Project/Version (+project_url; contact: email)`
 - **Default**: empty (no explicit header)
 - **Example**:
-  - `export DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/angoca/OSM-Notes-Ingestion; contact: you@example.com)"`
+  - `export DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/OSM-Notes/OSM-Notes-Ingestion; contact: you@example.com)"`
 
 ### `CLEAN`
 - **Purpose**: Whether to delete temporary files after processing

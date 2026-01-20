@@ -1085,7 +1085,7 @@ This section describes real-world scenarios and typical workflows for using the 
 
 ```bash
 # Step 1: Clone repository with submodules
-git clone --recurse-submodules https://github.com/angoca/OSM-Notes-Ingestion.git
+git clone --recurse-submodules https://github.com/OSM-Notes/OSM-Notes-Ingestion.git
 cd OSM-Notes-Ingestion
 
 # Step 2: Configure database connection and User-Agent

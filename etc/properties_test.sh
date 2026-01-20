@@ -78,7 +78,7 @@ declare JSON_VALIDATOR="${JSON_VALIDATOR:-jq}"
 # Defaults to project identity if not provided.
 if [[ -z "${DOWNLOAD_USER_AGENT:-}" ]]; then
   # Do not break lines; keep UA in one line for header correctness
-  DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/osmlatam/OSM-Notes-Ingestion; contact: notes@osm.lat)"
+  DOWNLOAD_USER_AGENT="OSM-Notes-Ingestion/2025-10-30 (+https://github.com/OSM-Notes/OSM-Notes-Ingestion; contact: notes@osm.lat)"
 fi
 
 # Processing configuration.

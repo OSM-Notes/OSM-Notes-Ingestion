@@ -196,7 +196,7 @@ jobs:
       run: |
         echo "Configuring submodule URL for GitHub Actions..."
         # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
         git submodule sync
         
         echo "Initializing submodule..."
@@ -550,7 +550,7 @@ jobs:
       run: |
         echo "Configuring submodule URL for GitHub Actions..."
         # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
         git submodule sync
         
         echo "Initializing submodule..."
@@ -672,7 +672,7 @@ jobs:
       run: |
         echo "Configuring submodule URL for GitHub Actions..."
         # Ensure submodule uses HTTPS URL for GitHub Actions compatibility
-        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSMLatam/OSM-Notes-Common.git
+        git config --file=.gitmodules submodule.lib/osm-common.url https://github.com/OSM-Notes/OSM-Notes-Common.git
         git submodule sync
         
         echo "Initializing submodule..."
