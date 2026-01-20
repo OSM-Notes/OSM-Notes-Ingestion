@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # Pre-commit hook for OSM-Notes-Ingestion
+# Author: Andres Gomez (AngocA)
+# Version: 2026-01-20
 # Runs quality checks before allowing commit
 #
 # To install: ln -sf ../../.git-hooks/pre-commit .git/hooks/pre-commit

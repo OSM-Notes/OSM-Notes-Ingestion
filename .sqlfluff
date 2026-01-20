@@ -1,6 +1,6 @@
 # SQLFluff configuration for OSM-Notes-Ingestion
 # Author: Andres Gomez (AngocA)
-# Version: 2025-01-27
+# Version: 2026-01-20
 # Compatible with SQLFluff 1.4.5
 
 [sqlfluff]

@@ -1,6 +1,6 @@
 # shfmt configuration for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-07-30
+# Version: 2026-01-20
 
 # Use 1 space indentation (project standard)
 indent = 1
