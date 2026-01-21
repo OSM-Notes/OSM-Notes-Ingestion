@@ -264,7 +264,7 @@ modify_germany_for_hybrid_test() {
  germany_count=$(${psql_cmd} -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries WHERE country_id = 51477;" 2> /dev/null | grep -E '^[0-9]+$' | head -1 || echo "0")
 
  if [[ "${germany_count:-0}" -eq 0 ]]; then
-  log_info "Germany not found in database, skipping geometry modification"
+  log_info "Germany not found in database (expected in tests with limited country sets), skipping geometry modification"
   return 0
  fi
 

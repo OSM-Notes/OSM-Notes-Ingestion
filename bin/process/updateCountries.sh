@@ -52,8 +52,8 @@
 # For contributing: shellcheck -x -o all updateCountries.sh && shfmt -w -i 1 -sr -bn updateCountries.sh
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-16
-VERSION="2026-01-16"
+# Version: 2026-01-20
+VERSION="2026-01-20"
 
 #set -xv
 # Fails when a variable is not initialized.
@@ -1730,8 +1730,14 @@ EOF
   export USE_COUNTRIES_NEW="true"
 
   # Mark all countries in original table for update tracking
-  STMT="UPDATE countries SET updated = TRUE, last_update_attempt = CURRENT_TIMESTAMP"
-  echo "${STMT}" | PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1
+  __logi "Marking all countries for update tracking..."
+  local UPDATE_OUTPUT
+  UPDATE_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -c "UPDATE countries SET updated = TRUE, last_update_attempt = CURRENT_TIMESTAMP;" 2>&1)
+  local UPDATE_COUNT
+  UPDATE_COUNT=$(echo "${UPDATE_OUTPUT}" | grep -E '^UPDATE [0-9]+' | sed -E 's/^UPDATE ([0-9]+).*/\1/' || echo "0")
+  if [[ -n "${UPDATE_COUNT}" ]] && [[ "${UPDATE_COUNT}" =~ ^[0-9]+$ ]] && [[ "${UPDATE_COUNT}" -gt 0 ]]; then
+   __logi "Marked ${UPDATE_COUNT} countries for update tracking"
+  fi
 
   # In update mode, always download from Overpass to get latest geometries
   # (geometries can change even if IDs remain the same)
