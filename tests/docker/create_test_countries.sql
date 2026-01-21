@@ -1,5 +1,5 @@
 -- Simplified countries table and get_country function for testing
--- Version: 2025-07-27
+-- Version: 2026-01-19
 
 -- Create simplified countries table
 CREATE TABLE IF NOT EXISTS countries (
@@ -21,6 +21,7 @@ INSERT INTO countries (country_id, name, americas, europe, russia_middle_east, a
 
 
 -- Create simplified get_country function for testing
+-- Updated to reflect changes: initialize with -2 (unknown), return -1 only for known international waters
 CREATE OR REPLACE FUNCTION get_country (
   lon DECIMAL,
   lat DECIMAL,
@@ -32,7 +33,9 @@ DECLARE
   m_id_country INTEGER;
   m_area VARCHAR(20);
 BEGIN
-  m_id_country := 1; -- Default to US for testing
+  -- Initialize as unknown (-2) instead of international waters (-1)
+  -- -1 is reserved for KNOWN international waters only
+  m_id_country := -2;
   
   -- Simple logic based on longitude for testing
   IF (lon < -30) THEN
@@ -54,4 +57,5 @@ END
 $func$;
 
 COMMENT ON FUNCTION get_country IS
-  'Simplified version for testing - returns country based on longitude'; 
+  'Simplified version for testing - returns country based on longitude. '
+  'Initializes with -2 (unknown), returns -1 only for known international waters.';

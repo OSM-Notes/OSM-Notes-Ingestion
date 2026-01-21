@@ -70,6 +70,8 @@ teardown() {
 SQL
 
  # Create get_country function (simplified version for testing)
+ # Updated to reflect changes: return -2 for unknown countries instead of -1
+ # Version: 2026-01-19
  psql -d "${DBNAME}" << 'SQL'
   CREATE OR REPLACE FUNCTION get_country(
    lon DECIMAL,
@@ -82,6 +84,10 @@ SQL
    m_id_country INTEGER;
    m_current_country INTEGER;
   BEGIN
+   -- Initialize as unknown (-2) instead of international waters (-1)
+   -- -1 is reserved for KNOWN international waters only
+   m_id_country := -2;
+   
    -- Get current country
    SELECT id_country INTO m_current_country
    FROM notes
@@ -106,7 +112,9 @@ SQL
    ORDER BY country_id
    LIMIT 1;
    
-   RETURN COALESCE(m_id_country, -1);
+   -- Return -2 (unknown) if no country found, instead of -1 (international waters)
+   -- -1 is reserved ONLY for KNOWN international waters from international_waters table
+   RETURN COALESCE(m_id_country, -2);
   END;
   $$;
 SQL

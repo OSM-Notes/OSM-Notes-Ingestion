@@ -2,7 +2,7 @@
 
 # Test helper functions for BATS tests
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-29
+# Version: 2026-01-19
 
 # Test database configuration
 # Use the values already set by run_tests.sh, don't override them
@@ -514,6 +514,8 @@ DROP PROCEDURE IF EXISTS insert_note(INTEGER, DECIMAL, DECIMAL, note_status_enum
 DROP PROCEDURE IF EXISTS insert_note_comment(INTEGER, note_event_enum, TIMESTAMP WITH TIME ZONE, INTEGER, VARCHAR, INTEGER);
 
 -- Create simplified get_country function
+-- Updated to reflect changes: initialize with -2 (unknown), return -1 only for known international waters
+-- Version: 2026-01-19
 CREATE OR REPLACE FUNCTION get_country (
   lon DECIMAL,
   lat DECIMAL,
@@ -525,7 +527,9 @@ DECLARE
   m_id_country INTEGER;
   m_area VARCHAR(20);
 BEGIN
-  m_id_country := 1; -- Default to US for testing
+  -- Initialize as unknown (-2) instead of international waters (-1)
+  -- -1 is reserved for KNOWN international waters only
+  m_id_country := -2;
   
   -- Simple logic based on longitude for testing
   IF (lon < -30) THEN
@@ -542,7 +546,8 @@ BEGIN
     m_id_country := 4; -- Japan
   END IF;
   
-  INSERT INTO tries VALUES (m_area, 1, id_note, m_id_country);
+  -- Return country ID (always positive for valid countries)
+  -- Note: Removed INSERT INTO tries as it's not needed for testing
   RETURN m_id_country;
 END
 $func$;

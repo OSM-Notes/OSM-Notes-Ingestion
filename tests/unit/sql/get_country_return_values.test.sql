@@ -28,9 +28,19 @@ BEGIN
   -- Determine actual category
   IF v_result > 0 THEN
     v_actual_category := 'valid_country';
-    SELECT country_name_en INTO v_country_name
-    FROM countries
-    WHERE country_id = v_result;
+    -- Get country name (support both simplified test schema and full schema)
+    -- Try name first (simplified test schema), then country_name_en (full schema)
+    BEGIN
+      SELECT name INTO v_country_name
+      FROM countries
+      WHERE country_id = v_result;
+    EXCEPTION
+      WHEN undefined_column THEN
+        -- name doesn't exist, try country_name_en (full schema)
+        SELECT country_name_en INTO v_country_name
+        FROM countries
+        WHERE country_id = v_result;
+    END;
   ELSIF v_result = -1 THEN
     v_actual_category := 'international_waters';
     v_country_name := 'International Waters';
@@ -295,9 +305,19 @@ BEGIN
           test_cases.name, test_cases.lon, test_cases.lat, v_test_result;
         v_failures := v_failures + 1;
       ELSIF v_test_result > 0 THEN
-        SELECT country_name_en INTO v_country_name
-        FROM countries
-        WHERE country_id = v_test_result;
+        -- Get country name (support both simplified test schema and full schema)
+        -- Try name first (simplified test schema), then country_name_en (full schema)
+        BEGIN
+          SELECT name INTO v_country_name
+          FROM countries
+          WHERE country_id = v_test_result;
+        EXCEPTION
+          WHEN undefined_column THEN
+            -- name doesn't exist, try country_name_en (full schema)
+            SELECT country_name_en INTO v_country_name
+            FROM countries
+            WHERE country_id = v_test_result;
+        END;
         RAISE NOTICE 'PASS: % returned valid country_id % (%)',
           test_cases.name, v_test_result, COALESCE(v_country_name, 'NULL');
       ELSE
