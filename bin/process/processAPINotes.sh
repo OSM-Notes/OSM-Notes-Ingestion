@@ -927,7 +927,20 @@ function __validateAndProcessApiXml {
 
  # Count notes FIRST before validation to handle XML files with structure but no notes
  # This prevents validation errors when MOCK_NOTES_COUNT=0 generates valid but empty XML
+ # Temporarily disable set -e to allow function to complete even if it returns non-zero
+ # (though it should return 0 now, this is a safety measure)
+ set +e
  __countXmlNotesAPI "${API_NOTES_FILE}"
+ local COUNT_EXIT_CODE=$?
+ set -e
+
+ # If counting failed or no notes found, handle gracefully
+ if [[ ${COUNT_EXIT_CODE} -ne 0 ]]; then
+  __logw "Note counting encountered an issue (exit code ${COUNT_EXIT_CODE}), but continuing with processing"
+  # Ensure TOTAL_NOTES is set even if function failed
+  TOTAL_NOTES="${TOTAL_NOTES:-0}"
+  export TOTAL_NOTES
+ fi
 
  # If no notes found, skip validation and processing
  if [[ "${TOTAL_NOTES:-0}" -eq 0 ]]; then

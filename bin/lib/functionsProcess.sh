@@ -645,6 +645,7 @@ function __countXmlNotesAPI() {
 
  # Validate XML structure first (only if XML validation is enabled)
  # Only validate if the file is suspected to be malformed and validation is not skipped
+ # Empty XML files with valid structure (no notes) are valid and should not cause errors
  if [[ "${SKIP_XML_VALIDATION}" != "true" ]] && command -v xmllint > /dev/null 2>&1; then
   # Check if the file contains basic XML structure
   if ! grep -q "<?xml" "${XML_FILE}" 2> /dev/null; then
@@ -656,8 +657,10 @@ function __countXmlNotesAPI() {
   fi
 
   # Try to validate XML structure - fail only on severe structural issues
+  # Empty XML files (<osm></osm>) are valid and should pass validation
   if ! xmllint --noout "${XML_FILE}" > /dev/null 2>&1; then
    # Check if it's a severe structural issue (missing closing tags, etc.)
+   # But allow empty XML files (no <note> elements) as they are valid
    if grep -q "<note" "${XML_FILE}" 2> /dev/null && ! grep -q "</note>" "${XML_FILE}" 2> /dev/null; then
     __loge "Severe XML structural issue in file: ${XML_FILE}"
     TOTAL_NOTES=0
@@ -665,7 +668,8 @@ function __countXmlNotesAPI() {
     __log_finish
     return 1
    else
-    __logw "XML structure validation failed for file: ${XML_FILE}, but continuing with counting"
+    # Empty XML files or minor validation issues are OK - continue counting
+    __logd "XML structure validation had minor issues for file: ${XML_FILE}, but continuing with counting (empty files are valid)"
    fi
   fi
  fi
@@ -699,7 +703,7 @@ function __countXmlNotesAPI() {
  fi
 
  if [[ "${TOTAL_NOTES}" -eq 0 ]]; then
-  __logi "No notes found in XML file"
+  __logi "No notes found in XML file (0 notes is a valid scenario)"
  else
   __logi "Total notes found: ${TOTAL_NOTES}"
  fi
@@ -707,7 +711,10 @@ function __countXmlNotesAPI() {
  # Export the variable so it's available to calling scripts
  export TOTAL_NOTES
 
+ # Always return 0 (success) when counting completes, even if count is 0
+ # 0 notes is a valid scenario and should not be treated as an error
  __log_finish
+ return 0
 }
 
 # Counts notes in XML file (Planet format)

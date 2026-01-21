@@ -2979,18 +2979,63 @@ function __processMaritimes_impl {
    # Insert from temporary table with is_maritime = TRUE explicitly
    # All boundaries from maritime backup are maritime by definition
    # Use quoted identifiers and explicit type casting to handle ogr2ogr column variations
+   # Check which columns exist in the temporary table to handle GeoJSON variations
    local COUNTRIES_TABLE
    COUNTRIES_TABLE=$(__get_countries_table_name)
 
-   # Try with explicit column names and type casting
-   # Handle case where country_id might be VARCHAR or INTEGER
+   # Check if columns exist in temporary table
+   local HAS_COUNTRY_NAME
+   HAS_COUNTRY_NAME=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' AND column_name = 'country_name';" 2> /dev/null | tr -d '[:space:]' || echo "0")
+   local HAS_COUNTRY_NAME_ES
+   HAS_COUNTRY_NAME_ES=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' AND column_name = 'country_name_es';" 2> /dev/null | tr -d '[:space:]' || echo "0")
+   local HAS_COUNTRY_NAME_EN
+   HAS_COUNTRY_NAME_EN=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' AND column_name = 'country_name_en';" 2> /dev/null | tr -d '[:space:]' || echo "0")
+
+   # Build SELECT clause dynamically based on which columns exist
+   local SELECT_COUNTRY_NAME
+   local SELECT_COUNTRY_NAME_ES
+   local SELECT_COUNTRY_NAME_EN
+
+   if [[ "${HAS_COUNTRY_NAME}" == "1" ]]; then
+    SELECT_COUNTRY_NAME='COALESCE("country_name", '\'''\'') AS country_name'
+   else
+    SELECT_COUNTRY_NAME=''\'''\'' AS country_name'
+   fi
+
+   if [[ "${HAS_COUNTRY_NAME_ES}" == "1" ]]; then
+    SELECT_COUNTRY_NAME_ES='COALESCE("country_name_es", '\'''\'') AS country_name_es'
+   else
+    SELECT_COUNTRY_NAME_ES=''\'''\'' AS country_name_es'
+   fi
+
+   if [[ "${HAS_COUNTRY_NAME_EN}" == "1" ]]; then
+    SELECT_COUNTRY_NAME_EN='COALESCE("country_name_en", '\'''\'') AS country_name_en'
+   else
+    SELECT_COUNTRY_NAME_EN=''\'''\'' AS country_name_en'
+   fi
+
+   # Build UPDATE clause dynamically - only update columns that exist in source
+   # PostgreSQL ON CONFLICT DO UPDATE SET only allows EXCLUDED and target table references
+   local UPDATE_CLAUSE
+   UPDATE_CLAUSE="is_maritime = TRUE, geom = ST_SetSRID(EXCLUDED.geom, 4326)"
+   if [[ "${HAS_COUNTRY_NAME}" == "1" ]]; then
+    UPDATE_CLAUSE="country_name = EXCLUDED.country_name, ${UPDATE_CLAUSE}"
+   fi
+   if [[ "${HAS_COUNTRY_NAME_ES}" == "1" ]]; then
+    UPDATE_CLAUSE="country_name_es = EXCLUDED.country_name_es, ${UPDATE_CLAUSE}"
+   fi
+   if [[ "${HAS_COUNTRY_NAME_EN}" == "1" ]]; then
+    UPDATE_CLAUSE="country_name_en = EXCLUDED.country_name_en, ${UPDATE_CLAUSE}"
+   fi
+
+   # Build and execute SQL with dynamic column selection
    if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_ERROR}" 2>&1; then
 INSERT INTO ${COUNTRIES_TABLE} (country_id, country_name, country_name_es, country_name_en, geom, is_maritime)
 SELECT
   CAST("country_id" AS INTEGER) AS country_id,
-  COALESCE("country_name", '') AS country_name,
-  COALESCE("country_name_es", '') AS country_name_es,
-  COALESCE("country_name_en", '') AS country_name_en,
+  ${SELECT_COUNTRY_NAME},
+  ${SELECT_COUNTRY_NAME_ES},
+  ${SELECT_COUNTRY_NAME_EN},
   ST_SetSRID("geom", 4326) AS geom,
   TRUE AS is_maritime
 FROM ${TEMP_TABLE}
@@ -2998,11 +3043,7 @@ WHERE "country_id" IS NOT NULL
   AND "geom" IS NOT NULL
   AND ST_IsValid("geom")
 ON CONFLICT (country_id) DO UPDATE SET
-  country_name = EXCLUDED.country_name,
-  country_name_es = EXCLUDED.country_name_es,
-  country_name_en = EXCLUDED.country_name_en,
-  is_maritime = TRUE,
-  geom = ST_SetSRID(EXCLUDED.geom, 4326);
+  ${UPDATE_CLAUSE};
 DROP TABLE ${TEMP_TABLE};
 EOF
     __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
@@ -3145,18 +3186,63 @@ EOF
     # Insert from temporary table with is_maritime = TRUE explicitly
     # All boundaries from maritime backup are maritime by definition
     # Use quoted identifiers and explicit type casting to handle ogr2ogr column variations
+    # Check which columns exist in the temporary table to handle GeoJSON variations
     local COUNTRIES_TABLE
     COUNTRIES_TABLE=$(__get_countries_table_name)
 
-    # Try with explicit column names and type casting
-    # Handle case where country_id might be VARCHAR or INTEGER
+    # Check if columns exist in temporary table
+    local HAS_COUNTRY_NAME
+    HAS_COUNTRY_NAME=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' AND column_name = 'country_name';" 2> /dev/null | tr -d '[:space:]' || echo "0")
+    local HAS_COUNTRY_NAME_ES
+    HAS_COUNTRY_NAME_ES=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' AND column_name = 'country_name_es';" 2> /dev/null | tr -d '[:space:]' || echo "0")
+    local HAS_COUNTRY_NAME_EN
+    HAS_COUNTRY_NAME_EN=$(psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM information_schema.columns WHERE table_name = '${TEMP_TABLE}' AND column_name = 'country_name_en';" 2> /dev/null | tr -d '[:space:]' || echo "0")
+
+    # Build SELECT clause dynamically based on which columns exist
+    local SELECT_COUNTRY_NAME
+    local SELECT_COUNTRY_NAME_ES
+    local SELECT_COUNTRY_NAME_EN
+
+    if [[ "${HAS_COUNTRY_NAME}" == "1" ]]; then
+     SELECT_COUNTRY_NAME='COALESCE("country_name", '\'''\'') AS country_name'
+    else
+     SELECT_COUNTRY_NAME=''\'''\'' AS country_name'
+    fi
+
+    if [[ "${HAS_COUNTRY_NAME_ES}" == "1" ]]; then
+     SELECT_COUNTRY_NAME_ES='COALESCE("country_name_es", '\'''\'') AS country_name_es'
+    else
+     SELECT_COUNTRY_NAME_ES=''\'''\'' AS country_name_es'
+    fi
+
+    if [[ "${HAS_COUNTRY_NAME_EN}" == "1" ]]; then
+     SELECT_COUNTRY_NAME_EN='COALESCE("country_name_en", '\'''\'') AS country_name_en'
+    else
+     SELECT_COUNTRY_NAME_EN=''\'''\'' AS country_name_en'
+    fi
+
+    # Build UPDATE clause dynamically - only update columns that exist in source
+    # PostgreSQL ON CONFLICT DO UPDATE SET only allows EXCLUDED and target table references
+    local UPDATE_CLAUSE
+    UPDATE_CLAUSE="is_maritime = TRUE, geom = ST_SetSRID(EXCLUDED.geom, 4326)"
+    if [[ "${HAS_COUNTRY_NAME}" == "1" ]]; then
+     UPDATE_CLAUSE="country_name = EXCLUDED.country_name, ${UPDATE_CLAUSE}"
+    fi
+    if [[ "${HAS_COUNTRY_NAME_ES}" == "1" ]]; then
+     UPDATE_CLAUSE="country_name_es = EXCLUDED.country_name_es, ${UPDATE_CLAUSE}"
+    fi
+    if [[ "${HAS_COUNTRY_NAME_EN}" == "1" ]]; then
+     UPDATE_CLAUSE="country_name_en = EXCLUDED.country_name_en, ${UPDATE_CLAUSE}"
+    fi
+
+    # Build and execute SQL with dynamic column selection
     if psql -d "${DBNAME}" -v ON_ERROR_STOP=1 << EOF >> "${OGR_ERROR}" 2>&1; then
 INSERT INTO ${COUNTRIES_TABLE} (country_id, country_name, country_name_es, country_name_en, geom, is_maritime)
 SELECT
   CAST("country_id" AS INTEGER) AS country_id,
-  COALESCE("country_name", '') AS country_name,
-  COALESCE("country_name_es", '') AS country_name_es,
-  COALESCE("country_name_en", '') AS country_name_en,
+  ${SELECT_COUNTRY_NAME},
+  ${SELECT_COUNTRY_NAME_ES},
+  ${SELECT_COUNTRY_NAME_EN},
   ST_SetSRID("geom", 4326) AS geom,
   TRUE AS is_maritime
 FROM ${TEMP_TABLE}
@@ -3164,11 +3250,7 @@ WHERE "country_id" IS NOT NULL
   AND "geom" IS NOT NULL
   AND ST_IsValid("geom")
 ON CONFLICT (country_id) DO UPDATE SET
-  country_name = EXCLUDED.country_name,
-  country_name_es = EXCLUDED.country_name_es,
-  country_name_en = EXCLUDED.country_name_en,
-  is_maritime = TRUE,
-  geom = ST_SetSRID(EXCLUDED.geom, 4326);
+  ${UPDATE_CLAUSE};
 DROP TABLE ${TEMP_TABLE};
 EOF
      __logi "Successfully imported maritime boundaries from backup and set is_maritime = true"
