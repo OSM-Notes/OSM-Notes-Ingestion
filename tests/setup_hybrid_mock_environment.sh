@@ -124,7 +124,7 @@ create_mock_curl() {
 
 # Mock curl - simple pattern matching based on actual code usage
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-20
+# Version: 2026-01-20
 
 set +e
 set +u
@@ -185,7 +185,6 @@ if echo "$ALL_ARGS" | grep -- '-data-binary' >/dev/null 2>&1 && echo "$ALL_ARGS"
   # Priority 2: Check filename patterns (only if extension not found)
   elif echo "$OUTPUT_FILE" | grep -qiE '(ids|countries|maritimes)'; then
    # Only force CSV if it's in the filename itself, not in the path
-   local filename_only
    filename_only=$(basename "$OUTPUT_FILE")
    if echo "$filename_only" | grep -qiE '(ids|countries|maritimes|\.csv)'; then
     IS_CSV_OUTPUT=true
@@ -397,11 +396,10 @@ if echo "$ALL_ARGS" | grep -qE '/api/0\.6/notes/search\.xml|/notes/search\.xml';
    # Generate notes only if NOTES_COUNT > 0
    if [[ "$NOTES_COUNT" -gt 0 ]]; then
     # Generate the requested number of notes
-    local i
     for ((i=1; i<=NOTES_COUNT; i++)); do
      # Generate a timestamp that increments for each note (in hours)
-     local timestamp_hour=$((i - 1))
-     local timestamp_str
+     timestamp_hour=$((i - 1))
+     timestamp_str=""
      if [[ $timestamp_hour -lt 10 ]]; then
       timestamp_str="2025-01-01T0${timestamp_hour}:00:00Z"
      else
@@ -520,10 +518,9 @@ if echo "$ALL_ARGS" | grep -qE 'planet\.openstreetmap\.org.*\.bz2\.md5'; then
   fi
   # Generate MD5 for the fixture file (planet-notes-latest.osn.bz2)
   # This MD5 will be used to validate the downloaded .bz2 file
-  local fixture_file="/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"
+  fixture_file="/home/angoca/github/OSM-Notes-Ingestion/tests/fixtures/planet-notes-latest.osn.bz2"
   if [[ -f "${fixture_file}" ]] && command -v md5sum >/dev/null 2>&1; then
    # Calculate MD5 of fixture file
-   local md5_hash
    md5_hash=$(md5sum "${fixture_file}" 2>/dev/null | awk '{print $1}')
    if [[ -n "${md5_hash}" ]]; then
     echo "${md5_hash}" > "$OUTPUT_FILE" 2>/dev/null || true
