@@ -40,7 +40,7 @@ BEGIN
     );
     RAISE NOTICE 'Created note_status_enum';
   END IF;
-  
+
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'note_event_enum') THEN
     CREATE TYPE note_event_enum AS ENUM (
       'opened',
@@ -136,7 +136,7 @@ BEGIN
   -- Initialize as unknown (-2) instead of international waters (-1)
   -- -1 is reserved for KNOWN international waters only
   m_id_country := -2;
-  
+
   -- Simple logic based on longitude for testing
   IF (lon < -30) THEN
     m_area := 'Americas';
@@ -151,7 +151,7 @@ BEGIN
     m_area := 'Asia/Oceania';
     m_id_country := 4; -- Japan
   END IF;
-  
+
   RETURN m_id_country;
 END
 $func$;
@@ -308,21 +308,21 @@ ON CONFLICT (key) DO NOTHING;
 
 -- Verify all objects were created successfully
 SELECT 'ENUM types verification:' as status;
-SELECT typname, enumlabel 
-FROM pg_enum e 
-JOIN pg_type t ON e.enumtypid = t.oid 
+SELECT typname, enumlabel
+FROM pg_enum e
+JOIN pg_type t ON e.enumtypid = t.oid
 WHERE t.typname IN ('note_status_enum', 'note_event_enum')
 ORDER BY t.typname, e.enumsortorder;
 
 SELECT 'Procedures verification:' as status;
-SELECT proname, prokind 
-FROM pg_proc 
+SELECT proname, prokind
+FROM pg_proc
 WHERE proname IN ('insert_note', 'insert_note_comment', 'put_lock', 'remove_lock')
 ORDER BY proname;
 
 SELECT 'Tables verification:' as status;
-SELECT tablename 
-FROM pg_tables 
+SELECT tablename
+FROM pg_tables
 WHERE tablename IN ('users', 'notes', 'note_comments', 'note_comments_text', 'properties', 'countries')
 ORDER BY tablename;
 
