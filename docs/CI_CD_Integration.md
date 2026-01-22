@@ -43,7 +43,7 @@ in `.github/workflows/tests.yml` and includes:
    - Identifies potential security vulnerabilities
 
 6. **Advanced Tests** (`advanced-tests`)
-   - Code coverage analysis with kcov
+   - Code coverage analysis with bashcov
    - Quality metrics and static analysis
    - Comprehensive reporting
 
@@ -98,7 +98,7 @@ in `.github/workflows/tests.yml` and includes:
 
 **Categories**:
 
-- **Coverage**: Code coverage analysis with kcov
+- **Coverage**: Code coverage analysis with bashcov
 - **Security**: Security scanning with ShellCheck
 - **Quality**: Code quality metrics and static analysis
 - **Performance**: Performance benchmarking and optimization
@@ -143,7 +143,7 @@ in `.github/workflows/tests.yml` and includes:
   - PostgreSQL client
   - BATS testing framework
   - ShellCheck for static analysis
-  - kcov for code coverage
+  - bashcov for code coverage (Ruby-based, works with source-based tests)
   - Python tools (pytest)
   - Node.js tools (ajv-cli, osmtogeojson)
 
@@ -164,7 +164,7 @@ in `.github/workflows/tests.yml` and includes:
    - Identifies potential issues and best practices
    - Integrated into CI/CD pipeline
 
-2. **kcov**
+2. **bashcov**
    - Code coverage analysis for shell scripts
    - Generates HTML reports
    - Measures test coverage percentage

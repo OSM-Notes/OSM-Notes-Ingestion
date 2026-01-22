@@ -175,8 +175,9 @@ __check_prerequisites() {
 
  # Check coverage tools ( optional)
  if [[ "${RUN_COVERAGE}" == "true" ]]; then
-  if ! command -v kcov > /dev/null 2>&1; then
-   __log "WARNING" "kcov no encontrado - las pruebas de cobertura serán limitadas"
+  if ! command -v bashcov > /dev/null 2>&1; then
+   __log "WARNING" "bashcov no encontrado - las pruebas de cobertura serán limitadas"
+   __log "INFO" "Instalar con: gem install bashcov"
   fi
  fi
 
@@ -223,15 +224,16 @@ __run_coverage_tests() {
  local coverage_dir="${OUTPUT_DIR}/coverage"
  mkdir -p "${coverage_dir}"
 
- # Run coverage script if available
- if [[ -f "./tests/advanced/coverage/coverage_report.sh" ]]; then
-  if ./tests/advanced/coverage/coverage_report.sh --output-dir "${coverage_dir}" --threshold "${COVERAGE_THRESHOLD}"; then
+ # Use bashcov script if available
+ if [[ -f "./scripts/generate_coverage_instrumented_optimized.sh" ]]; then
+  if bash ./scripts/generate_coverage_instrumented_optimized.sh; then
    __log "SUCCESS" "Pruebas de cobertura completadas"
   else
    __log "WARNING" "Pruebas de cobertura completadas con advertencias"
   fi
  else
-  __log "WARNING" "Script de cobertura no encontrado"
+  __log "WARNING" "Script de cobertura bashcov no encontrado"
+  __log "INFO" "Instalar bashcov con: bash scripts/install_coverage_tools.sh"
  fi
 }
 

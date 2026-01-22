@@ -64,7 +64,7 @@ SQL
 echo "Removing international_waters that interfere with test coordinates..."
 psql -d "${DBNAME}" << 'SQL'
 -- Remove international_waters that cover test coordinates
-DELETE FROM international_waters WHERE 
+DELETE FROM international_waters WHERE
   -- South America test coordinates
   ST_Contains(geom, ST_SetSRID(ST_Point(-47.8825, -15.7942), 4326)) OR ST_Intersects(geom, ST_SetSRID(ST_Point(-47.8825, -15.7942), 4326)) OR -- Brasília
   ST_Contains(geom, ST_SetSRID(ST_Point(-60.0, -3.0), 4326)) OR ST_Intersects(geom, ST_SetSRID(ST_Point(-60.0, -3.0), 4326)) OR -- Manaus

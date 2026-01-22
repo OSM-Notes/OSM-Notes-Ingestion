@@ -28,18 +28,18 @@ psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processP
 # Test if lock procedures exist
 echo "📋 Testing lock procedures..."
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -c "
-SELECT 
-  CASE 
-    WHEN EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'put_lock') 
+SELECT
+  CASE
+    WHEN EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'put_lock')
     THEN 'put_lock procedure exists'
     ELSE 'put_lock procedure NOT found'
   END as put_lock_status;
 "
 
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -c "
-SELECT 
-  CASE 
-    WHEN EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'remove_lock') 
+SELECT
+  CASE
+    WHEN EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'remove_lock')
     THEN 'remove_lock procedure exists'
     ELSE 'remove_lock procedure NOT found'
   END as remove_lock_status;
@@ -53,7 +53,7 @@ BEGIN
   -- Try to acquire a lock
   CALL put_lock('test_process_1');
   RAISE NOTICE 'Lock acquired successfully';
-  
+
   -- Try to acquire another lock (should fail)
   BEGIN
     CALL put_lock('test_process_2');
@@ -62,15 +62,15 @@ BEGIN
     WHEN OTHERS THEN
       RAISE NOTICE 'Expected error: %', SQLERRM;
   END;
-  
+
   -- Remove the lock
   CALL remove_lock('test_process_1');
   RAISE NOTICE 'Lock removed successfully';
-  
+
   -- Try to acquire lock again (should succeed)
   CALL put_lock('test_process_2');
   RAISE NOTICE 'Second lock acquired successfully';
-  
+
   -- Clean up
   CALL remove_lock('test_process_2');
   RAISE NOTICE 'Second lock removed successfully';

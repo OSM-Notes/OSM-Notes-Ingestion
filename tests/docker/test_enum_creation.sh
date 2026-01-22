@@ -29,7 +29,7 @@ psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processP
 # Verify ENUM types exist
 echo "📋 Verifying ENUM types..."
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -c "
-SELECT 
+SELECT
   typname as enum_name,
   enumlabel as enum_value
 FROM pg_enum e

@@ -60,11 +60,13 @@ RUN pip3 install \
 # Install Node.js tools
 RUN npm install -g ajv-cli osmtogeojson
 
-# Install kcov for code coverage
-RUN git clone https://github.com/SimonKagstrom/kcov.git && \
-    cd kcov && mkdir build && cd build && \
-    cmake .. && make && make install && \
-    cd / && rm -rf /kcov
+# Install Ruby and bashcov for code coverage
+RUN apt-get update && apt-get install -y \
+    ruby \
+    ruby-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN gem install bashcov
 
 # Create test user
 RUN useradd -m -s /bin/bash testuser && \

@@ -21,7 +21,8 @@ tests/docker/logs/
 coverage/
 advanced_reports/
 test_coverage/
-kcov/
+coverage/
+bashcov/
 
 # Performance benchmarks
 .benchmarks/

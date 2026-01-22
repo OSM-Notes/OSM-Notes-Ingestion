@@ -22,37 +22,37 @@ echo "📋 Checking table structure..."
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" << 'EOF'
 -- Check notes table structure
 SELECT 'Notes table structure:' as table_name;
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'notes' 
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'notes'
 ORDER BY ordinal_position;
 
 -- Check note_comments table structure
 SELECT 'Note_comments table structure:' as table_name;
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'note_comments' 
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'note_comments'
 ORDER BY ordinal_position;
 
 -- Check note_comments_text table structure
 SELECT 'Note_comments_text table structure:' as table_name;
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'note_comments_text' 
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'note_comments_text'
 ORDER BY ordinal_position;
 
 -- Check users table structure
 SELECT 'Users table structure:' as table_name;
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'users' 
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'users'
 ORDER BY ordinal_position;
 
 -- Check properties table structure
 SELECT 'Properties table structure:' as table_name;
-SELECT column_name, data_type, is_nullable 
-FROM information_schema.columns 
-WHERE table_name = 'properties' 
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_name = 'properties'
 ORDER BY ordinal_position;
 EOF
 

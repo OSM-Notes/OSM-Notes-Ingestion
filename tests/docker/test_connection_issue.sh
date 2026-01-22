@@ -34,9 +34,9 @@ SELECT 'ENUM created successfully' as status;
 # Test 2: Verify ENUM exists in same connection
 echo "Test 2: Verifying ENUM in same connection..."
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -c "
-SELECT typname, enumlabel 
-FROM pg_enum e 
-JOIN pg_type t ON e.enumtypid = t.oid 
+SELECT typname, enumlabel
+FROM pg_enum e
+JOIN pg_type t ON e.enumtypid = t.oid
 WHERE t.typname = 'test_enum';
 "
 
@@ -63,7 +63,7 @@ SELECT 'Table2 created with ENUM successfully' as status;
 # Test 5: Check if ENUM is visible in new connection
 echo "Test 5: Checking ENUM visibility in new connection..."
 psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -c "
-SELECT 
+SELECT
   typname as enum_name,
   enumlabel as enum_value
 FROM pg_enum e
