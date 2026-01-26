@@ -1,3 +1,21 @@
+---
+title: "OSM-Notes-Ingestion Documentation"
+description: "Comprehensive documentation index for OSM-Notes-Ingestion system"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+  - "ingestion"
+  - "index"
+audience:
+  - "developers"
+  - "system-admins"
+  - "users"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
 # Documentation Directory
 
 ## Overview
