@@ -1,3 +1,18 @@
+---
+title: "External Dependencies and Risks"
+description: "The OSM-Notes-Ingestion project relies on several external services and data sources provided by"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "architecture"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # External Dependencies and Risks
 
 > This document describes critical external dependencies and risks that could affect the

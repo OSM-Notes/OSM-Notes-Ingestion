@@ -1,3 +1,19 @@
+---
+title: "Capital Validation Explanation"
+description: "Capital validation aims to . If Nepal's geometry is mistakenly"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "validation"
+  - "api"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Capital Validation Explanation
 
 ## Purpose

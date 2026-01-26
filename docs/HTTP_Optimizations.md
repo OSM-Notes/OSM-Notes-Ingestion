@@ -1,3 +1,18 @@
+---
+title: "HTTP Optimizations for OSM-Notes-Ingestion"
+description: "This document describes the HTTP optimizations implemented to improve performance of API calls to"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # HTTP Optimizations for OSM-Notes-Ingestion
 
 ## Overview

@@ -1,3 +1,20 @@
+---
+title: "Troubleshooting Guide"
+description: "This comprehensive troubleshooting guide consolidates common problems and solutions for the"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "troubleshooting"
+  - "guide"
+audience:
+  - "users"
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Troubleshooting Guide
 
 **Version:** 2025-12-08

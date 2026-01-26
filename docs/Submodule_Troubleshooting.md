@@ -1,3 +1,19 @@
+---
+title: "Submodule Troubleshooting Guide"
+description: "When you see the error:"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "troubleshooting"
+audience:
+  - "users"
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Submodule Troubleshooting Guide
 
 ## Problem

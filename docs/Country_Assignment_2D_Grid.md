@@ -1,3 +1,18 @@
+---
+title: "Country Assignment with Intelligent 2D Grid Partitioning"
+description: "This document describes the intelligent 2D grid partitioning strategy used to assign countries to OpenStreetMap notes efficiently."
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "spatial"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Country Assignment with Intelligent 2D Grid Partitioning
 
 ## Overview

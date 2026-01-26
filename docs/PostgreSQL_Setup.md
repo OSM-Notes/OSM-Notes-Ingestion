@@ -1,3 +1,18 @@
+---
+title: "PostgreSQL Setup Guide"
+description: "This guide helps you configure PostgreSQL for the OSM-Notes-Ingestion project."
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "installation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # PostgreSQL Setup Guide
 
 This guide helps you configure PostgreSQL for the OSM-Notes-Ingestion project.

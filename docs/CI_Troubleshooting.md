@@ -1,3 +1,19 @@
+---
+title: "CI/CD Troubleshooting Guide"
+description: "This document provides solutions for common issues encountered when running GitHub Actions workflows for the OSM-Notes-Ingestion project."
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "troubleshooting"
+audience:
+  - "users"
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # CI/CD Troubleshooting Guide
 
 ## Overview

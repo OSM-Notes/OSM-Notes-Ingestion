@@ -1,3 +1,18 @@
+---
+title: "Logging Pattern Validation"
+description: "This document describes the logging pattern validation tools that ensure all bash functions in the"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "validation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Logging Pattern Validation
 
 ## Overview

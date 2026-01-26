@@ -1,3 +1,18 @@
+---
+title: "Boundaries Backup (Countries and Maritimes)"
+description: "Boundary backup files are stored in the"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Boundaries Backup (Countries and Maritimes)
 
 > **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  

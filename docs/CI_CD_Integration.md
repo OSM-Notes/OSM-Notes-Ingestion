@@ -1,3 +1,18 @@
+---
+title: "CI/CD Integration for OSM-Notes-Ingestion"
+description: "This document describes the comprehensive CI/CD (Continuous Integration/Continuous Deployment)"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # CI/CD Integration for OSM-Notes-Ingestion
 
 ## Overview

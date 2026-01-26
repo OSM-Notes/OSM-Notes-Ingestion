@@ -1,3 +1,18 @@
+---
+title: "Countries Table Update Strategy"
+description: "The `updateCountries.sh` script uses a  to safely update country"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Countries Table Update Strategy
 
 ## Overview

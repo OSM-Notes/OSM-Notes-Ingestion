@@ -1,3 +1,18 @@
+---
+title: "Test Structure - Modular Organization"
+description: "The OSM-Notes-Ingestion test suite uses a  to improve maintainability,"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "testing"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Test Structure - Modular Organization
 
 ## Overview

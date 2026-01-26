@@ -1,3 +1,18 @@
+---
+title: "Input Validation Functions"
+description: "This document describes the centralized input validation functions that have been added to the"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "validation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Input Validation Functions
 
 ## Overview

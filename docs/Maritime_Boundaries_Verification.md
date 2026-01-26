@@ -1,3 +1,18 @@
+---
+title: "Maritime Boundaries Verification"
+description: "Process to identify missing Exclusive Economic Zones (EEZ) and maritime boundaries by comparing reference data with OpenStreetMap data"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "spatial"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Maritime Boundaries Verification
 
 > **Note:** For general boundary processing, see [Process_Planet.md](./Process_Planet.md) and

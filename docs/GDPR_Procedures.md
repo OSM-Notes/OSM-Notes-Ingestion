@@ -1,3 +1,18 @@
+---
+title: "GDPR Compliance Procedures"
+description: "This document provides detailed procedures for handling GDPR data subject requests and maintaining"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # GDPR Compliance Procedures
 
 **Version:** 2025-12-13

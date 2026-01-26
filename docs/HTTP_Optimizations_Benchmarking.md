@@ -1,3 +1,18 @@
+---
+title: "HTTP Optimizations Benchmarking Guide"
+description: "This guide explains how to test and measure the performance improvements from HTTP optimizations"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "performance"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # HTTP Optimizations Benchmarking Guide
 
 ## Overview

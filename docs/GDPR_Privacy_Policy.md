@@ -1,3 +1,18 @@
+---
+title: "GDPR Privacy Policy"
+description: "This document outlines the privacy policy and GDPR compliance measures for the OSM Notes Ingestion"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # GDPR Privacy Policy
 
 **Version:** 2025-12-13

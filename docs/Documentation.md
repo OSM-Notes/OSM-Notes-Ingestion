@@ -1,3 +1,18 @@
+---
+title: "OSM Notes Ingestion - System Documentation"
+description: "This document provides comprehensive technical documentation for the OSM-Notes-Ingestion system,"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # OSM Notes Ingestion - System Documentation
 
 ## Overview

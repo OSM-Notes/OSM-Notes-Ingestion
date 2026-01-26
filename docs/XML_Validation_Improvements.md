@@ -1,3 +1,19 @@
+---
+title: "XML Validation Improvements for Large Files"
+description: "The original XML validation was failing with segmentation faults when processing very large XML"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "machine-learning"
+  - "validation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # XML Validation Improvements for Large Files
 
 ## Problem Description

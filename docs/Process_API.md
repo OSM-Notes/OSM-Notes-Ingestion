@@ -1,3 +1,19 @@
+---
+title: "Complete Description of processAPINotes.sh"
+description: "The `processAPINotes.sh` script is the incremental synchronization component of the OpenStreetMap"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "processing"
+  - "api"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Complete Description of processAPINotes.sh
 
 > **Note:** For a general system overview, see [Documentation.md](./Documentation.md). For project

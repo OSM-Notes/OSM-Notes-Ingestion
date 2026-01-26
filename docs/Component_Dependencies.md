@@ -1,3 +1,18 @@
+---
+title: "Component Dependencies"
+description: "Comprehensive diagrams and descriptions of component dependencies in the OSM-Notes-Ingestion system, crucial for development, debugging, and system maintenance"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "architecture"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Component Dependencies
 
 This document provides comprehensive diagrams and descriptions of component dependencies in the

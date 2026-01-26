@@ -1,3 +1,18 @@
+---
+title: "Alerting System"
+description: "The OSM Notes Ingestion system includes an immediate alerting mechanism that sends email"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "monitoring"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Alerting System
 
 > **Note:** For system architecture overview, see [Documentation.md](./Documentation.md).  

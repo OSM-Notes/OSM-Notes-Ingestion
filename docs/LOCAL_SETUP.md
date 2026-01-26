@@ -1,3 +1,18 @@
+---
+title: "Local Setup - OSM-Notes-Ingestion"
+description: "Guide for configuring the system locally (development/testing)."
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "installation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Local Setup - OSM-Notes-Ingestion
 
 **Purpose:** Guide for configuring the system locally (development/testing).

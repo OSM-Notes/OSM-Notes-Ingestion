@@ -1,3 +1,18 @@
+---
+title: "Cleanup Script Documentation"
+description: "The `cleanupAll.sh` script provides comprehensive cleanup functionality for the OSM Notes Ingestion"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Cleanup Script Documentation
 
 ## Overview

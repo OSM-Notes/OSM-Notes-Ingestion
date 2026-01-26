@@ -1,3 +1,18 @@
+---
+title: "OSM Notes Ingestion - Project Rationale"
+description: "Notes have been an internal part of OpenStreetMap since 2013. They have become more important"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "rationale"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # OSM Notes Ingestion - Project Rationale
 
 ## Why This Project Exists

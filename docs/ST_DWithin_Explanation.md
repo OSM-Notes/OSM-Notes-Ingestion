@@ -1,3 +1,18 @@
+---
+title: "Explanation: ST_DWithin with Tolerance"
+description: "Capital validation within country geometry"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Explanation: ST_DWithin with Tolerance
 
 **Date:** 2025-12-08  

@@ -1,3 +1,19 @@
+---
+title: "Installation Guide"
+description: "OSM-Notes-Ingestion supports two modes of operation:"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "installation"
+  - "guide"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Installation Guide
 
 **Purpose:** Guide for installing OSM-Notes-Ingestion directories and configuration

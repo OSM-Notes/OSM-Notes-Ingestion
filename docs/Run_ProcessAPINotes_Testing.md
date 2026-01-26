@@ -1,3 +1,20 @@
+---
+title: "Guide to Run processAPINotes in Testing Mode"
+description: "This document explains how to run `processAPINotes.sh` in hybrid testing mode:"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "processing"
+  - "api"
+  - "testing"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # Guide to Run processAPINotes in Testing Mode
 
 ## Overview

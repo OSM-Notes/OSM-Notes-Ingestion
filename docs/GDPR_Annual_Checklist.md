@@ -1,3 +1,18 @@
+---
+title: "GDPR Annual Compliance Checklist"
+description: "This checklist should be completed annually to ensure GDPR compliance. Ideally, perform this review"
+version: "1.0.0"
+last_updated: "2026-01-25"
+author: "AngocA"
+tags:
+  - "documentation"
+audience:
+  - "developers"
+project: "OSM-Notes-Ingestion"
+status: "active"
+---
+
+
 # GDPR Annual Compliance Checklist
 
 **Version:** 2025-12-13
