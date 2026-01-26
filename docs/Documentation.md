@@ -49,64 +49,50 @@ This repository focuses exclusively on **data ingestion** from OpenStreetMap:
 
 ### Architecture Diagram
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                        OSM-Notes-Ingestion System                    │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        │                           │                           │
-        ▼                           ▼                           ▼
-┌───────────────┐          ┌───────────────┐          ┌───────────────┐
-│  OSM Notes    │          │  OSM Planet   │          │   Overpass    │
-│     API       │          │     Dumps     │          │     API       │
-│  (Real-time)  │          │  (Historical) │          │ (Boundaries)  │
-└───────┬───────┘          └───────┬───────┘          └───────┬───────┘
-        │                          │                          │
-        │                          │                          │
-        └──────────┬───────────────┴──────────┬───────────────┘
-                   │                          │
-                   ▼                          ▼
-        ┌────────────────────┐    ┌────────────────────┐
-        │  Data Collection   │    │  Boundary Download │
-        │      Layer         │    │   (FIFO Queue)    │
-        └──────────┬─────────┘    └──────────┬─────────┘
-                   │                         │
-                   └────────────┬────────────┘
-                                │
-                                ▼
-                    ┌───────────────────────┐
-                    │  Data Processing      │
-                    │      Layer           │
-                    │  ┌─────────────────┐ │
-                    │  │ XML → CSV (AWK) │ │
-                    │  │  Validation     │ │
-                    │  │  Parallel Proc  │ │
-                    │  └─────────────────┘ │
-                    └───────────┬───────────┘
-                                │
-                                ▼
-                    ┌───────────────────────┐
-                    │   Data Storage        │
-                    │      Layer            │
-                    │  ┌─────────────────┐ │
-                    │  │  PostgreSQL     │ │
-                    │  │  + PostGIS      │ │
-                    │  │  - notes        │ │
-                    │  │  - comments    │ │
-                    │  │  - countries    │ │
-                    │  └─────────────────┘ │
-                    └───────────┬───────────┘
-                                │
-                ┌───────────────┴───────────────┐
-                │
-                ▼
-    ┌───────────────────┐
-    │  Analytics (DWH)  │
-    │  (External Repo)  │
-    │  - Star Schema    │
-    │  - Data Marts     │
-    └───────────────────┘
+```mermaid
+graph TB
+    subgraph System["OSM-Notes-Ingestion System"]
+        subgraph Sources["Data Sources"]
+            OSM_API[OSM Notes API<br/>Real-time]
+            PLANET[OSM Planet Dumps<br/>Historical]
+            OVERPASS[Overpass API<br/>Boundaries]
+        end
+        
+        subgraph Collection["Data Collection Layer"]
+            DATA_COLLECT[Data Collection]
+            BOUNDARY_DOWNLOAD[Boundary Download<br/>FIFO Queue]
+        end
+        
+        subgraph Processing["Data Processing Layer"]
+            PROCESSING[Data Processing<br/>XML → CSV AWK<br/>Validation<br/>Parallel Processing]
+        end
+        
+        subgraph Storage["Data Storage Layer"]
+            POSTGRES[PostgreSQL<br/>+ PostGIS<br/>- notes<br/>- comments<br/>- countries]
+        end
+    end
+    
+    subgraph External["External Systems"]
+        ANALYTICS[Analytics DWH<br/>External Repo<br/>Star Schema<br/>Data Marts]
+    end
+    
+    OSM_API -->|Downloads| DATA_COLLECT
+    PLANET -->|Downloads| DATA_COLLECT
+    OVERPASS -->|Downloads| BOUNDARY_DOWNLOAD
+    
+    DATA_COLLECT -->|Processes| PROCESSING
+    BOUNDARY_DOWNLOAD -->|Processes| PROCESSING
+    
+    PROCESSING -->|Stores| POSTGRES
+    POSTGRES -->|Feeds| ANALYTICS
+    
+    style OSM_API fill:#ADD8E6
+    style PLANET fill:#ADD8E6
+    style OVERPASS fill:#ADD8E6
+    style DATA_COLLECT fill:#90EE90
+    style PROCESSING fill:#FFFFE0
+    style POSTGRES fill:#E0F6FF
+    style ANALYTICS fill:#FFE4B5
 ```
 
 ### Core Components

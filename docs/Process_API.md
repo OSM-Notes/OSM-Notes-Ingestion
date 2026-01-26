@@ -500,102 +500,120 @@ cat /tmp/processAPINotes_failed_execution
 
 The following diagram shows how errors are handled and recovered:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│              Error Handling and Recovery Flow                           │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Normal Execution
-    │
-    ├─▶ Error occurs (any step)
-    │   │
-    │   ├─▶ ERR trap triggered
-    │   │   ├─▶ Capture error details (line, command, exit code)
-    │   │   ├─▶ Log error to file
-    │   │   └─▶ Check GENERATE_FAILED_FILE flag
-    │   │       │
-    │   │       ├─▶ If true:
-    │   │       │   ├─▶ __create_failed_marker()
-    │   │       │   │   ├─▶ Create /tmp/processAPINotes_failed_execution
-    │   │       │   │   ├─▶ Write error details to file
-    │   │       │   │   └─▶ Send email alert (if SEND_ALERT_EMAIL=true)
-    │   │       │   │
-    │   │       │   └─▶ Exit with error code
-    │   │       │
-    │   │       └─▶ If false:
-    │   │           └─▶ Exit with error code (no marker)
-    │   │
-    │   └─▶ Cleanup handlers (trap EXIT)
-    │       ├─▶ __cleanup_on_exit()
-    │       ├─▶ Remove temporary files (if CLEAN=true)
-    │       └─▶ Remove lock file
-    │
-    └─▶ Next execution attempt
-        │
-        ├─▶ Check failed execution marker
-        │   ├─▶ If exists:
-        │   │   ├─▶ Display error message
-        │   │   ├─▶ Show marker file path
-        │   │   └─▶ Exit (ERROR_PREVIOUS_EXECUTION_FAILED)
-        │   │
-        │   └─▶ If not exists:
-        │       └─▶ Continue normal execution
-        │
-        └─▶ Recovery process
-            ├─▶ Admin receives email alert
-            ├─▶ Admin reviews error details
-            ├─▶ Admin fixes underlying issue
-            ├─▶ Admin removes marker file
-            └─▶ Wait for next execution (cron) or automatic retry (daemon)
+```mermaid
+flowchart TD
+    START[Normal Execution] --> ERROR{Error occurs<br/>any step}
+    
+    ERROR -->|ERR trap triggered| ERR_TRAP[ERR trap triggered]
+    
+    ERR_TRAP --> CAPTURE[Capture error details<br/>line, command, exit code]
+    CAPTURE --> LOG[Log error to file]
+    LOG --> CHECK_FLAG{Check GENERATE_FAILED_FILE<br/>flag}
+    
+    CHECK_FLAG -->|If true| CREATE_MARKER[__create_failed_marker]
+    CREATE_MARKER --> CREATE_FILE[Create /tmp/processAPINotes_failed_execution]
+    CREATE_FILE --> WRITE[Write error details to file]
+    WRITE --> EMAIL{SEND_ALERT_EMAIL<br/>true?}
+    EMAIL -->|Yes| SEND_EMAIL[Send email alert]
+    EMAIL -->|No| EXIT1[Exit with error code]
+    SEND_EMAIL --> EXIT1
+    
+    CHECK_FLAG -->|If false| EXIT2[Exit with error code<br/>no marker]
+    
+    ERR_TRAP --> CLEANUP[Cleanup handlers<br/>trap EXIT]
+    CLEANUP --> CLEANUP_FUNC[__cleanup_on_exit]
+    CLEANUP_FUNC --> REMOVE_TEMP{Remove temporary files<br/>if CLEAN=true}
+    REMOVE_TEMP --> REMOVE_LOCK[Remove lock file]
+    
+    EXIT1 --> NEXT[Next execution attempt]
+    EXIT2 --> NEXT
+    
+    NEXT --> CHECK_MARKER{Check failed execution<br/>marker}
+    CHECK_MARKER -->|If exists| DISPLAY_ERROR[Display error message<br/>Show marker file path<br/>Exit ERROR_PREVIOUS_EXECUTION_FAILED]
+    CHECK_MARKER -->|If not exists| CONTINUE[Continue normal execution]
+    
+    DISPLAY_ERROR --> RECOVERY[Recovery process<br/>Admin receives email alert<br/>Admin reviews error details<br/>Admin fixes underlying issue<br/>Admin removes marker file<br/>Wait for next execution]
+    
+    style START fill:#90EE90
+    style ERROR fill:#FFB6C1
+    style EXIT1 fill:#FFB6C1
+    style EXIT2 fill:#FFB6C1
+    style DISPLAY_ERROR fill:#FFB6C1
+    style CONTINUE fill:#90EE90
+    style RECOVERY fill:#FFE4B5
 ```
 
 ### Component Interaction Diagram
 
 The following diagram shows how different components interact during processing:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│              Component Interaction During Processing                     │
-└─────────────────────────────────────────────────────────────────────────┘
-
-processAPINotes.sh
-    │
-    ├─▶ Calls: functionsProcess.sh
-    │   ├─▶ __checkPrereqs()
-    │   ├─▶ __checkBaseTables()
-    │   └─▶ __createBaseStructure()
-    │
-    ├─▶ Calls: processAPIFunctions.sh
-    │   ├─▶ __getNewNotesFromApi()
-    │   ├─▶ __countXmlNotesAPI()
-    │   └─▶ __processApiXmlSequential()
-    │
-    ├─▶ Calls: validationFunctions.sh
-    │   ├─▶ __validateApiNotesXMLFileComplete()
-    │   ├─▶ __validate_csv_structure()
-    │   └─▶ __validate_csv_for_enum_compatibility()
-    │
-    ├─▶ Calls: errorHandlingFunctions.sh
-    │   ├─▶ __create_failed_marker()
-    │   └─▶ __retry_* functions
-    │
-    ├─▶ Calls: commonFunctions.sh
-    │   ├─▶ __log_* functions
-    │   └─▶ __start_logger()
-    │
-    ├─▶ Calls: processPlanetNotes.sh (if TOTAL_NOTES >= MAX_NOTES)
-    │   └─▶ Full synchronization
-    │
-    ├─▶ Executes: AWK scripts
-    │   ├─▶ awk/extract_notes.awk
-    │   ├─▶ awk/extract_comments.awk
-    │   └─▶ awk/extract_comment_texts.awk
-    │
-    └─▶ Executes: SQL scripts
-        ├─▶ sql/process/processAPINotes_21_createApiTables.sql
-        ├─▶ sql/process/processAPINotes_31_loadApiNotes.sql
-        ├─▶ sql/process/processAPINotes_32_insertNewNotesAndComments.sql
-        └─▶ sql/process/processAPINotes_33_loadNewTextComments.sql
+```mermaid
+graph TD
+    MAIN[processAPINotes.sh]
+    
+    subgraph Functions["functionsProcess.sh"]
+        FUNC1[__checkPrereqs]
+        FUNC2[__checkBaseTables]
+        FUNC3[__createBaseStructure]
+    end
+    
+    subgraph APIFunctions["processAPIFunctions.sh"]
+        API1[__getNewNotesFromApi]
+        API2[__countXmlNotesAPI]
+        API3[__processApiXmlSequential]
+    end
+    
+    subgraph Validation["validationFunctions.sh"]
+        VAL1[__validateApiNotesXMLFileComplete]
+        VAL2[__validate_csv_structure]
+        VAL3[__validate_csv_for_enum_compatibility]
+    end
+    
+    subgraph ErrorHandling["errorHandlingFunctions.sh"]
+        ERR1[__create_failed_marker]
+        ERR2[__retry_* functions]
+    end
+    
+    subgraph Common["commonFunctions.sh"]
+        COMMON1[__log_* functions]
+        COMMON2[__start_logger]
+    end
+    
+    subgraph External["External Scripts"]
+        PLANET[processPlanetNotes.sh<br/>if TOTAL_NOTES >= MAX_NOTES<br/>Full synchronization]
+    end
+    
+    subgraph AWK["AWK Scripts"]
+        AWK1[awk/extract_notes.awk]
+        AWK2[awk/extract_comments.awk]
+        AWK3[awk/extract_comment_texts.awk]
+    end
+    
+    subgraph SQL["SQL Scripts"]
+        SQL1[sql/process/processAPINotes_21_createApiTables.sql]
+        SQL2[sql/process/processAPINotes_31_loadApiNotes.sql]
+        SQL3[sql/process/processAPINotes_32_insertNewNotesAndComments.sql]
+        SQL4[sql/process/processAPINotes_33_loadNewTextComments.sql]
+    end
+    
+    MAIN -->|Calls| Functions
+    MAIN -->|Calls| APIFunctions
+    MAIN -->|Calls| Validation
+    MAIN -->|Calls| ErrorHandling
+    MAIN -->|Calls| Common
+    MAIN -->|Calls if needed| PLANET
+    MAIN -->|Executes| AWK
+    MAIN -->|Executes| SQL
+    
+    style MAIN fill:#90EE90
+    style Functions fill:#E0F6FF
+    style APIFunctions fill:#E0F6FF
+    style Validation fill:#FFFFE0
+    style ErrorHandling fill:#FFB6C1
+    style Common fill:#FFE4B5
+    style PLANET fill:#DDA0DD
+    style AWK fill:#ADD8E6
+    style SQL fill:#F0E68C
 ```
 
 ### Automated Execution
@@ -808,127 +826,75 @@ Uses the same base tables as `processPlanetNotes.sh`:
 
 The following diagram shows the complete execution flow of `processAPINotes.sh`:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│              processAPINotes.sh - Complete Execution Flow                │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Manual/Daemon
-    │
-    ▼
-┌─────────────────┐
-│  main() starts  │
-└────────┬────────┘
-         │
-         ├─▶ Check --help parameter
-         │   └─▶ Exit if help requested
-         │
-         ├─▶ Check failed execution marker
-         │   └─▶ Exit if previous execution failed
-         │
-         ├─▶ __checkPrereqs()
-         │   ├─▶ Verify commands available
-         │   ├─▶ Verify database connection
-         │   └─▶ Verify SQL files exist
-         │
-         ├─▶ __trapOn()
-         │   └─▶ Setup error handlers and cleanup
-         │
-         ├─▶ __setupLockFile()
-         │   ├─▶ Check for existing lock
-         │   ├─▶ Create lock file (Singleton pattern)
-         │   └─▶ Exit if already running
-         │
-         ├─▶ __dropApiTables()
-         │   └─▶ Remove temporary API tables
-         │
-         ├─▶ __checkNoProcessPlanet()
-         │   └─▶ Verify processPlanetNotes.sh not running
-         │
-         ├─▶ __checkBaseTables()
-         │   ├─▶ Check if base tables exist
-         │   └─▶ Return RET_FUNC (0=OK, 1=Missing, 2=Error)
-         │
-         ├─▶ Decision: RET_FUNC value
-         │   │
-         │   ├─▶ RET_FUNC=1 (Tables missing)
-         │   │   └─▶ __createBaseStructure()
-         │   │       └─▶ Calls processPlanetNotes.sh --base
-         │   │
-         │   ├─▶ RET_FUNC=0 (Tables exist)
-         │   │   └─▶ __validateHistoricalDataAndRecover()
-         │   │       └─▶ Validates and recovers if needed
-         │   │
-         │   └─▶ RET_FUNC=2 (Error)
-         │       └─▶ Create failed marker and exit
-         │
-         ├─▶ __createApiTables()
-         │   └─▶ Create temporary API tables
-         │
-         ├─▶ __createPropertiesTable()
-         │   └─▶ Create properties tracking table
-         │
-         ├─▶ __ensureGetCountryFunction()
-         │   └─▶ Ensure get_country() function exists
-         │
-         ├─▶ __createProcedures()
-         │   └─▶ Create database procedures
-         │
-         ├─▶ __getNewNotesFromApi()
-         │   ├─▶ Get last update timestamp from DB
-         │   ├─▶ Build OSM API URL
-         │   ├─▶ Download XML from OSM API
-         │   └─▶ Save to API_NOTES_FILE
-         │
-         ├─▶ __validateApiNotesFile()
-         │   ├─▶ Check file exists
-         │   └─▶ Check file not empty
-         │
-         ├─▶ __validateAndProcessApiXml()
-         │   │
-         │   ├─▶ __validateApiNotesXMLFileComplete() [if SKIP_XML_VALIDATION=false]
-         │   │   └─▶ Validate XML structure
-         │   │
-         │   ├─▶ __countXmlNotesAPI()
-         │   │   └─▶ Count notes in XML (sets TOTAL_NOTES)
-         │   │
-         │   ├─▶ __processXMLorPlanet()
-         │   │   │
-         │   │   ├─▶ Decision: TOTAL_NOTES >= MAX_NOTES?
-         │   │   │   │
-         │   │   │   ├─▶ YES: Call processPlanetNotes.sh (full sync)
-         │   │   │   │
-         │   │   │   └─▶ NO: Process locally
-         │   │   │       │
-         │   │   │       ├─▶ Decision: TOTAL_NOTES >= MIN_NOTES_FOR_PARALLEL?
-         │   │   │       │   │
-         │   │   │       │   ├─▶ YES: Parallel processing
-         │   │   │       │   │   ├─▶ __checkMemoryForProcessing()
-         │   │   │       │   │
-         │   │   │       │   └─▶ Sequential processing
-         │   │   │       │       └─▶ __processApiXmlSequential()
-         │   │   │       │           ├─▶ AWK: XML → CSV
-         │   │   │       │           ├─▶ Validate CSV structure
-         │   │   │       │           └─▶ Load to DB
-         │   │   │
-         │   ├─▶ __insertNewNotesAndComments()
-         │   │   ├─▶ Insert notes and comments to base tables
-         │   │   ├─▶ Validate data integrity (integrity check)
-         │   │   └─▶ Update last_update timestamp (same connection)
-         │   │       Note: Timestamp update runs in same connection to preserve
-         │   │       integrity_check_passed variable between transactions
-         │   │
-         │   ├─▶ __loadApiTextComments()
-         │   │   └─▶ Load comment text to base tables
-         │
-         ├─▶ __check_and_log_gaps()
-         │   └─▶ Check for data gaps and log
-         │
-         ├─▶ __cleanNotesFiles()
-         │   └─▶ Clean temporary files (if CLEAN=true)
-         │
-         └─▶ Remove lock file
-             └─▶ Exit successfully
+```mermaid
+flowchart TD
+    START[Manual/Daemon] --> MAIN[main starts]
+    
+    MAIN --> CHECK_HELP{Check --help<br/>parameter}
+    CHECK_HELP -->|Help requested| EXIT_HELP[Exit]
+    
+    CHECK_HELP -->|Continue| CHECK_FAILED[Check failed execution marker<br/>Exit if previous execution failed]
+    CHECK_FAILED --> CHECK_PREREQS[__checkPrereqs<br/>Verify commands available<br/>Verify database connection<br/>Verify SQL files exist]
+    
+    CHECK_PREREQS --> TRAP_ON[__trapOn<br/>Setup error handlers and cleanup]
+    TRAP_ON --> SETUP_LOCK[__setupLockFile<br/>Check for existing lock<br/>Create lock file Singleton pattern<br/>Exit if already running]
+    
+    SETUP_LOCK --> DROP_API[__dropApiTables<br/>Remove temporary API tables]
+    DROP_API --> CHECK_PLANET[__checkNoProcessPlanet<br/>Verify processPlanetNotes.sh not running]
+    
+    CHECK_PLANET --> CHECK_BASE[__checkBaseTables<br/>Check if base tables exist<br/>Return RET_FUNC 0=OK, 1=Missing, 2=Error]
+    
+    CHECK_BASE --> DECISION_RET{RET_FUNC<br/>value}
+    
+    DECISION_RET -->|RET_FUNC=1<br/>Tables missing| CREATE_BASE[__createBaseStructure<br/>Calls processPlanetNotes.sh --base]
+    DECISION_RET -->|RET_FUNC=0<br/>Tables exist| VALIDATE_HIST[__validateHistoricalDataAndRecover<br/>Validates and recovers if needed]
+    DECISION_RET -->|RET_FUNC=2<br/>Error| EXIT_ERROR[Create failed marker and exit]
+    
+    CREATE_BASE --> CREATE_API[__createApiTables<br/>Create temporary API tables]
+    VALIDATE_HIST --> CREATE_API
+    
+    CREATE_API --> CREATE_PROP[__createPropertiesTable<br/>Create properties tracking table]
+    CREATE_PROP --> ENSURE_COUNTRY[__ensureGetCountryFunction<br/>Ensure get_country function exists]
+    ENSURE_COUNTRY --> CREATE_PROC[__createProcedures<br/>Create database procedures]
+    
+    CREATE_PROC --> GET_NOTES[__getNewNotesFromApi<br/>Get last update timestamp from DB<br/>Build OSM API URL<br/>Download XML from OSM API<br/>Save to API_NOTES_FILE]
+    
+    GET_NOTES --> VALIDATE_FILE[__validateApiNotesFile<br/>Check file exists<br/>Check file not empty]
+    
+    VALIDATE_FILE --> VALIDATE_PROCESS[__validateAndProcessApiXml]
+    
+    VALIDATE_PROCESS --> VALIDATE_XML{SKIP_XML_VALIDATION<br/>false?}
+    VALIDATE_XML -->|Yes| VALIDATE_STRUCT[__validateApiNotesXMLFileComplete<br/>Validate XML structure]
+    VALIDATE_XML -->|No| COUNT_NOTES[__countXmlNotesAPI<br/>Count notes in XML sets TOTAL_NOTES]
+    VALIDATE_STRUCT --> COUNT_NOTES
+    
+    COUNT_NOTES --> DECISION_TOTAL{TOTAL_NOTES<br/>>= MAX_NOTES?}
+    
+    DECISION_TOTAL -->|YES| CALL_PLANET[Call processPlanetNotes.sh<br/>full sync]
+    DECISION_TOTAL -->|NO| DECISION_PARALLEL{TOTAL_NOTES<br/>>= MIN_NOTES_FOR_PARALLEL?}
+    
+    DECISION_PARALLEL -->|YES| CHECK_MEM[__checkMemoryForProcessing<br/>Parallel processing]
+    DECISION_PARALLEL -->|NO| SEQUENTIAL[__processApiXmlSequential<br/>AWK: XML → CSV<br/>Validate CSV structure<br/>Load to DB]
+    
+    CHECK_MEM --> SEQUENTIAL
+    CALL_PLANET --> INSERT_NOTES[__insertNewNotesAndComments<br/>Insert notes and comments to base tables<br/>Validate data integrity integrity check<br/>Update last_update timestamp]
+    
+    SEQUENTIAL --> INSERT_NOTES
+    
+    INSERT_NOTES --> LOAD_TEXT[__loadApiTextComments<br/>Load comment text to base tables]
+    LOAD_TEXT --> CHECK_GAPS[__check_and_log_gaps<br/>Check for data gaps and log]
+    CHECK_GAPS --> CLEAN_FILES[__cleanNotesFiles<br/>Clean temporary files<br/>if CLEAN=true]
+    CLEAN_FILES --> REMOVE_LOCK[Remove lock file]
+    REMOVE_LOCK --> EXIT_SUCCESS[Exit successfully]
+    
+    style START fill:#90EE90
+    style EXIT_SUCCESS fill:#90EE90
+    style EXIT_HELP fill:#FFB6C1
+    style EXIT_ERROR fill:#FFB6C1
+    style CREATE_BASE fill:#FFFFE0
+    style VALIDATE_HIST fill:#FFFFE0
+    style CALL_PLANET fill:#FFE4B5
+    style SEQUENTIAL fill:#E0F6FF
 ```
 
 ### Simplified Flow Steps
@@ -1228,53 +1194,63 @@ accumulate over time from API calls. It works in conjunction with `processCheckP
 
 #### Integrity Check Flow Diagram
 
+```mermaid
+flowchart TD
+    START[processAPINotes.sh]
+    
+    START --> INSERT[Insert notes and comments]
+    INSERT --> INTEGRITY[Integrity Check<br/>processAPINotes_32_insertNewNotesAndComments.sql]
+    
+    INTEGRITY --> COUNT[Count notes without comments<br/>last day]
+    COUNT --> CALC[Calculate gap percentage]
+    
+    CALC --> DECISION_GAP{gap > 5%?}
+    
+    DECISION_GAP -->|Yes| SET_FALSE[Set integrity_check_passed = FALSE]
+    SET_FALSE --> LOG_GAP[Log to data_gaps table]
+    LOG_GAP --> BLOCK[Block timestamp update]
+    
+    DECISION_GAP -->|No gap ≤ 5%| SET_TRUE[Set integrity_check_passed = TRUE]
+    SET_TRUE --> LOG_SMALL[Log small gaps to data_gaps<br/>if any]
+    LOG_SMALL --> ALLOW[Allow timestamp update]
+    
+    BLOCK --> UPDATE[Update Timestamp<br/>processAPINotes_34_updateLastValues.sql]
+    ALLOW --> UPDATE
+    
+    UPDATE --> READ[Read integrity_check_passed]
+    READ --> CHECK_INTEGRITY{integrity_check_passed<br/>= FALSE?}
+    
+    CHECK_INTEGRITY -->|Yes| SKIP[Skip timestamp update<br/>prevents daemon from advancing]
+    CHECK_INTEGRITY -->|No TRUE| UPDATE_TIMESTAMP[Update max_note_timestamp<br/>to latest note/comment timestamp]
+    
+    style START fill:#90EE90
+    style INTEGRITY fill:#FFFFE0
+    style SET_FALSE fill:#FFB6C1
+    style SET_TRUE fill:#90EE90
+    style SKIP fill:#FFB6C1
+    style UPDATE_TIMESTAMP fill:#90EE90
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│              Integrity Check and Gap Management Flow            │
-└─────────────────────────────────────────────────────────────────┘
 
-processAPINotes.sh
-    │
-    ├─▶ Insert notes and comments
-    │
-    ├─▶ Integrity Check (processAPINotes_32_insertNewNotesAndComments.sql)
-    │   │
-    │   ├─▶ Count notes without comments (last day)
-    │   ├─▶ Calculate gap percentage
-    │   │
-    │   ├─▶ IF gap > 5%:
-    │   │   ├─▶ Set integrity_check_passed = FALSE
-    │   │   ├─▶ Log to data_gaps table
-    │   │   └─▶ Block timestamp update
-    │   │
-    │   └─▶ IF gap ≤ 5%:
-    │       ├─▶ Set integrity_check_passed = TRUE
-    │       ├─▶ Log small gaps to data_gaps (if any)
-    │       └─▶ Allow timestamp update
-    │
-    └─▶ Update Timestamp (processAPINotes_34_updateLastValues.sql)
-        │
-        ├─▶ Read integrity_check_passed
-        │
-        ├─▶ IF integrity_check_passed = FALSE:
-        │   └─▶ Skip timestamp update (prevents daemon from advancing)
-        │
-        └─▶ IF integrity_check_passed = TRUE:
-            └─▶ Update max_note_timestamp to latest note/comment timestamp
+**Periodic Gap Correction (notesCheckVerifier.sh)**
 
-───────────────────────────────────────────────────────────────────
-
-Periodic Gap Correction (notesCheckVerifier.sh)
-    │
-    ├─▶ processCheckPlanetNotes.sh
-    │   ├─▶ Download recent Planet dump
-    │   └─▶ Populate check tables (notes_check, note_comments_check, etc.)
-    │
-    └─▶ notesCheckVerifier.sh
-        ├─▶ Compare check tables with main tables
-        ├─▶ Identify missing data
-        └─▶ Insert missing notes/comments/text from Planet
-            └─▶ Corrects gaps accumulated over time
+```mermaid
+flowchart TD
+    START[Periodic Gap Correction<br/>notesCheckVerifier.sh]
+    
+    START --> CHECK_PLANET[processCheckPlanetNotes.sh]
+    CHECK_PLANET --> DOWNLOAD[Download recent Planet dump]
+    DOWNLOAD --> POPULATE[Populate check tables<br/>notes_check, note_comments_check, etc.]
+    
+    POPULATE --> VERIFIER[notesCheckVerifier.sh]
+    VERIFIER --> COMPARE[Compare check tables<br/>with main tables]
+    COMPARE --> IDENTIFY[Identify missing data]
+    IDENTIFY --> INSERT[Insert missing notes/comments/text<br/>from Planet]
+    INSERT --> CORRECT[Corrects gaps accumulated<br/>over time]
+    
+    style START fill:#90EE90
+    style CHECK_PLANET fill:#FFFFE0
+    style VERIFIER fill:#FFE4B5
+    style CORRECT fill:#90EE90
 ```
 
 #### Session Variable Persistence
@@ -1341,133 +1317,98 @@ WHERE n.created_at > (SELECT timestamp FROM max_note_timestamp) - INTERVAL '1 da
 The following diagram shows the detailed sequence of interactions between components during API
 processing:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│          Detailed Sequence: processAPINotes.sh Component Interactions     │
-└─────────────────────────────────────────────────────────────────────────┘
-
-User/Daemon        processAPINotesDaemon.sh    OSM API      PostgreSQL    AWK Scripts
-    │                      │               │              │              │
-    │───execute───────────▶│               │              │              │
-    │                      │               │              │              │
-    │                      │───check failed marker───────▶│              │
-    │                      │◀───marker exists?────────────│              │
-    │                      │               │              │              │
-    │                      │───__checkPrereqs()───────────▶│              │
-    │                      │◀───prereqs OK────────────────│              │
-    │                      │               │              │              │
-    │                      │───__setupLockFile()──────────▶│              │
-    │                      │◀───lock created───────────────│              │
-    │                      │               │              │              │
-    │                      │───__checkBaseTables()─────────▶│              │
-    │                      │◀───RET_FUNC (0/1/2)───────────│              │
-    │                      │               │              │              │
-    │                      │───__createApiTables()─────────▶│              │
-    │                      │               │              │              │
-    │                      │───CREATE TABLE notes_api──────▶│              │
-    │                      │◀───table created──────────────│              │
-    │                      │               │              │              │
-    │                      │───__createPartitions()────────▶│              │
-    │                      │               │              │              │
-    │                      │───CREATE partition tables──────▶│              │
-    │                      │◀───partitions created──────────│              │
-    │                      │               │              │              │
-    │                      │───__getNewNotesFromApi()───────▶│              │
-    │                      │               │              │              │
-    │                      │               │───GET /api/0.6/notes───────▶│
-    │                      │               │◀───XML response─────────────│
-    │                      │◀───XML file────────────────────│              │
-    │                      │               │              │              │
-    │                      │───__countXmlNotesAPI()─────────▶│              │
-    │                      │               │              │              │
-    │                      │               │              │              │
-    │                      │───grep + wc───────────────────▶│              │
-    │                      │◀───TOTAL_NOTES──────────────────│              │
-    │                      │               │              │              │
-    │                      │───Decision: TOTAL_NOTES >= MAX? │              │
-    │                      │               │              │              │
-    │                      │   [If YES: Call processPlanetNotes.sh]       │
-    │                      │               │              │              │
-    │                      │───__processApiXmlSequential()──▶│              │
-    │                      │               │              │              │
-    │                      │               │              │              │
-    │                      │───process XML file──────────────▶│              │
-    │                      │               │              │              │
-    │                      │               │              │              │
-    │                      │               │              │───extract_notes.awk──▶│
-    │                      │               │              │◀───CSV output─────────│
-    │                      │◀───CSV file─────────────────────│              │
-    │                      │               │              │              │
-    │                      │───__loadApiNotes()──────────────▶│              │
-    │                      │               │              │              │
-    │                      │───COPY CSV to partition_0───────▶│              │
-    │                      │◀───data loaded───────────────────│              │
-    │                      │               │              │              │
-    │                      │───load CSV into notes_api───────▶│              │
-    │                      │◀───data loaded───────────────────│              │
-    │                      │               │              │              │
-    │                      │───__insertNewNotesAndComments()──▶│              │
-    │                      │               │              │              │
-    │                      │───INSERT INTO notes─────────────▶│              │
-    │                      │◀───notes inserted────────────────│              │
-    │                      │               │              │              │
-    │                      │───Integrity check───────────────▶│              │
-    │                      │◀───check passed─────────────────│              │
-    │                      │               │              │              │
-    │                      │───UPDATE max_note_timestamp─────▶│              │
-    │                      │◀───updated (same connection)────│              │
-    │                      │               │              │              │
-    │                      │───__dropApiTables()─────────────▶│              │
-    │                      │               │              │              │
-    │                      │───DROP TABLE notes_api──────────▶│              │
-    │                      │◀───tables dropped────────────────│              │
-    │                      │               │              │              │
-    │◀───success───────────│               │              │              │
+```mermaid
+sequenceDiagram
+    participant User as User/Daemon
+    participant Daemon as processAPINotesDaemon.sh
+    participant OSM as OSM API
+    participant PG as PostgreSQL
+    participant AWK as AWK Scripts
+    
+    User->>Daemon: execute
+    Daemon->>PG: check failed marker
+    PG-->>Daemon: marker exists?
+    Daemon->>PG: __checkPrereqs
+    PG-->>Daemon: prereqs OK
+    Daemon->>PG: __setupLockFile
+    PG-->>Daemon: lock created
+    Daemon->>PG: __checkBaseTables
+    PG-->>Daemon: RET_FUNC (0/1/2)
+    Daemon->>PG: __createApiTables
+    Daemon->>PG: CREATE TABLE notes_api
+    PG-->>Daemon: table created
+    Daemon->>PG: __createPartitions
+    Daemon->>PG: CREATE partition tables
+    PG-->>Daemon: partitions created
+    Daemon->>OSM: __getNewNotesFromApi
+    OSM->>OSM: GET /api/0.6/notes
+    OSM-->>Daemon: XML response
+    Daemon->>AWK: __countXmlNotesAPI
+    Daemon->>AWK: grep + wc
+    AWK-->>Daemon: TOTAL_NOTES
+    alt TOTAL_NOTES >= MAX_NOTES
+        Daemon->>Daemon: Call processPlanetNotes.sh
+    else Process locally
+        Daemon->>AWK: __processApiXmlSequential
+        Daemon->>AWK: process XML file
+        AWK->>AWK: extract_notes.awk
+        AWK-->>Daemon: CSV output
+        Daemon->>PG: __loadApiNotes
+        Daemon->>PG: COPY CSV to partition_0
+        PG-->>Daemon: data loaded
+        Daemon->>PG: load CSV into notes_api
+        PG-->>Daemon: data loaded
+        Daemon->>PG: __insertNewNotesAndComments
+        Daemon->>PG: INSERT INTO notes
+        PG-->>Daemon: notes inserted
+        Daemon->>PG: Integrity check
+        PG-->>Daemon: check passed
+        Daemon->>PG: UPDATE max_note_timestamp
+        PG-->>Daemon: updated (same connection)
+    end
+    Daemon->>PG: __dropApiTables
+    Daemon->>PG: DROP TABLE notes_api
+    PG-->>Daemon: tables dropped
+    Daemon-->>User: success
 ```
 
 ### Parallel Processing Sequence Diagram
 
 The following diagram shows how parallel processing coordinates multiple threads:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│          Parallel Processing: Multi-Thread Coordination                  │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Main Script      GNU Parallel    Thread 1    Thread 2    Thread N    PostgreSQL
-    │                 │             │            │           │            │
-    │───split XML────▶│             │            │           │            │
-    │                 │             │            │           │            │
-    │                 │───part_0───▶│            │           │            │
-    │                 │───part_1───────▶│         │           │            │
-    │                 │───part_N───────────────▶│            │            │
-    │                 │             │            │           │            │
-    │                 │───process part_0───────▶│            │            │
-    │                 │             │            │           │            │
-    │                 │             │───AWK extract─────────▶│            │
-    │                 │             │◀───CSV──────────────────│            │
-    │                 │             │            │           │            │
-    │                 │             │───load partition_0─────▶│            │
-    │                 │             │◀───loaded────────────────│            │
-    │                 │             │            │           │            │
-    │                 │             │───process part_1───────▶│            │
-    │                 │             │            │           │            │
-    │                 │             │            │───AWK extract─────────▶│
-    │                 │             │            │◀───CSV──────────────────│
-    │                 │             │            │           │            │
-    │                 │             │            │───load partition_1─────▶│
-    │                 │             │            │◀───loaded────────────────│
-    │                 │             │            │           │            │
-    │                 │             │            │           │            │
-    │                 │───[All threads complete]─────────────│            │
-    │                 │             │            │           │            │
-    │───consolidate──▶│             │            │           │            │
-    │                 │             │            │           │            │
-    │                 │───consolidate all partitions─────────▶│            │
-    │                 │             │            │           │            │
-    │                 │             │            │           │◀───INSERT───│
-    │                 │             │            │           │───consolidated─▶│
-    │◀───complete──────│             │            │           │            │
+```mermaid
+sequenceDiagram
+    participant Main as Main Script
+    participant Parallel as GNU Parallel
+    participant T1 as Thread 1
+    participant T2 as Thread 2
+    participant TN as Thread N
+    participant PG as PostgreSQL
+    
+    Main->>Parallel: split XML
+    Parallel->>T1: part_0
+    Parallel->>T2: part_1
+    Parallel->>TN: part_N
+    
+    Parallel->>T1: process part_0
+    T1->>T1: AWK extract
+    T1-->>Parallel: CSV
+    T1->>PG: load partition_0
+    PG-->>T1: loaded
+    
+    Parallel->>T2: process part_1
+    T2->>T2: AWK extract
+    T2-->>Parallel: CSV
+    T2->>PG: load partition_1
+    PG-->>T2: loaded
+    
+    Note over T1,TN: All threads complete
+    
+    Main->>Parallel: consolidate
+    Parallel->>PG: consolidate all partitions
+    PG->>PG: INSERT
+    PG-->>Parallel: consolidated
+    Parallel-->>Main: complete
 ```
 
 ## Integration with Planet Processing

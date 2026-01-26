@@ -38,38 +38,25 @@ Time    Event
 
 ## System Architecture
 
-```
-┌─────────────────────────────────────────────────────┐
-│                                                     │
-│  DAEMON/SYSTEMD SERVICE: Processing               │
-│  processAPINotesDaemon.sh                          │
-│  Variables:                                         │
-│    ADMIN_EMAIL=admin@example.com                   │
-│    SEND_ALERT_EMAIL=true                           │
-│                                                     │
-└──────────────────┬──────────────────────────────────┘
-                   │
-                   ▼
-         ┌─────────────────┐
-         │ Does it fail?   │
-         └────┬────────────┘
-              │
-              ▼ YES
-    ┌──────────────────────┐
-    │ __create_failed_     │
-    │     marker()         │
-    │                      │
-    │ 1. Creates file      │
-    │ 2. __send_failure_   │
-    │        email()       │
-    └──────────┬───────────┘
-               │
-               ▼ ⚡ IMMEDIATE (seconds)
-    ┌──────────────────────┐
-    │ Admin receives:      │
-    │ • Email 📧           │
-    │ (seconds later)      │
-    └──────────────────────┘
+```mermaid
+flowchart TD
+    subgraph Daemon["DAEMON/SYSTEMD SERVICE: Processing"]
+        DAEMON_SCRIPT[processAPINotesDaemon.sh<br/>Variables:<br/>ADMIN_EMAIL=admin@example.com<br/>SEND_ALERT_EMAIL=true]
+    end
+    
+    Daemon_SCRIPT --> CHECK{Does it fail?}
+    
+    CHECK -->|YES| CREATE_MARKER[__create_failed_marker<br/>1. Creates file<br/>2. __send_failure_email]
+    
+    CREATE_MARKER -->|⚡ IMMEDIATE seconds| ADMIN[Admin receives:<br/>• Email 📧<br/>seconds later]
+    
+    CHECK -->|NO| CONTINUE[Continue normal execution]
+    
+    style Daemon_SCRIPT fill:#90EE90
+    style CHECK fill:#FFE4B5
+    style CREATE_MARKER fill:#FFB6C1
+    style ADMIN fill:#FFB6C1
+    style CONTINUE fill:#90EE90
 ```
 
 **Required components:**

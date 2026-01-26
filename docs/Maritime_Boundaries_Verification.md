@@ -17,44 +17,42 @@ imported into the database.
 
 ## Process Flow
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│              Maritime Boundaries Verification Flow                   │
-└─────────────────────────────────────────────────────────────────────┘
-
-World_EEZ Shapefile (Reference Only)
-    │
-    ▼
-generateEEZCentroids.sh
-    │
-    ▼
-eez_centroids.csv (285 centroids)
-    │
-    ▼
-updateCountries.sh::__checkMissingMaritimes()
-    │
-    ├─▶ Filter: Centroids already in database (ST_Contains check)
-    │
-    ├─▶ For each centroid NOT in database:
-    │   │
-    │   ├─▶ Query Overpass API: is_in(lat, lon)
-    │   │   └─▶ Find relations containing the centroid point
-    │   │
-    │   ├─▶ Filter relations by maritime tags (priority order):
-    │   │   1. boundary=maritime
-    │   │   2. type=boundary AND maritime=yes
-    │   │   3. type=boundary (excluding administrative)
-    │   │
-    │   ├─▶ If maritime relation found:
-    │   │   ├─▶ Download relation from Overpass
-    │   │   ├─▶ Convert to GeoJSON
-    │   │   ├─▶ Import to database (is_maritime=true)
-    │   │   └─▶ Mark as "imported" in report
-    │   │
-    │   └─▶ If no relation found:
-    │       └─▶ Mark as "missing" in report
-    │
-    └─▶ Generate report: missing_eez_osm_YYYYMMDD.csv
+```mermaid
+flowchart TD
+    START[World_EEZ Shapefile<br/>Reference Only]
+    START --> GENERATE[generateEEZCentroids.sh]
+    GENERATE --> CSV[eez_centroids.csv<br/>285 centroids]
+    CSV --> CHECK[updateCountries.sh::__checkMissingMaritimes]
+    
+    CHECK --> FILTER[Filter: Centroids already<br/>in database<br/>ST_Contains check]
+    
+    FILTER --> LOOP{For each centroid<br/>NOT in database}
+    
+    LOOP --> QUERY[Query Overpass API:<br/>is_in lat, lon<br/>Find relations containing<br/>the centroid point]
+    
+    QUERY --> FILTER_TAGS[Filter relations by<br/>maritime tags priority order:<br/>1. boundary=maritime<br/>2. type=boundary AND maritime=yes<br/>3. type=boundary excluding administrative]
+    
+    FILTER_TAGS --> FOUND{Maritime relation<br/>found?}
+    
+    FOUND -->|Yes| DOWNLOAD[Download relation<br/>from Overpass]
+    DOWNLOAD --> CONVERT[Convert to GeoJSON]
+    CONVERT --> IMPORT[Import to database<br/>is_maritime=true]
+    IMPORT --> MARK_IMPORTED[Mark as imported<br/>in report]
+    
+    FOUND -->|No| MARK_MISSING[Mark as missing<br/>in report]
+    
+    MARK_IMPORTED --> LOOP
+    MARK_MISSING --> LOOP
+    
+    LOOP -->|All processed| REPORT[Generate report:<br/>missing_eez_osm_YYYYMMDD.csv]
+    
+    style START fill:#ADD8E6
+    style GENERATE fill:#90EE90
+    style CSV fill:#E0F6FF
+    style CHECK fill:#FFFFE0
+    style QUERY fill:#FFE4B5
+    style IMPORT fill:#90EE90
+    style REPORT fill:#DDA0DD
 ```
 
 ## Components

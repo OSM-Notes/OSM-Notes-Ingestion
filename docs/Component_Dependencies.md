@@ -34,70 +34,90 @@ The OSM-Notes-Ingestion system follows a modular architecture with clear separat
 
 ### High-Level Dependency Tree
 
-```text
-┌─────────────────────────────────────────────────────────────────────┐
-│                    OSM-Notes-Ingestion System                        │
-│                      Dependency Hierarchy                           │
-└─────────────────────────────────────────────────────────────────────┘
-
-Entry Points (bin/process/)
-    │
-    ├─▶ processAPINotes.sh
-    │   │
-    │   ├─▶ bin/lib/processAPIFunctions.sh
-    │   │   └─▶ bin/lib/functionsProcess.sh
-    │   │       ├─▶ lib/osm-common/commonFunctions.sh
-    │   │       ├─▶ lib/osm-common/validationFunctions.sh
-    │   │       ├─▶ lib/osm-common/errorHandlingFunctions.sh
-    │   │       ├─▶ bin/lib/securityFunctions.sh
-    │   │       └─▶ bin/lib/overpassFunctions.sh
-    │   │
-    │   ├─▶ bin/lib/parallelProcessingFunctions.sh
-    │   │   └─▶ lib/osm-common/commonFunctions.sh
-    │   │
-    │   ├─▶ lib/osm-common/alertFunctions.sh
-    │   │   └─▶ lib/osm-common/commonFunctions.sh
-    │   │
-    │   └─▶ awk/extract_*.awk (AWK scripts)
-    │
-    ├─▶ processPlanetNotes.sh
-    │   │
-    │   ├─▶ bin/lib/processPlanetFunctions.sh
-    │   │   └─▶ bin/lib/functionsProcess.sh
-    │   │
-    │   ├─▶ bin/lib/noteProcessingFunctions.sh
-    │   │   └─▶ bin/lib/functionsProcess.sh
-    │   │
-    │   ├─▶ bin/lib/boundaryProcessingFunctions.sh
-    │   │   ├─▶ bin/lib/functionsProcess.sh
-    │   │   └─▶ bin/lib/overpassFunctions.sh
-    │   │
-    │   ├─▶ bin/lib/parallelProcessingFunctions.sh
-    │   │
-    │   └─▶ awk/extract_*.awk (AWK scripts)
-    │
-    └─▶ updateCountries.sh
-        │
-        ├─▶ bin/lib/boundaryProcessingFunctions.sh
-        │   └─▶ bin/lib/functionsProcess.sh
-        │
-        └─▶ bin/lib/processPlanetFunctions.sh
-            └─▶ bin/lib/functionsProcess.sh
-
-Shared Libraries (lib/osm-common/)
-    │
-    ├─▶ commonFunctions.sh (base library)
-    │   ├─▶ bash_logger.sh (logging)
-    │   └─▶ Error codes definitions
-    │
-    ├─▶ validationFunctions.sh
-    │   └─▶ commonFunctions.sh
-    │
-    ├─▶ errorHandlingFunctions.sh
-    │   └─▶ commonFunctions.sh
-    │
-    └─▶ alertFunctions.sh
-        └─▶ commonFunctions.sh
+```mermaid
+graph TD
+    subgraph EntryPoints["Entry Points (bin/process/)"]
+        API_PROCESS[processAPINotes.sh]
+        PLANET_PROCESS[processPlanetNotes.sh]
+        UPDATE_COUNTRIES[updateCountries.sh]
+    end
+    
+    subgraph APIDeps["processAPINotes.sh Dependencies"]
+        API_FUNCS[bin/lib/processAPIFunctions.sh]
+        FUNCS_PROCESS1[bin/lib/functionsProcess.sh]
+        PARALLEL1[bin/lib/parallelProcessingFunctions.sh]
+        ALERT_FUNCS[lib/osm-common/alertFunctions.sh]
+        AWK1[awk/extract_*.awk]
+    end
+    
+    subgraph PlanetDeps["processPlanetNotes.sh Dependencies"]
+        PLANET_FUNCS[bin/lib/processPlanetFunctions.sh]
+        FUNCS_PROCESS2[bin/lib/functionsProcess.sh]
+        NOTE_PROCESS[bin/lib/noteProcessingFunctions.sh]
+        BOUNDARY_PROCESS[bin/lib/boundaryProcessingFunctions.sh]
+        PARALLEL2[bin/lib/parallelProcessingFunctions.sh]
+        AWK2[awk/extract_*.awk]
+    end
+    
+    subgraph UpdateDeps["updateCountries.sh Dependencies"]
+        BOUNDARY_PROCESS2[bin/lib/boundaryProcessingFunctions.sh]
+        FUNCS_PROCESS3[bin/lib/functionsProcess.sh]
+        PLANET_FUNCS2[bin/lib/processPlanetFunctions.sh]
+    end
+    
+    subgraph CommonLibs["Shared Libraries (lib/osm-common/)"]
+        COMMON[commonFunctions.sh<br/>base library<br/>bash_logger.sh<br/>Error codes definitions]
+        VALIDATION[validationFunctions.sh]
+        ERROR_HANDLING[errorHandlingFunctions.sh]
+        ALERT[alertFunctions.sh]
+    end
+    
+    subgraph FuncsProcessDeps["functionsProcess.sh Dependencies"]
+        COMMON_FUNC[lib/osm-common/commonFunctions.sh]
+        VALIDATION_FUNC[lib/osm-common/validationFunctions.sh]
+        ERROR_FUNC[lib/osm-common/errorHandlingFunctions.sh]
+        SECURITY[bin/lib/securityFunctions.sh]
+        OVERPASS[bin/lib/overpassFunctions.sh]
+    end
+    
+    API_PROCESS --> API_FUNCS
+    API_FUNCS --> FUNCS_PROCESS1
+    FUNCS_PROCESS1 --> COMMON_FUNC
+    FUNCS_PROCESS1 --> VALIDATION_FUNC
+    FUNCS_PROCESS1 --> ERROR_FUNC
+    FUNCS_PROCESS1 --> SECURITY
+    FUNCS_PROCESS1 --> OVERPASS
+    API_PROCESS --> PARALLEL1
+    PARALLEL1 --> COMMON_FUNC
+    API_PROCESS --> ALERT_FUNCS
+    ALERT_FUNCS --> COMMON_FUNC
+    API_PROCESS --> AWK1
+    
+    PLANET_PROCESS --> PLANET_FUNCS
+    PLANET_FUNCS --> FUNCS_PROCESS2
+    PLANET_PROCESS --> NOTE_PROCESS
+    NOTE_PROCESS --> FUNCS_PROCESS2
+    PLANET_PROCESS --> BOUNDARY_PROCESS
+    BOUNDARY_PROCESS --> FUNCS_PROCESS2
+    BOUNDARY_PROCESS --> OVERPASS
+    PLANET_PROCESS --> PARALLEL2
+    PLANET_PROCESS --> AWK2
+    
+    UPDATE_COUNTRIES --> BOUNDARY_PROCESS2
+    BOUNDARY_PROCESS2 --> FUNCS_PROCESS3
+    UPDATE_COUNTRIES --> PLANET_FUNCS2
+    PLANET_FUNCS2 --> FUNCS_PROCESS3
+    
+    VALIDATION --> COMMON
+    ERROR_HANDLING --> COMMON
+    ALERT --> COMMON
+    
+    style API_PROCESS fill:#90EE90
+    style PLANET_PROCESS fill:#90EE90
+    style UPDATE_COUNTRIES fill:#90EE90
+    style COMMON fill:#FFE4B5
+    style COMMON_FUNC fill:#FFE4B5
+```
 ```
 
 ---

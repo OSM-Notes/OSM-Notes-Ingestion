@@ -219,100 +219,84 @@ WHERE note_id IN (
 
 The following diagram shows the complete execution flow of `processPlanetNotes.sh`:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│            processPlanetNotes.sh - Complete Execution Flow               │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Manual/Cron
-    │
-    ▼
-┌─────────────────┐
-│  main() starts  │
-└────────┬────────┘
-         │
-         ├─▶ Check --help parameter
-         │   └─▶ Exit if help requested
-         │
-         ├─▶ __checkPreviousFailedExecution()
-         │   └─▶ Check for failed execution marker
-         │
-         ├─▶ __checkPrereqs()
-         │   ├─▶ Verify commands available
-         │   ├─▶ Verify database connection
-         │   └─▶ Verify SQL files exist
-         │
-         ├─▶ __trapOn()
-         │   └─▶ Setup error handlers and cleanup
-         │
-         ├─▶ __setupLockFile()
-         │   ├─▶ Check for existing lock
-         │   ├─▶ Create lock file (Singleton pattern)
-         │   └─▶ Exit if already running
-         │
-         ├─▶ Decision: PROCESS_TYPE
-         │   │
-         │   ├─▶ PROCESS_TYPE="--base" (Base Mode)
-         │   │   │
-         │   │   └─▶ __processPlanetBaseMode()
-         │   │       ├─▶ __dropBaseTables()
-         │   │       ├─▶ __dropApiTables()
-         │   │       ├─▶ __dropSyncTables()
-         │   │       ├─▶ __createBaseTables()
-         │   │       ├─▶ __createPartitionTables()
-         │   │       ├─▶ Download Planet file
-         │   │       ├─▶ Extract notes XML
-         │   │       ├─▶ Validate XML [if SKIP_XML_VALIDATION=false]
-         │   │       ├─▶ Split XML into parts
-         │   │       ├─▶ Process parts in parallel (AWK: XML → CSV)
-         │   │       ├─▶ Load CSV to sync tables
-         │   │       ├─▶ __removeDuplicates()
-         │   │       ├─▶ __moveSyncToMain()
-         │   │       └─▶ __loadTextComments()
-         │   │
-         │   └─▶ PROCESS_TYPE="" (Sync Mode)
-         │       │
-         │       └─▶ __processPlanetSyncMode()
-         │           ├─▶ __dropSyncTables()
-         │           ├─▶ __createSyncTables()
-         │           ├─▶ Download Planet file
-         │           ├─▶ Extract notes XML
-         │           ├─▶ Validate XML [if SKIP_XML_VALIDATION=false]
-         │           ├─▶ Split XML into parts
-         │           ├─▶ Process parts in parallel (AWK: XML → CSV)
-         │           ├─▶ Load CSV to sync tables
-         │           ├─▶ __loadSyncNotes() (only new notes)
-         │           ├─▶ __removeDuplicates()
-         │           ├─▶ __moveSyncToMain()
-         │           └─▶ __loadTextComments()
-         │
-         ├─▶ Decision: PROCESS_TYPE (Geographic Data)
-         │   │
-         │   ├─▶ PROCESS_TYPE="--base"
-         │   │   └─▶ __processGeographicDataBaseMode()
-         │   │       └─▶ __processGeographicData()
-         │   │           ├─▶ Download countries via Overpass (FIFO Queue)
-         │   │           ├─▶ Download maritimes via Overpass (FIFO Queue)
-         │   │           ├─▶ Process boundaries (PostGIS)
-         │   │           └─▶ Load to countries/maritimes tables
-         │   │
-         │   └─▶ PROCESS_TYPE=""
-         │       └─▶ __processGeographicDataSyncMode()
-         │           └─▶ __processGeographicData()
-         │               └─▶ Update boundaries (if changed)
-         │
-         ├─▶ __createProcedures()
-         │   └─▶ Create database procedures
-         │
-         ├─▶ __cleanNotesFiles()
-         │   └─▶ Clean temporary files (if CLEAN=true)
-         │
-         ├─▶ __analyzeAndVacuum()
-         │   ├─▶ ANALYZE tables
-         │   └─▶ VACUUM tables
-         │
-         └─▶ Remove lock file
-             └─▶ Exit successfully
+```mermaid
+flowchart TD
+    START[Manual/Cron] --> MAIN[main starts]
+    
+    MAIN --> CHECK_HELP{Check --help<br/>parameter}
+    CHECK_HELP -->|Help requested| EXIT_HELP[Exit]
+    
+    CHECK_HELP -->|Continue| CHECK_FAILED[__checkPreviousFailedExecution<br/>Check for failed execution marker]
+    CHECK_FAILED --> CHECK_PREREQS[__checkPrereqs<br/>Verify commands available<br/>Verify database connection<br/>Verify SQL files exist]
+    
+    CHECK_PREREQS --> TRAP_ON[__trapOn<br/>Setup error handlers and cleanup]
+    TRAP_ON --> SETUP_LOCK[__setupLockFile<br/>Check for existing lock<br/>Create lock file Singleton pattern<br/>Exit if already running]
+    
+    SETUP_LOCK --> DECISION_TYPE{Decision:<br/>PROCESS_TYPE}
+    
+    DECISION_TYPE -->|--base Base Mode| BASE_MODE[__processPlanetBaseMode]
+    BASE_MODE --> DROP_BASE[__dropBaseTables]
+    DROP_BASE --> DROP_API[__dropApiTables]
+    DROP_API --> DROP_SYNC[__dropSyncTables]
+    DROP_SYNC --> CREATE_BASE[__createBaseTables]
+    CREATE_BASE --> CREATE_PART[__createPartitionTables]
+    CREATE_PART --> DOWNLOAD_PLANET[Download Planet file]
+    DOWNLOAD_PLANET --> EXTRACT_XML[Extract notes XML]
+    EXTRACT_XML --> VALIDATE_XML{SKIP_XML_VALIDATION<br/>false?}
+    VALIDATE_XML -->|Yes| VALIDATE[Validate XML]
+    VALIDATE_XML -->|No| SPLIT_XML[Split XML into parts]
+    VALIDATE --> SPLIT_XML
+    SPLIT_XML --> PROCESS_PARALLEL[Process parts in parallel<br/>AWK: XML → CSV]
+    PROCESS_PARALLEL --> LOAD_SYNC[Load CSV to sync tables]
+    LOAD_SYNC --> REMOVE_DUP[__removeDuplicates]
+    REMOVE_DUP --> MOVE_SYNC[__moveSyncToMain]
+    MOVE_SYNC --> LOAD_TEXT[__loadTextComments]
+    
+    DECISION_TYPE -->|Sync Mode| SYNC_MODE[__processPlanetSyncMode]
+    SYNC_MODE --> DROP_SYNC2[__dropSyncTables]
+    DROP_SYNC2 --> CREATE_SYNC[__createSyncTables]
+    CREATE_SYNC --> DOWNLOAD_PLANET2[Download Planet file]
+    DOWNLOAD_PLANET2 --> EXTRACT_XML2[Extract notes XML]
+    EXTRACT_XML2 --> VALIDATE_XML2{SKIP_XML_VALIDATION<br/>false?}
+    VALIDATE_XML2 -->|Yes| VALIDATE2[Validate XML]
+    VALIDATE_XML2 -->|No| SPLIT_XML2[Split XML into parts]
+    VALIDATE2 --> SPLIT_XML2
+    SPLIT_XML2 --> PROCESS_PARALLEL2[Process parts in parallel<br/>AWK: XML → CSV]
+    PROCESS_PARALLEL2 --> LOAD_SYNC2[Load CSV to sync tables]
+    LOAD_SYNC2 --> LOAD_SYNC_NOTES[__loadSyncNotes<br/>only new notes]
+    LOAD_SYNC_NOTES --> REMOVE_DUP2[__removeDuplicates]
+    REMOVE_DUP2 --> MOVE_SYNC2[__moveSyncToMain]
+    MOVE_SYNC2 --> LOAD_TEXT2[__loadTextComments]
+    
+    LOAD_TEXT --> GEO_DECISION{Decision:<br/>PROCESS_TYPE<br/>Geographic Data}
+    LOAD_TEXT2 --> GEO_DECISION
+    
+    GEO_DECISION -->|--base| GEO_BASE[__processGeographicDataBaseMode]
+    GEO_BASE --> GEO_PROCESS[__processGeographicData]
+    GEO_PROCESS --> DOWNLOAD_COUNTRIES[Download countries<br/>via Overpass FIFO Queue]
+    DOWNLOAD_COUNTRIES --> DOWNLOAD_MARITIMES[Download maritimes<br/>via Overpass FIFO Queue]
+    DOWNLOAD_MARITIMES --> PROCESS_BOUNDARIES[Process boundaries PostGIS]
+    PROCESS_BOUNDARIES --> LOAD_GEO[Load to countries/maritimes tables]
+    
+    GEO_DECISION -->|Sync Mode| GEO_SYNC[__processGeographicDataSyncMode]
+    GEO_SYNC --> GEO_PROCESS2[__processGeographicData]
+    GEO_PROCESS2 --> UPDATE_BOUNDARIES[Update boundaries<br/>if changed]
+    
+    LOAD_GEO --> CREATE_PROC[__createProcedures<br/>Create database procedures]
+    UPDATE_BOUNDARIES --> CREATE_PROC
+    
+    CREATE_PROC --> CLEAN_FILES[__cleanNotesFiles<br/>Clean temporary files<br/>if CLEAN=true]
+    CLEAN_FILES --> ANALYZE_VACUUM[__analyzeAndVacuum<br/>ANALYZE tables<br/>VACUUM tables]
+    ANALYZE_VACUUM --> REMOVE_LOCK[Remove lock file]
+    REMOVE_LOCK --> EXIT_SUCCESS[Exit successfully]
+    
+    style START fill:#90EE90
+    style EXIT_SUCCESS fill:#90EE90
+    style EXIT_HELP fill:#FFB6C1
+    style BASE_MODE fill:#FFFFE0
+    style SYNC_MODE fill:#FFFFE0
+    style GEO_BASE fill:#FFE4B5
+    style GEO_SYNC fill:#FFE4B5
 ```
 
 ### Simplified Flow Steps
@@ -588,35 +572,28 @@ User/Cron      processPlanetNotes.sh    Planet Server    Overpass API    Postgre
 The following diagram shows how the system interacts with Overpass API using FIFO queue and
 semaphore patterns:
 
-```text
-┌─────────────────────────────────────────────────────────────────────────┐
-│          Overpass API: FIFO Queue and Semaphore Pattern                 │
-└─────────────────────────────────────────────────────────────────────────┘
-
-Main Script    FIFO Queue    Semaphore    Overpass API    PostgreSQL
-    │              │              │             │              │
-    │───request boundary───────────▶│             │              │
-    │              │              │             │              │
-    │              │───enqueue────▶│             │              │
-    │              │              │             │              │
-    │              │───wait for slot────────────▶│              │
-    │              │              │             │              │
-    │              │              │───check status───────────▶│
-    │              │              │◀───available slots─────────│
-    │              │              │             │              │
-    │              │              │───acquire slot──────────────▶│
-    │              │              │◀───slot acquired─────────────│
-    │              │              │             │              │
-    │              │───dequeue───▶│             │              │
-    │              │              │             │              │
-    │              │              │───execute query─────────────▶│
-    │              │              │             │              │
-    │              │              │             │───process query──▶│
-    │              │              │             │◀───GeoJSON───────│
-    │              │              │◀───response───────────────────│
-    │              │              │             │              │
-    │              │              │───release slot───────────────▶│
-    │              │              │◀───slot released──────────────│
+```mermaid
+sequenceDiagram
+    participant Main as Main Script
+    participant FIFO as FIFO Queue
+    participant Sem as Semaphore
+    participant Overpass as Overpass API
+    participant PG as PostgreSQL
+    
+    Main->>FIFO: request boundary
+    FIFO->>Sem: enqueue
+    Sem->>Overpass: wait for slot
+    Overpass->>PG: check status
+    PG-->>Overpass: available slots
+    Overpass->>PG: acquire slot
+    PG-->>Overpass: slot acquired
+    FIFO->>Sem: dequeue
+    Sem->>Overpass: execute query
+    Overpass->>PG: process query
+    PG-->>Overpass: GeoJSON
+    Overpass-->>Sem: response
+    Sem->>PG: release slot
+    PG-->>Sem: slot released
     │              │              │             │              │
     │◀───boundary data─────────────│             │              │
     │              │              │             │              │

@@ -87,11 +87,18 @@ ETL_XML_MEMORY_LIMIT_MB=2048
 
 ## Validation Strategy Flow
 
-```
-File Size Check
-├── > 1000 MB: Structure-only validation
-├── 500-1000 MB: Batch validation with fallback
-└── < 500 MB: Standard validation with timeout
+```mermaid
+flowchart TD
+    CHECK[File Size Check]
+    
+    CHECK -->|> 1000 MB| STRUCTURE[Structure-only validation]
+    CHECK -->|500-1000 MB| BATCH[Batch validation<br/>with fallback]
+    CHECK -->|< 500 MB| STANDARD[Standard validation<br/>with timeout]
+    
+    style CHECK fill:#90EE90
+    style STRUCTURE fill:#FFE4B5
+    style BATCH fill:#FFFFE0
+    style STANDARD fill:#E0F6FF
 ```
 
 ### Structure-Only Validation Process
