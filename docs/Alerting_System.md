@@ -16,17 +16,21 @@ seconds of an error, ensuring administrators are notified promptly.
 
 When a critical error occurs during script execution:
 
-```
-Time    Event
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-01:00   processAPINotesDaemon.sh executes (daemon)
-        ├─ Error: Missing historical data
-        ├─ Creates file: processAPINotesDaemon_failed_execution
-        │  (Location: /var/run/osm-notes-ingestion/ in installed mode,
-        │   /tmp/osm-notes-ingestion/locks/ in fallback mode)
-        └─ 📧 Sends email IMMEDIATELY
-
-        👤 Admin receives alert (seconds after error)
+```mermaid
+sequenceDiagram
+    participant Time as Time 01:00
+    participant Daemon as processAPINotesDaemon.sh<br/>daemon
+    participant Marker as Failed Execution Marker<br/>/var/run/osm-notes-ingestion/<br/>or /tmp/osm-notes-ingestion/locks/
+    participant Email as Email System
+    participant Admin as Admin
+    
+    Time->>Daemon: Executes
+    Daemon->>Daemon: Error: Missing historical data
+    Daemon->>Marker: Creates file:<br/>processAPINotesDaemon_failed_execution
+    Daemon->>Email: 📧 Sends email IMMEDIATELY
+    Email->>Admin: 👤 Admin receives alert<br/>seconds after error
+    
+    Note over Daemon,Admin: Immediate alerting<br/>within seconds
 ```
 
 **Key Features:**
