@@ -179,6 +179,31 @@ When setting up the complete ecosystem, install projects in this order:
 
 For more information about each project, visit their respective repositories.
 
+## Requirements
+
+### Application Requirements
+
+- **PostgreSQL** 12+ with PostGIS extension
+- **Bash** 4.0 or higher
+- **Linux** operating system
+- **Standard UNIX utilities**: grep, awk, sed, curl, jq
+- **Parallel processing**: GNU parallel
+- **XML validation** (optional): libxml2-utils (if `SKIP_XML_VALIDATION=false`)
+- **Geographic tools**: GDAL, osmtogeojson (npm)
+- **JSON validation**: ajv-cli (npm)
+- **Email notifications**: mutt (for monitoring alerts)
+
+For detailed installation instructions, see [Install prerequisites on Ubuntu](#install-prerequisites-on-ubuntu) section below.
+
+### Internal Repository Requirements
+
+**None** - This is the base project and has no dependencies on other OSM-Notes repositories.
+
+However, other projects depend on this one:
+- **OSM-Notes-Analytics** requires this project (reads from base tables)
+- **OSM-Notes-WMS** requires this project (uses same database)
+- **OSM-Notes-Monitoring** monitors this project
+
 ## Shared Functions (Git Submodule)
 
 This project uses a Git submodule for shared code (`lib/osm-common/`):
