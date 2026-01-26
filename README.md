@@ -259,7 +259,9 @@ For more information about each project, visit their respective repositories.
 - **JSON validation**: ajv-cli (npm)
 - **Email notifications**: mutt (for monitoring alerts)
 
-For detailed installation instructions, see [Install prerequisites on Ubuntu](#install-prerequisites-on-ubuntu) section below.
+For detailed installation instructions, see:
+- **[Installation and Dependencies Guide](docs/Installation_Dependencies.md)** - Complete installation guide with all dependencies
+- [Install prerequisites on Ubuntu](#install-prerequisites-on-ubuntu) section below - Quick Ubuntu setup
 
 ### Internal Repository Requirements
 
