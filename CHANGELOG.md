@@ -42,6 +42,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `tests/unit/bash/get_country_return_values.test.bats` (BATS integration tests)
     - `tests/setup_test_countries_for_get_country.sh` (automatic test data setup)
 
+---
+
+## [2026-01-26] - Recent Updates and Improvements
+
+### Added
+
+- Add run_ci_tests.sh script for local CI testing
+- Add mock functions and enhance error handling in hybrid testing scripts
+- Add setup script for test countries and update related tests
+- Add unit tests for get_country function to validate return values
+- Add PostGIS extension setup to CI workflow for test database
+- Add warning messages for running all jobs in CI tests script
+- Add history tables for tracking missing comments and enhance insertion scripts
+- Update CI_Troubleshooting.md to address port conflicts with act during local GitHub Actions execution
+- Add function to compare country geometries for validation during updates
+- Add backup reminders after successful base setup and country updates
+- Update crontab setup example to change email notification address
+
+### Changed
+
+- Update Process_Planet.md to enhance interaction diagram with mermaid syntax
+- Refactor SQL script formatting for improved readability
+- Update updateCountries.sh and testing scripts for improved logging and clarity
+- Enhance boundary processing functions for dynamic SQL handling
+- Enhance index management in updateCountries.sh for improved reliability
+- Refactor sourcing logic in processAPINotes.sh for improved readability
+- Update unit tests for __processApiXmlSequential function with improved setup and validation
+- Enhance lock directory initialization in pathConfigurationFunctions.sh
+- Update pathConfigurationFunctions.sh for improved directory handling
+- Refactor test properties script for improved environment variable handling
+- Enhance processAPINotes script to improve execution checks
+- Enhance unit tests for processAPINotes with improved setup and variable initialization
+- Enhance unit tests for processAPINotes with improved variable handling
+- Update CI workflow to improve test execution feedback and logging
+- Enhance validation logic in integration tests for API notes processing
+- ... and 65 more changes
+
+### Fixed
+
+- Update boundaryProcessingFunctions.sh for improved error handling and logging
+- Update processAPIFunctions.sh and run_processAPINotes_hybrid.sh for error handling and versioning
+- Update edge_cases_infrastructure.test.bats to improve error handling for invalid configurations
+- Update integration and unit tests for versioning and improved error handling
+- Refactor API notes processing to enhance validation and error handling
+- Refactor API notes validation and processing functions for improved error handling
+- Enhance error handling and logging in boundary processing functions
+- Refactor logging and error handling in multiple scripts for improved clarity
+- Enhance error handling and validation in processPlanetNotes.sh
+- Enhance process scripts for improved logging and error handling
+- Enhance error handling and variable management across multiple scripts
+- Refactor various scripts for improved error handling and variable substitution
+- Update processCheckPlanetNotes.sh and integration tests for enhanced error handling and versioning
+- Enhance processCheckPlanetNotes.sh for improved error handling and logging
+- Update processCheckPlanetNotes.sh and integration tests for improved error handling and versioning
+- ... and 11 more fixes
+
+### Removed
+
+- Refactor testing documentation and remove obsolete mock scripts
+
+### Documentation
+
+- Comprehensive documentation updates (22 commits)
+  - Standardized documentation links and file naming conventions
+  - Added metadata sections (frontmatter) to documentation files
+  - Enhanced README files with improved navigation and structure
+  - Converted ASCII diagrams to Mermaid format for better visualization
+  - Updated cross-references and internal links
+
+
+    - Notes in valid countries are now correctly assigned (no longer marked as international waters)
+    - Clear distinction between international waters (`-1`) and unknown countries (`-2`)
+    - Better handling of points on country boundaries
+    - Improved geometry validation with explicit SRID normalization
+  - **Files changed**:
+    - `sql/functionsProcess_21_createFunctionToGetCountry.sql` (core function fix)
+    - `bin/lib/noteProcessingFunctions.sh` (6 occurrences updated)
+    - `sql/functionsProcess_32_loadsBackupNoteLocation.sql`
+    - `sql/functionsProcess_35_assignCountryToNotesChunk.sql`
+    - `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
+    - `docs/Country_Assignment_2D_Grid.md` (documentation update)
+  - **New tests added**:
+    - `tests/unit/sql/get_country_return_values.test.sql` (validates return value semantics)
+    - `tests/unit/sql/get_country_partial_failures.test.sql` (detects partial failures)
+    - `tests/unit/bash/get_country_return_values.test.bats` (BATS integration tests)
+    - `tests/setup_test_countries_for_get_country.sh` (automatic test data setup)
+
 #### Daemon Multiple Planet Executions Fix (2025-12-15)
 
 - **Fixed daemon executing Planet --base multiple times**:
