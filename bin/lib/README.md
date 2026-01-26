@@ -504,7 +504,7 @@ Functions are tested via:
   assignment strategy
 - **[docs/ST_DWithin_Explanation.md](../../docs/ST_Dwithin_Explanation.md)**: PostGIS spatial
   functions
-- **[bin/ENVIRONMENT_VARIABLES.md](../ENVIRONMENT_VARIABLES.md)**: Environment variable reference
+- **[bin/ENVIRONMENT_VARIABLES.md](../Environment_Variables.md)**: Environment variable reference
 
 ## Version
 

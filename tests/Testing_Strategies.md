@@ -508,7 +508,7 @@ EOF
 
 ## Related Documentation
 
-- [Contributing Tests Guide](./CONTRIBUTING_TESTS.md)
+- [Contributing Tests Guide](./Contributing_Tests.md)
 - [Fixtures Documentation](./fixtures/README.md)
 - [Testing Guide](../docs/Testing_Guide.md)
 - [Test Suites Reference](../docs/Testing_Suites_Reference.md)

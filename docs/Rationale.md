@@ -515,7 +515,7 @@ Other patterns may be implemented implicitly, but these are the main ones docume
   [External Dependencies and Risks](./External_Dependencies_And_Risks.md) for detailed information
   about these dependencies and their potential impact.
 
-**Future Improvements**: See [Future Reevaluation Tasks](../ToDo/FUTURE_REEVALUATION.md) for items
+**Future Improvements**: See [Future Reevaluation Tasks](../ToDo/Future_Reevaluation.md) for items
 to be reconsidered once the system is stable.
 
 ## Related Documentation
@@ -548,9 +548,9 @@ to be reconsidered once the system is stable.
 ### Script Reference
 
 - **[bin/README.md](../bin/README.md)**: Script usage examples and implementation patterns
-- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and usage
+- **[bin/ENTRY_POINTS.md](../bin/Entry_Points.md)**: Script entry points and usage
 
 ### Planning Documentation
 
-- **[ToDo/FUTURE_REEVALUATION.md](../ToDo/FUTURE_REEVALUATION.md)**: Items to be reconsidered in
+- **[ToDo/FUTURE_REEVALUATION.md](../ToDo/Future_Reevaluation.md)**: Items to be reconsidered in
   future versions

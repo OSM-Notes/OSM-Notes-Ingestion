@@ -850,7 +850,7 @@ export FORCE_SWAP_ON_WARNING=true
 ### Environment Variables
 
 All scripts support common environment variables. See
-[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md) for complete documentation.
+[bin/ENVIRONMENT_VARIABLES.md](../bin/Environment_Variables.md) for complete documentation.
 
 #### Common Variables
 

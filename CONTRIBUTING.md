@@ -61,13 +61,13 @@ Before contributing, familiarize yourself with:
 #### Script Reference
 
 - **[bin/README.md](../bin/README.md)**: Script usage examples, common use cases, and reference
-- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Which scripts can be called directly
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable documentation
+- **[bin/ENTRY_POINTS.md](../bin/Entry_Points.md)**: Which scripts can be called directly
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/Environment_Variables.md)**: Environment variable documentation
 
 #### Testing Documentation
 
 - **[tests/README.md](../tests/README.md)**: Testing infrastructure overview
-- **[tests/CONTRIBUTING_TESTS.md](../tests/CONTRIBUTING_TESTS.md)**: Guide for
+- **[tests/CONTRIBUTING_TESTS.md](../tests/Contributing_Tests.md)**: Guide for
   contributing tests (test structure, inline comments, fixtures, mocking)
 - **[tests/fixtures/README.md](../tests/fixtures/README.md)**: Test fixtures
   and sample data documentation
@@ -191,7 +191,7 @@ For detailed flow diagrams, see [docs/Documentation.md](../docs/Documentation.md
    - **Error Codes**: Verify error codes match standards in `lib/osm-common/commonFunctions.sh`
 
 3. **Locate the problematic code**:
-   - Check script entry points: [bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)
+   - Check script entry points: [bin/ENTRY_POINTS.md](../bin/Entry_Points.md)
    - Review function libraries: `bin/lib/` and `lib/osm-common/`
    - Check SQL scripts if database-related: `sql/process/`
    - Review AWK scripts if XML processing: `awk/`
@@ -263,10 +263,10 @@ Fixes #123
    - **Architecture**: Update [docs/Documentation.md](../docs/Documentation.md) if architecture changes
    - **Component Dependencies**: Update [docs/Component_Dependencies.md](../docs/Component_Dependencies.md) if dependencies change
    - **Script Usage**: Update [bin/README.md](../bin/README.md) with examples and use cases
-   - **Entry Points**: Update [bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md) if adding new scripts
+   - **Entry Points**: Update [bin/ENTRY_POINTS.md](../bin/Entry_Points.md) if adding new scripts
    - **Troubleshooting**: Add new error scenarios to [docs/Troubleshooting_Guide.md](../docs/Troubleshooting_Guide.md)
    - **Processing Docs**: Update [docs/Process_API.md](../docs/Process_API.md) or [docs/Process_Planet.md](../docs/Process_Planet.md) if relevant
-   - **Environment Variables**: Update [bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md) if adding new variables
+   - **Environment Variables**: Update [bin/ENVIRONMENT_VARIABLES.md](../bin/Environment_Variables.md) if adding new variables
 
 **Example commit message**:
 ```text

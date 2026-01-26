@@ -1303,8 +1303,8 @@ For **WMS (Web Map Service) documentation**, see the
 ### Script Reference
 
 - **[bin/README.md](../bin/README.md)**: Script usage examples and common use cases
-- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and parameters
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable
+- **[bin/ENTRY_POINTS.md](../bin/Entry_Points.md)**: Script entry points and parameters
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/Environment_Variables.md)**: Environment variable
   documentation
 
 ### Testing Documentation

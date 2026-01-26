@@ -715,8 +715,8 @@ export ADMIN_EMAIL="admin@production.com"
 
 ### Related Documentation
 
-- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Entry point documentation
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Complete environment variable
+- **[bin/ENTRY_POINTS.md](../bin/Entry_Points.md)**: Entry point documentation
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/Environment_Variables.md)**: Complete environment variable
   reference
 - **[Documentation.md](./Documentation.md)**: System architecture and general usage examples
 

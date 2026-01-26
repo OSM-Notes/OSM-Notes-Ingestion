@@ -365,7 +365,7 @@ If you're new to this project and want to understand the codebase or contribute,
    - Read [docs/Process_Planet.md](./docs/Process_Planet.md) - Planet file processing
 
 4. **Entry Points** (20 min)
-   - Read [bin/ENTRY_POINTS.md](./bin/ENTRY_POINTS.md) - Which scripts can be called directly
+   - Read [bin/ENTRY_POINTS.md](./bin/Entry_Points.md) - Which scripts can be called directly
    - Understand the main entry points: `processAPINotes.sh`, `processPlanetNotes.sh`, `updateCountries.sh`
 
 5. **Testing** (30 min)
@@ -410,7 +410,7 @@ OSM-Notes-Ingestion/
 
 ### Key Concepts
 
-- **Entry Points**: Only scripts in `bin/process/` should be called directly (see [ENTRY_POINTS.md](./bin/ENTRY_POINTS.md))
+- **Entry Points**: Only scripts in `bin/process/` should be called directly (see [ENTRY_POINTS.md](./bin/Entry_Points.md))
 - **Processing Flow**: API → Database (see [Documentation.md](./docs/Documentation.md))
 - **Testing**: 101 test suites covering all components (see [Testing_Guide.md](./docs/Testing_Guide.md))
 - **Configuration**: All settings in `etc/properties.sh`

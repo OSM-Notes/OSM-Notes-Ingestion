@@ -842,4 +842,4 @@ When a script starts, dependencies are loaded in this order:
 ### Script Reference
 
 - **[bin/README.md](../bin/README.md)**: Script usage and component interactions
-- **[bin/ENTRY_POINTS.md](../bin/ENTRY_POINTS.md)**: Script entry points and call dependencies
+- **[bin/ENTRY_POINTS.md](../bin/Entry_Points.md)**: Script entry points and call dependencies

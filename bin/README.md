@@ -836,7 +836,7 @@ export SEND_ALERT_EMAIL=true
 ```
 
 For complete environment variable documentation, see
-[ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md).
+[ENVIRONMENT_VARIABLES.md](./Environment_Variables.md).
 
 ## Dependencies
 

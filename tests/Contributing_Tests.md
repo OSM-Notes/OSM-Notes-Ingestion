@@ -655,7 +655,7 @@ When submitting a PR with tests:
 ## Additional Resources
 
 - [BATS Documentation](https://github.com/bats-core/bats-core)
-- [Testing Strategies](./TESTING_STRATEGIES.md) - Comprehensive testing strategies and approaches
+- [Testing Strategies](./Testing_Strategies.md) - Comprehensive testing strategies and approaches
 - [Project Testing Guide](../docs/Testing_Guide.md)
 - [Test Suites Reference](../docs/Testing_Suites_Reference.md)
 - [Fixtures Documentation](./fixtures/README.md)

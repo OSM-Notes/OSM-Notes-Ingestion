@@ -284,7 +284,7 @@ variables) and require `mutt` as a prerequisite.
 - **[Process_Planet.md](./Process_Planet.md)**: Planet processing error handling implementation
 - **[Documentation.md#troubleshooting-guide](./Documentation.md#troubleshooting-guide)**:
   Troubleshooting guide with error recovery procedures
-- **[bin/ENVIRONMENT_VARIABLES.md](../bin/ENVIRONMENT_VARIABLES.md)**: Environment variable
+- **[bin/ENVIRONMENT_VARIABLES.md](../bin/Environment_Variables.md)**: Environment variable
   configuration (ADMIN_EMAIL, SEND_ALERT_EMAIL)
 - **[examples/alert-configuration.example](../examples/alert-configuration.example)**: Example alert
   configuration

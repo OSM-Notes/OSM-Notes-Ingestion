@@ -175,7 +175,7 @@ Test data and sample files:
 
 ### Contributing Tests
 
-- **[CONTRIBUTING_TESTS.md](./CONTRIBUTING_TESTS.md)**: Comprehensive guide for contributing tests,
+- **[CONTRIBUTING_TESTS.md](./Contributing_Tests.md)**: Comprehensive guide for contributing tests,
   including:
   - Test structure and organization
   - Writing tests with inline comments
@@ -183,7 +183,7 @@ Test data and sample files:
   - Test naming conventions
   - Code quality standards
 
-- **[TESTING_STRATEGIES.md](./TESTING_STRATEGIES.md)**: Comprehensive testing strategies and
+- **[TESTING_STRATEGIES.md](./Testing_Strategies.md)**: Comprehensive testing strategies and
   approaches, including:
   - Testing philosophy and principles
   - Test types and strategies (unit, integration, E2E, performance, security)
