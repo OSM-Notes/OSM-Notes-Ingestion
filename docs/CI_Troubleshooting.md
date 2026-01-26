@@ -393,5 +393,4 @@ If you continue to experience issues:
 
 - [Testing Guide](Testing_Guide.md)
 - [CI/CD Integration](CI_CD_Integration.md)
-- [Docker Setup](tests/docker/README.md)
-- [Workflow Configuration](.github/workflows/README.md)
+- [Workflow Configuration](../.github/workflows/README.md)
