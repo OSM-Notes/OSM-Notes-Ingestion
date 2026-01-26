@@ -507,7 +507,7 @@ updateCountries.sh
 ## External Dependencies
 
 > **Note:** For detailed information about external dependencies, risks, and potential impacts, see
-> [External Dependencies and Risks](./External_Dependencies_and_Risks.md).
+> [External Dependencies and Risks](./External_Dependencies_And_Risks.md).
 
 ### System and Tool Dependencies
 
@@ -827,7 +827,7 @@ When a script starts, dependencies are loaded in this order:
   and spatial dependencies
 - **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
   and boundary dependencies
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Spatial function dependencies
+- **[ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md)**: Spatial function dependencies
 
 ### Library Documentation
 

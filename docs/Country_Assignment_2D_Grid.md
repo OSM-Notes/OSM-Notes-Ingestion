@@ -848,7 +848,7 @@ ORDER BY notes DESC;
 - **[Rationale.md](./Rationale.md)**: Project motivation and design decisions
 - **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
   to prevent data cross-contamination
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions
+- **[ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md)**: PostGIS spatial functions
   explanation
 
 ### External References

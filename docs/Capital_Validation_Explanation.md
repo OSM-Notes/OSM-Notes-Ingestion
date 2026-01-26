@@ -240,7 +240,7 @@ fi
 
 ## Related Documentation
 
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Detailed explanation of ST_DWithin
+- **[ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md)**: Detailed explanation of ST_DWithin
   function used in capital validation
 - **[Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md)**: Country assignment strategy
   and spatial operations
@@ -248,7 +248,7 @@ fi
   processing functions including capital validation
 - **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Country boundary
   processing script
-- **[PostgreSQL_Setup.md](./PostgreSQL_Setup.md)**: PostGIS installation and spatial function setup
+- **[PostgreSQL_Setup.md](./Postgresql_Setup.md)**: PostGIS installation and spatial function setup
 
 **Date**: 2025-12-07  
 **Version**: 1.0

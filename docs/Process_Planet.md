@@ -1110,5 +1110,5 @@ psql -d notes -c "EXPLAIN ANALYZE SELECT COUNT(*) FROM notes;"
 - **Capital Validation**: See
   [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation
   details
-- **Spatial Functions**: See [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for PostGIS
+- **Spatial Functions**: See [ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md) for PostGIS
   spatial functions

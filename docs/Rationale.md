@@ -512,7 +512,7 @@ Other patterns may be implemented implicitly, but these are the main ones docume
 
 - **External Dependencies**: The project depends on external services (OSM API, Planet dumps,
   Overpass API) that could change or be discontinued. See
-  [External Dependencies and Risks](./External_Dependencies_and_Risks.md) for detailed information
+  [External Dependencies and Risks](./External_Dependencies_And_Risks.md) for detailed information
   about these dependencies and their potential impact.
 
 **Future Improvements**: See [Future Reevaluation Tasks](../ToDo/FUTURE_REEVALUATION.md) for items
@@ -526,7 +526,7 @@ to be reconsidered once the system is stable.
   implementation details
 - **[Component_Dependencies.md](./Component_Dependencies.md)**: Component dependencies and
   relationships
-- **[External_Dependencies_and_Risks.md](./External_Dependencies_and_Risks.md)**: External
+- **[External_Dependencies_and_Risks.md](./External_Dependencies_And_Risks.md)**: External
   dependencies, risks, and potential impacts
 - **[Troubleshooting_Guide.md](./Troubleshooting_Guide.md)**: Troubleshooting guide for common
   issues
@@ -543,7 +543,7 @@ to be reconsidered once the system is stable.
   and spatial processing rationale
 - **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
   rationale and implementation
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: Spatial function rationale and usage
+- **[ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md)**: Spatial function rationale and usage
 
 ### Script Reference
 

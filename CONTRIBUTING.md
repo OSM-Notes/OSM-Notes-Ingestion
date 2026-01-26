@@ -56,7 +56,7 @@ Before contributing, familiarize yourself with:
 - **[docs/Process_Planet.md](../docs/Process_Planet.md)**: Planet processing implementation details, sequence diagrams, and troubleshooting
 - **[docs/Country_Assignment_2D_Grid.md](../docs/Country_Assignment_2D_Grid.md)**: Country assignment algorithm and spatial processing
 - **[docs/Capital_Validation_Explanation.md](../docs/Capital_Validation_Explanation.md)**: Capital location validation mechanism
-- **[docs/ST_DWithin_Explanation.md](../docs/ST_DWithin_Explanation.md)**: Spatial distance queries explanation
+- **[docs/ST_DWithin_Explanation.md](../docs/ST_Dwithin_Explanation.md)**: Spatial distance queries explanation
 
 #### Script Reference
 
@@ -243,7 +243,7 @@ Fixes #123
      - Existing scripts in `bin/process/`, `bin/monitor/` for patterns
    - **Database Design**:
      - Review existing schema: `sql/process/`
-     - Consider spatial queries: [docs/ST_DWithin_Explanation.md](../docs/ST_DWithin_Explanation.md)
+     - Consider spatial queries: [docs/ST_DWithin_Explanation.md](../docs/ST_Dwithin_Explanation.md)
      - Plan migrations if schema changes needed
    - **Integration Points**:
      - Check if it affects API processing: [docs/Process_API.md](../docs/Process_API.md)

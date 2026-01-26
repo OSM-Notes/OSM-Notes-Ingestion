@@ -502,7 +502,7 @@ Functions are tested via:
   Capital validation to prevent data cross-contamination
 - **[docs/Country_Assignment_2D_Grid.md](../../docs/Country_Assignment_2D_Grid.md)**: Country
   assignment strategy
-- **[docs/ST_DWithin_Explanation.md](../../docs/ST_DWithin_Explanation.md)**: PostGIS spatial
+- **[docs/ST_DWithin_Explanation.md](../../docs/ST_Dwithin_Explanation.md)**: PostGIS spatial
   functions
 - **[bin/ENVIRONMENT_VARIABLES.md](../ENVIRONMENT_VARIABLES.md)**: Environment variable reference
 

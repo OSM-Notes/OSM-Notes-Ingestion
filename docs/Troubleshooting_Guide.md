@@ -1292,7 +1292,7 @@ Use these scripts for automated diagnostics:
   and spatial processing
 - **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
   mechanism
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions
+- **[ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md)**: PostGIS spatial functions
   explanation
 
 ### Service Documentation

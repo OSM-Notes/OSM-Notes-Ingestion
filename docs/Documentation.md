@@ -2723,7 +2723,7 @@ For installation instructions, see
 [Install prerequisites on Ubuntu](../README.md#install-prerequisites-on-ubuntu) in the main README.
 
 For details on external dependencies and risks, see
-[External Dependencies and Risks](./External_Dependencies_and_Risks.md).
+[External Dependencies and Risks](./External_Dependencies_And_Risks.md).
 
 ---
 
@@ -2789,7 +2789,7 @@ For **WMS (Web Map Service) documentation**, see the
   using 2D grid partitioning
 - **[Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md)**: Capital validation
   to prevent data cross-contamination
-- **[ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md)**: PostGIS spatial functions
+- **[ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md)**: PostGIS spatial functions
   explanation
 
 ### Other Technical Guides

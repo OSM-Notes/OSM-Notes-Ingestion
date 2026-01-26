@@ -46,7 +46,7 @@ For detailed navigation paths by role, see
 - **`Troubleshooting_Guide.md`**: Centralized troubleshooting guide for common problems and
   solutions
 - **`Component_Dependencies.md`**: Component dependencies, relationships, and data flow diagrams
-- **`External_Dependencies_and_Risks.md`**: External dependencies, risks, and potential impacts on
+- **`External_Dependencies_And_Risks.md`**: External dependencies, risks, and potential impacts on
   the project
 
 > **Note:** DWH (Data Warehouse), ETL, and Analytics documentation has been moved to
@@ -61,7 +61,7 @@ For detailed navigation paths by role, see
 
 - **`Country_Assignment_2D_Grid.md`**: Country assignment strategy using 2D grid partitioning
 - **`Capital_Validation_Explanation.md`**: Capital validation to prevent data cross-contamination
-- **`ST_DWithin_Explanation.md`**: PostGIS spatial functions explanation
+- **`ST_Dwithin_Explanation.md`**: PostGIS spatial functions explanation
 - **`Maritime_Boundaries_Verification.md`**: Maritime boundaries verification using centroid-based
   approach
 
@@ -169,7 +169,7 @@ flowchart TD
 **Step 1: Deployment** (45 min)
 
 - **[Documentation.md](./Documentation.md)** - Deployment guidelines
-- **[LOCAL_SETUP.md](./LOCAL_SETUP.md)** - Local setup and directory installation
+- **[LOCAL_SETUP.md](./Local_Setup.md)** - Local setup and directory installation
 
 **Step 2: Operations** (60 min)
 
@@ -245,7 +245,7 @@ flowchart TD
   - [Testing_Guide.md](./Testing_Guide.md) for testing procedures
   - [Country_Assignment_2D_Grid.md](./Country_Assignment_2D_Grid.md) for country assignment strategy
   - [Capital_Validation_Explanation.md](./Capital_Validation_Explanation.md) for boundary validation
-  - [ST_DWithin_Explanation.md](./ST_DWithin_Explanation.md) for spatial functions
+  - [ST_DWithin_Explanation.md](./ST_Dwithin_Explanation.md) for spatial functions
 
 For **WMS (Web Map Service) documentation**, see the
 [OSM-Notes-WMS](https://github.com/OSM-Notes/OSM-Notes-WMS) repository.

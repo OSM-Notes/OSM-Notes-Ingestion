@@ -286,7 +286,7 @@ at this time** because:
 - **[bin/process/updateCountries.sh](../bin/process/updateCountries.sh)**: Country boundary
   processing script
 - **[sql/README.md](../sql/README.md)**: SQL functions including `get_country()` function
-- **[PostgreSQL_Setup.md](./PostgreSQL_Setup.md)**: PostGIS installation and setup
+- **[PostgreSQL_Setup.md](./Postgresql_Setup.md)**: PostGIS installation and setup
 
 **Version:** 1.0  
 **Date:** 2025-12-08
