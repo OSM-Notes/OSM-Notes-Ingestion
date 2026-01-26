@@ -443,6 +443,12 @@ OSM-Notes-Ingestion/
 
 For complete documentation navigation, see [docs/README.md](./docs/README.md).
 
+## Architecture Decision Records
+
+Architecture Decision Records (ADRs) document important architectural decisions made in this project:
+- [View all ADRs](docs/adr/)
+- [Central ADR Index](https://github.com/OSM-Notes/OSM-Notes-Common/blob/main/docs/adr/README.md)
+
 ## Timing
 
 The whole process takes several hours, even days to complete before the
