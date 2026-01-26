@@ -89,39 +89,28 @@ For **WMS (Web Map Service) documentation**, see the
 
 ### Visual Navigation Map
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    START HERE                               │
-│              [Rationale.md] (30 min)                        │
-│              Why this project exists                         │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-        ┌────────────────────────────┐
-        │  [Documentation.md]        │
-        │  System Architecture       │
-        │  (45 min)                  │
-        └────────────┬───────────────┘
-                     │
-        ┌────────────┴───────────────┐
-        │                            │
-        ▼                            ▼
-┌───────────────┐          ┌──────────────────┐
-│ Process_API.md │          │ Process_Planet.md │
-│ API Processing│          │ Planet Processing│
-│ (30 min)      │          │ (30 min)         │
-└───────────────┘          └──────────────────┘
-        │                            │
-        └────────────┬───────────────┘
-                     │
-        ┌────────────┴───────────────┐
-        │
-        ▼
-┌──────────────────┐
-│ Testing_Guide.md │
-│ Testing Docs     │
-│ (30 min)         │
-└──────────────────┘
+```mermaid
+flowchart TD
+    START[START HERE<br/>Rationale.md<br/>30 min<br/>Why this project exists]
+    
+    DOC[Documentation.md<br/>System Architecture<br/>45 min]
+    
+    API[Process_API.md<br/>API Processing<br/>30 min]
+    PLANET[Process_Planet.md<br/>Planet Processing<br/>30 min]
+    
+    TESTING[Testing_Guide.md<br/>Testing Docs<br/>30 min]
+    
+    START --> DOC
+    DOC --> API
+    DOC --> PLANET
+    API --> TESTING
+    PLANET --> TESTING
+    
+    style START fill:#90EE90
+    style DOC fill:#E0F6FF
+    style API fill:#FFFFE0
+    style PLANET fill:#FFFFE0
+    style TESTING fill:#FFE4B5
 ```
 
 ### Recommended Reading Paths by Role
