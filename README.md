@@ -818,10 +818,10 @@ Finally, you can create an issue or contact the author.
 The project includes comprehensive testing infrastructure with **101 test suite
 files** (~1,000+ individual tests) covering all ingestion system components.
 
-### Quick Testing
+### Quick Start
 
 ```bash
-# Run all tests (recommended)
+# Run all tests (master test runner - recommended)
 ./tests/run_all_tests.sh
 
 # Run simple tests (no sudo required)
@@ -839,6 +839,10 @@ files** (~1,000+ individual tests) covering all ingestion system components.
 # Run sequential tests by level
 ./tests/run_tests_sequential.sh quick  # 15-20 min
 ```
+
+**Master Test Runner**: `tests/run_all_tests.sh` - Executes all test suites (unit, integration, quality)
+
+**Note**: The project also includes `run_tests.sh` with advanced options (modes, types), but `run_all_tests.sh` is the standard master test runner.
 
 ### Test Categories
 
