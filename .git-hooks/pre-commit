@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Pre-commit hook for OSM-Notes-Ingestion
+# Unified Git hook for Bash/SQL projects
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-20
+# Version: 2026-01-27
 # Runs quality checks before allowing commit
 #
 # To install: ln -sf ../../.git-hooks/pre-commit .git/hooks/pre-commit
@@ -36,9 +37,12 @@ if [ -n "$STAGED_SH_FILES" ]; then
         
         for file in $STAGED_SH_FILES; do
             if [ -f "$file" ]; then
-                if ! shellcheck -x "$file"; then
+                # Run shellcheck and capture output, limit to first 5 errors for speed
+                SC_OUTPUT=$(shellcheck -x "$file" 2>&1 || true)
+                if echo "$SC_OUTPUT" | grep -q "error\|warning"; then
                     SHELLCHECK_FAILED=1
                     echo -e "${RED}❌ Shellcheck failed for: $file${NC}"
+                    echo "$SC_OUTPUT" | head -5
                 fi
             fi
         done
@@ -81,7 +85,54 @@ if [ -n "$STAGED_SH_FILES" ]; then
     echo ""
 fi
 
-# Check 3: SQL formatting (SQLFluff)
+# Check 3: Trailing whitespace (bash scripts)
+if [ -n "$STAGED_SH_FILES" ]; then
+    echo "🔍 Checking for trailing whitespace..."
+    TRAILING_WS_FAILED=0
+    
+    for file in $STAGED_SH_FILES; do
+        if [ -f "$file" ]; then
+            if grep -n ' $' "$file" > /dev/null 2>&1; then
+                TRAILING_WS_FAILED=1
+                echo -e "${RED}❌ Trailing whitespace found in: $file${NC}"
+                echo "   Run: sed -i 's/[[:space:]]*$//' $file"
+            fi
+        fi
+    done
+    
+    if [ $TRAILING_WS_FAILED -eq 1 ]; then
+        echo -e "${RED}❌ Trailing whitespace found. Please remove it.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ No trailing whitespace${NC}"
+    echo ""
+fi
+
+# Check 4: Shebang validation (bash scripts)
+if [ -n "$STAGED_SH_FILES" ]; then
+    echo "🔍 Checking shebangs..."
+    SHEBANG_FAILED=0
+    
+    for file in $STAGED_SH_FILES; do
+        if [ -f "$file" ]; then
+            FIRST_LINE=$(head -1 "$file")
+            if [[ "$FIRST_LINE" != "#!/bin/bash"* ]] && [[ "$FIRST_LINE" != "#!/usr/bin/env bash"* ]]; then
+                SHEBANG_FAILED=1
+                echo -e "${RED}❌ Invalid or missing shebang in: $file${NC}"
+                echo "   First line: $FIRST_LINE"
+            fi
+        fi
+    done
+    
+    if [ $SHEBANG_FAILED -eq 1 ]; then
+        echo -e "${RED}❌ Shebang check failed.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✅ Shebangs OK${NC}"
+    echo ""
+fi
+
+# Check 5: SQL formatting (SQLFluff)
 if [ -n "$STAGED_SQL_FILES" ]; then
     if command -v sqlfluff &> /dev/null; then
         echo "🔍 Checking SQL formatting..."
@@ -108,7 +159,7 @@ if [ -n "$STAGED_SQL_FILES" ]; then
     echo ""
 fi
 
-# Check 4: Prettier (Markdown, JSON, YAML, CSS, HTML)
+# Check 6: Prettier (Markdown, JSON, YAML, CSS, HTML)
 if [ -n "$STAGED_FORMAT_FILES" ]; then
     if command -v prettier &> /dev/null; then
         echo "🔍 Checking formatting with Prettier..."
