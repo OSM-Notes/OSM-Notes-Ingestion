@@ -140,14 +140,6 @@ fi
 # Initialize logging system
 __start_logger
 
-# Use mock psql when running on host
-# if [[ ! -f "/app/bin/functionsProcess.sh" ]]; then
-#  # Create a mock psql function that will be used instead of real psql
-#  psql() {
-#   mock_psql "$@"
-#  }
-# fi
-
 # Function to setup test properties
 # Replaces etc/properties.sh with test properties temporarily
 # Uses atomic directory-based locking to prevent concurrent modifications
