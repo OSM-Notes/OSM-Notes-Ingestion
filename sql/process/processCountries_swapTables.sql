@@ -183,5 +183,4 @@ END $$;
 -- and that countries table is working correctly:
 --
 -- DROP TABLE IF EXISTS countries_old CASCADE;
--- RAISE NOTICE 'Backup table countries_old dropped';
 
