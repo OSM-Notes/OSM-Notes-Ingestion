@@ -108,16 +108,58 @@ function __log_import_start() {
 # GeoJSON file handling helpers
 # ---------------------------------------------------------------------------
 
-# Resolves a GeoJSON file path, handling compressed files (.geojson.gz)
-# If a .geojson.gz file exists, it will be decompressed to a temporary
-# location and the path to the decompressed file will be returned.
+##
+# Resolves a GeoJSON file path, handling compressed files and GitHub downloads
+# Searches for GeoJSON files locally, handles .geojson.gz decompression, and downloads
+# from GitHub repository if local files are not found.
+#
 # Parameters:
-#   $1: Base path (without extension) or full path to .geojson file
-#   $2: (optional) Output variable name for the resolved file path
+#   $1: Base path (without extension) or full path to .geojson file (required)
+#   $2: Output variable name for the resolved file path (optional, default: GEOJSON_RESOLVED_FILE)
+#
 # Returns:
-#   0 if file found and ready, 1 otherwise
-# Sets:
-#   ${2} (or GEOJSON_RESOLVED_FILE) to the resolved file path
+#   0: Success - file found locally or downloaded and ready
+#   1: Failure - file not found and download failed
+#   2: Invalid argument - base path is empty
+#   3: Missing dependency - required commands (gunzip, curl) not found
+#   6: Network error - GitHub download failed or timeout
+#   7: File error - cannot decompress file or write to temporary location
+#
+# Error codes:
+#   0: Success - GeoJSON file resolved and ready to use
+#   1: Failure - file not found locally and GitHub download failed
+#   2: Invalid argument - base path parameter is empty
+#   3: Missing dependency - gunzip or curl command not found
+#   6: Network error - GitHub repository download failed or timed out
+#   7: File error - decompression failed or cannot write to TMP_DIR
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for decompressed files (required)
+#     - BOUNDARIES_DATA_REPO_URL: GitHub repository URL (default: OSM-Notes-Data)
+#     - BOUNDARIES_DATA_BRANCH: GitHub branch name (default: main)
+#     - DOWNLOAD_USER_AGENT: User agent for HTTP requests (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - ${2} or GEOJSON_RESOLVED_FILE: Path to resolved GeoJSON file
+#   Modifies: None
+#
+# Side effects:
+#   - Checks for local .geojson and .geojson.gz files
+#   - Decompresses .geojson.gz files to temporary location if needed
+#   - Downloads files from GitHub repository if local files not found
+#   - Creates temporary files in TMP_DIR for decompressed content
+#   - Logs file resolution process to standard logger
+#
+# Example:
+#   if __resolve_geojson_file "/data/boundaries/colombia" "RESOLVED_FILE"; then
+#     echo "File resolved to: ${RESOLVED_FILE}"
+#   else
+#     echo "File resolution failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __resolve_geojson_file() {
  local BASE_PATH="${1}"
  local OUTPUT_VAR="${2:-GEOJSON_RESOLVED_FILE}"
@@ -296,12 +338,57 @@ function __log_no_duplicate_columns() {
  __logd "No duplicate columns detected for boundary ${BOUNDARY_ID}"
 }
 
-# Validates that the imported geometry contains the country's capital city.
+##
+# Validates that a country's capital city is located within the country's boundary
+# Queries Overpass API for capital city coordinates and validates against country geometry.
 # This prevents cross-contamination where a country gets another country's geometry.
+#
 # Parameters:
-#   $1: Boundary ID (country relation ID)
-#   $2: Database name
-# Returns: 0 if validation passes, 1 if it fails or capital cannot be found
+#   $1: Boundary ID - OSM relation ID for the country (required)
+#   $2: Database name - PostgreSQL database name (required)
+#
+# Returns:
+#   0: Success - capital found and validated within country boundary (or not found, validation skipped)
+#   1: Failure - capital validation failed (capital outside boundary) or import table has no polygons
+#   2: Invalid argument - missing or invalid boundary ID or database name
+#   3: Missing dependency - required commands (jq, python3) not found
+#   6: Network error - Overpass API unavailable or timeout
+#   7: File error - cannot create temporary file for API response
+#   8: Validation error - capital coordinates outside country boundary
+#
+# Error codes:
+#   0: Success - capital city found and located within country boundary, or capital not found (validation skipped)
+#   1: Failure - capital found but located outside country boundary, or import table has no valid polygons
+#   2: Invalid argument - boundary ID is empty or database name is invalid
+#   3: Missing dependency - jq or python3 command not found
+#   6: Network error - Overpass API request failed or timed out
+#   7: File error - cannot create temporary JSON file (disk full, permissions)
+#   8: Validation error - capital coordinates are outside country boundary geometry
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for API response files (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Queries Overpass API for capital city coordinates (capital=yes or label node)
+#   - Creates temporary JSON file in TMP_DIR for API response
+#   - Queries PostgreSQL database to validate capital location against import table
+#   - Logs validation results to standard logger
+#   - Cleans up temporary files on completion
+#
+# Example:
+#   if __validate_capital_location 12345 "osm_notes"; then
+#     echo "Capital validation passed"
+#   else
+#     echo "Capital validation failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __validate_capital_location() {
  local -i BOUNDARY_ID="${1}"
  local DB_NAME="${2}"
@@ -1611,9 +1698,59 @@ function __compareIdsWithBackup {
 }
 
 # Downloads a boundary JSON and converts it to GeoJSON only (no DB import)
+##
+# Downloads boundary data from Overpass API and converts to GeoJSON
+# Downloads country boundary as JSON from Overpass, validates it, and converts to GeoJSON format.
+# Does not import into database - only downloads and converts files.
+#
 # Parameters:
-#   $1: Boundary ID
-# Returns: 0 on success, 1 on failure
+#   $1: Boundary ID - OSM relation ID for the country boundary (required)
+#
+# Returns:
+#   0: Success - boundary downloaded, validated, and converted to GeoJSON
+#   1: Failure - download, validation, or conversion failed
+#   2: Invalid argument - boundary ID is empty or invalid format
+#   3: Missing dependency - required commands (osmtogeojson, jq) not found
+#   6: Network error - Overpass API unavailable or timeout
+#   7: File error - cannot create/write output files
+#   8: Validation error - downloaded JSON or GeoJSON is invalid
+#
+# Error codes:
+#   0: Success - all operations completed successfully
+#   1: Failure - general error (check logs for specific cause)
+#   2: Invalid argument - boundary ID missing or not a valid integer
+#   3: Missing dependency - osmtogeojson or jq command not found
+#   6: Network error - Overpass API request failed or timed out
+#   7: File error - cannot create query file or write output files
+#   8: Validation error - JSON missing 'elements' or GeoJSON invalid format
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for downloaded files (required)
+#     - OVERPASS_RETRIES_PER_ENDPOINT: Max retries for Overpass API (default: 7)
+#     - OVERPASS_BACKOFF_SECONDS: Base delay for retries (default: 20)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None (output written to files, not variables)
+#
+# Side effects:
+#   - Creates Overpass query file in TMP_DIR
+#   - Downloads JSON file from Overpass API
+#   - Creates JSON and GeoJSON files in TMP_DIR
+#   - Validates JSON structure (requires 'elements' array)
+#   - Validates GeoJSON format
+#   - Logs all operations to standard logger
+#   - Cleans up temporary files on failure
+#
+# Example:
+#   if __downloadBoundary_json_geojson_only 12345; then
+#     echo "Boundary downloaded successfully"
+#   else
+#     echo "Download failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __downloadBoundary_json_geojson_only() {
  __log_start
  local BOUNDARY_ID="${1}"

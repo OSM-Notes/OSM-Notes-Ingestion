@@ -1894,9 +1894,55 @@ function __retry_geoserver_api() {
  return 1
 }
 
-# Retry database operations with specific configuration
-# Parameters: query output_file max_retries base_delay
-# Returns: 0 if successful, 1 if failed after all retries
+##
+# Retry database operations with exponential backoff
+# Executes a PostgreSQL query with retry logic and error detection.
+# Handles both psql exit codes and SQL errors in output/error streams.
+#
+# Parameters:
+#   $1: SQL query to execute (required)
+#   $2: Output file path (optional, default: /dev/null)
+#   $3: Maximum retry attempts (optional, default: 3)
+#   $4: Base delay in seconds for exponential backoff (optional, default: 2)
+#
+# Returns:
+#   0: Success - query executed successfully
+#   1: Failure - query failed after all retry attempts
+#   2: Invalid argument - missing required query parameter
+#   3: Missing dependency - psql command not found
+#   5: Database error - connection failed or query error
+#
+# Error codes:
+#   0: Success - query executed and completed without errors
+#   1: Failure - query failed after max retries (check logs for details)
+#   2: Invalid argument - query parameter is empty or missing
+#   3: Missing dependency - psql command not available in PATH
+#   5: Database error - PostgreSQL connection failed or SQL syntax error
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name for connection (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None (output written to file, not variables)
+#
+# Side effects:
+#   - Executes PostgreSQL query via psql command
+#   - Creates temporary error file (mktemp) for stderr capture
+#   - Writes query output to specified output file
+#   - Logs all operations to standard logger
+#   - Cleans up temporary error file on completion
+#
+# Example:
+#   if __retry_database_operation "SELECT COUNT(*) FROM notes" "/tmp/count.txt" 5 3; then
+#     echo "Query succeeded"
+#   else
+#     echo "Query failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __retry_database_operation() {
  __log_start
  local QUERY="$1"

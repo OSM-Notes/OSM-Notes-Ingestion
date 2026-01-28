@@ -865,15 +865,38 @@ function __function_name() {
 #   $1: Mode (optional, "minimal" for reduced requirements) [optional]
 #
 # Returns:
-#   0: Resources available
+#   0: Resources available, safe to proceed
 #   1: Resources not available (high memory or load)
+#   3: Missing dependency (required command not found)
+#   4: Configuration error (thresholds not set)
+#
+# Error codes:
+#   0: Success - system resources are within acceptable limits
+#   1: Failure - memory usage or system load exceeds thresholds
+#   3: Missing dependency - 'free' or 'uptime' command not found
+#   4: Configuration error - MEMORY_THRESHOLD or LOAD_THRESHOLD not set
+#
+# Context variables:
+#   Reads:
+#     - MEMORY_THRESHOLD: Maximum memory usage percentage (default: 90)
+#     - LOAD_THRESHOLD: Maximum system load average (default: 4.0)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Logs resource status to standard logger
+#   - No file or database operations
 #
 # Examples:
 #   if __check_system_resources; then
 #     echo "System ready"
+#   else
+#     echo "System overloaded, exit code: $?"
 #   fi
 #
 # Related: docs/Documentation.md#parallel-processing (resource management)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
 function __check_system_resources() {
   # Implementation
 }
