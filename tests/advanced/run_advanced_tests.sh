@@ -65,28 +65,28 @@ __log() {
 # Help function
 __show_help() {
  cat << EOF
-Uso: $0 [OPTIONS]
+Usage: $0 [OPTIONS]
 
-Opciones:
-  --help, -h           Mostrar esta ayuda
-  --coverage-only      Ejecutar solo pruebas de cobertura
-  --security-only      Ejecutar solo pruebas de seguridad
-  --quality-only       Ejecutar solo pruebas de calidad
-  --performance-only   Ejecutar solo pruebas de rendimiento
-  --output-dir DIR     Directorio de salida ( default: ./advanced_reports)
-  --clean              Limpiar reportes anteriores
-  --verbose            Modo verbose
-  --parallel           Ejecutar pruebas en paralelo
-  --fail-fast          Detener en el primer fallo
+Options:
+  --help, -h           Show this help
+  --coverage-only      Run only coverage tests
+  --security-only      Run only security tests
+  --quality-only       Run only quality tests
+  --performance-only   Run only performance tests
+  --output-dir DIR     Output directory (default: ./advanced_reports)
+  --clean              Clean previous reports
+  --verbose            Verbose mode
+  --parallel           Run tests in parallel
+  --fail-fast          Stop on first failure
 
-Variables de entorno:
-  ADVANCED_OUTPUT_DIR  Directorio de salida
-  COVERAGE_THRESHOLD   Umbral mínimo de cobertura
-  SECURITY_FAIL_ON_HIGH Fallar en vulnerabilidades altas
-  QUALITY_MIN_RATING   Calificación mínima de calidad
-  PERFORMANCE_TIMEOUT  Timeout para pruebas de rendimiento
+Environment variables:
+  ADVANCED_OUTPUT_DIR  Output directory
+  COVERAGE_THRESHOLD   Minimum coverage threshold
+  SECURITY_FAIL_ON_HIGH Fail on high vulnerabilities
+  QUALITY_MIN_RATING   Minimum quality rating
+  PERFORMANCE_TIMEOUT  Timeout for performance tests
 
-Ejemplos:
+Examples:
   $0 --coverage-only --threshold 90
   $0 --security-only --fail-on-high
   $0 --all --output-dir /tmp/advanced
@@ -138,7 +138,7 @@ while [[ $# -gt 0 ]]; do
   shift
   ;;
  *)
-  __log "ERROR" "Opción desconocida: $1"
+  __log "ERROR" "Unknown option: $1"
   __show_help
   exit 1
   ;;
@@ -155,7 +155,7 @@ fi
 
 # Check prerequisites
 __check_prerequisites() {
- __log "INFO" "Verificando prerequisitos para pruebas avanzadas..."
+ __log "INFO" "Checking prerequisites for advanced tests..."
 
  local missing_tools=()
 
@@ -173,40 +173,40 @@ __check_prerequisites() {
   missing_tools+=("bats")
  fi
 
- # Check coverage tools ( optional)
+ # Check coverage tools (optional)
  if [[ "${RUN_COVERAGE}" == "true" ]]; then
   if ! command -v bashcov > /dev/null 2>&1; then
-   __log "WARNING" "bashcov no encontrado - las pruebas de cobertura serán limitadas"
-   __log "INFO" "Instalar con: gem install bashcov"
+   __log "WARNING" "bashcov not found - coverage tests will be limited"
+   __log "INFO" "Install with: gem install bashcov"
   fi
  fi
 
- # Check security tools ( optional)
+ # Check security tools (optional)
  if [[ "${RUN_SECURITY}" == "true" ]]; then
   if ! command -v shellcheck > /dev/null 2>&1; then
-   __log "WARNING" "shellcheck no encontrado - las pruebas de seguridad serán limitadas"
+   __log "WARNING" "shellcheck not found - security tests will be limited"
   fi
  fi
 
- # Check quality tools ( optional)
+ # Check quality tools (optional)
  if [[ "${RUN_QUALITY}" == "true" ]]; then
   if ! command -v shfmt > /dev/null 2>&1; then
-   __log "WARNING" "shfmt no encontrado - las pruebas de calidad serán limitadas"
+   __log "WARNING" "shfmt not found - quality tests will be limited"
   fi
  fi
 
  if [[ ${#missing_tools[@]} -gt 0 ]]; then
-  __log "ERROR" "Herramientas básicas faltantes: ${missing_tools[*]}"
+  __log "ERROR" "Missing basic tools: ${missing_tools[*]}"
   exit 1
  fi
 
- __log "SUCCESS" "Prerequisitos verificados"
+ __log "SUCCESS" "Prerequisites verified"
 }
 
 # Clean previous reports
 __clean_reports() {
  if [[ "${CLEAN}" == "true" ]]; then
-  __log "INFO" "Limpiando reportes anteriores..."
+  __log "INFO" "Cleaning previous reports..."
   rm -rf "${OUTPUT_DIR}"
  fi
 }
@@ -214,12 +214,12 @@ __clean_reports() {
 # Create output directory
 __create_output_dir() {
  mkdir -p "${OUTPUT_DIR}"
- __log "INFO" "Directorio de salida creado: ${OUTPUT_DIR}"
+ __log "INFO" "Output directory created: ${OUTPUT_DIR}"
 }
 
 # Run coverage tests
 __run_coverage_tests() {
- __log "INFO" "Ejecutando pruebas de cobertura..."
+ __log "INFO" "Running coverage tests..."
 
  local coverage_dir="${OUTPUT_DIR}/coverage"
  mkdir -p "${coverage_dir}"
@@ -227,19 +227,19 @@ __run_coverage_tests() {
  # Use bashcov script if available
  if [[ -f "./scripts/generate_coverage_instrumented_optimized.sh" ]]; then
   if bash ./scripts/generate_coverage_instrumented_optimized.sh; then
-   __log "SUCCESS" "Pruebas de cobertura completadas"
+   __log "SUCCESS" "Coverage tests completed"
   else
-   __log "WARNING" "Pruebas de cobertura completadas con advertencias"
+   __log "WARNING" "Coverage tests completed with warnings"
   fi
  else
-  __log "WARNING" "Script de cobertura bashcov no encontrado"
-  __log "INFO" "Instalar bashcov con: bash scripts/install_coverage_tools.sh"
+  __log "WARNING" "bashcov coverage script not found"
+  __log "INFO" "Install bashcov with: bash scripts/install_coverage_tools.sh"
  fi
 }
 
 # Run security tests
 __run_security_tests() {
- __log "INFO" "Ejecutando pruebas de seguridad..."
+ __log "INFO" "Running security tests..."
 
  local security_dir="${OUTPUT_DIR}/security"
  mkdir -p "${security_dir}"
@@ -252,57 +252,57 @@ __run_security_tests() {
   fi
 
   if ./tests/advanced/security/security_scan.sh --output-dir "${security_dir}" "${fail_args}"; then
-   __log "SUCCESS" "Pruebas de seguridad completadas"
+   __log "SUCCESS" "Security tests completed"
   else
-   __log "WARNING" "Pruebas de seguridad completadas con advertencias"
+   __log "WARNING" "Security tests completed with warnings"
   fi
  else
-  __log "WARNING" "Script de seguridad no encontrado"
+  __log "WARNING" "Security script not found"
  fi
 }
 
 # Run quality tests
 __run_quality_tests() {
- __log "INFO" "Ejecutando pruebas de calidad..."
+ __log "INFO" "Running quality tests..."
 
  local quality_dir="${OUTPUT_DIR}/quality"
  mkdir -p "${quality_dir}"
 
  # Check shell script formatting
  if command -v shfmt > /dev/null 2>&1; then
-  __log "INFO" "Verificando formato de scripts bash..."
+  __log "INFO" "Checking bash script formatting..."
   local format_issues=0
 
   while IFS= read -r -d '' file; do
    if ! shfmt -d "${file}" > /dev/null 2>&1; then
-    __log "WARNING" "Problema de formato en: ${file}"
+    __log "WARNING" "Format issue in: ${file}"
     ( (format_issues++))
    fi
   done < <(find . -name "*.sh" -type f -print0)
 
   if [[ ${format_issues} -eq 0 ]]; then
-   __log "SUCCESS" "Formato de scripts bash verificado"
+   __log "SUCCESS" "Bash script formatting verified"
   else
-   __log "WARNING" "Se encontraron ${format_issues} problemas de formato"
+   __log "WARNING" "Found ${format_issues} format issues"
   fi
  fi
 
  # Check shell script linting
  if command -v shellcheck > /dev/null 2>&1; then
-  __log "INFO" "Verificando linting de scripts bash..."
+  __log "INFO" "Checking bash script linting..."
   local lint_issues=0
 
   while IFS= read -r -d '' file; do
    if ! shellcheck "${file}" > /dev/null 2>&1; then
-    __log "WARNING" "Problema de linting en: ${file}"
+    __log "WARNING" "Linting issue in: ${file}"
     ( (lint_issues++))
    fi
   done < <(find . -name "*.sh" -type f -print0)
 
   if [[ ${lint_issues} -eq 0 ]]; then
-   __log "SUCCESS" "Linting de scripts bash verificado"
+   __log "SUCCESS" "Bash script linting verified"
   else
-   __log "WARNING" "Se encontraron ${lint_issues} problemas de linting"
+   __log "WARNING" "Found ${lint_issues} linting issues"
   fi
  fi
 
@@ -323,18 +323,18 @@ Generated: $(date)
 4. Use proper error handling
 EOF
 
- __log "SUCCESS" "Pruebas de calidad completadas"
+ __log "SUCCESS" "Quality tests completed"
 }
 
 # Run performance tests
 __run_performance_tests() {
- __log "INFO" "Ejecutando pruebas de rendimiento..."
+ __log "INFO" "Running performance tests..."
 
  local performance_dir="${OUTPUT_DIR}/performance"
  mkdir -p "${performance_dir}"
 
  # Test script execution time
- __log "INFO" "Probando tiempo de ejecución de scripts principales..."
+ __log "INFO" "Testing execution time of main scripts..."
 
  local performance_report="${performance_dir}/performance_summary.md"
  cat > "${performance_report}" << EOF
@@ -349,7 +349,7 @@ EOF
 
  for script in "${scripts[@]}"; do
   if [[ -f "${script}" ]]; then
-   __log "INFO" "Probando: ${script}"
+   __log "INFO" "Testing: ${script}"
 
    local start_time
    start_time=$(date +%s.%N)
@@ -362,7 +362,7 @@ EOF
     __log "SUCCESS" "${script}: ${execution_time}s"
    else
     echo "- ${script}: Timeout or error" >> "${performance_report}"
-    __log "WARNING" "${script}: Timeout o error"
+    __log "WARNING" "${script}: Timeout or error"
    fi
   fi
  done
@@ -373,12 +373,12 @@ EOF
  echo "2. Consider parallel processing where possible" >> "$performance_report"
  echo "3. Monitor resource usage" >> "$performance_report"
 
- __log "SUCCESS" "Pruebas de rendimiento completadas"
+ __log "SUCCESS" "Performance tests completed"
 }
 
 # Generate final summary
 __generate_final_summary() {
- __log "INFO" "Generando resumen final..."
+ __log "INFO" "Generating final summary..."
 
  local summary_file="$OUTPUT_DIR/advanced_tests_summary.md"
 
@@ -419,12 +419,12 @@ EOF
  echo "3. Improve test coverage" >> "${summary_file}"
  echo "4. Optimize performance bottlenecks" >> "${summary_file}"
 
- __log "SUCCESS" "Resumen final generado: ${summary_file}"
+ __log "SUCCESS" "Final summary generated: ${summary_file}"
 }
 
 # Main function
 main() {
- __log "INFO" "Iniciando pruebas avanzadas - Fase 3..."
+ __log "INFO" "Starting advanced tests - Phase 3..."
 
  # Check prerequisites
  __check_prerequisites
@@ -442,7 +442,7 @@ main() {
   if ! __run_coverage_tests; then
    tests_failed=true
    if [[ "${FAIL_FAST}" == "true" ]]; then
-    __log "ERROR" "Fallo en pruebas de cobertura"
+    __log "ERROR" "Failure in coverage tests"
     exit 1
    fi
   fi
@@ -452,7 +452,7 @@ main() {
   if ! __run_security_tests; then
    tests_failed=true
    if [[ "${FAIL_FAST}" == "true" ]]; then
-    __log "ERROR" "Fallo en pruebas de seguridad"
+    __log "ERROR" "Failure in security tests"
     exit 1
    fi
   fi
@@ -462,7 +462,7 @@ main() {
   if ! __run_quality_tests; then
    tests_failed=true
    if [[ "${FAIL_FAST}" == "true" ]]; then
-    __log "ERROR" "Fallo en pruebas de calidad"
+    __log "ERROR" "Failure in quality tests"
     exit 1
    fi
   fi
@@ -472,7 +472,7 @@ main() {
   if ! __run_performance_tests; then
    tests_failed=true
    if [[ "${FAIL_FAST}" == "true" ]]; then
-    __log "ERROR" "Fallo en pruebas de rendimiento"
+    __log "ERROR" "Failure in performance tests"
     exit 1
    fi
   fi
@@ -482,10 +482,10 @@ main() {
  __generate_final_summary
 
  if [[ "${tests_failed}" == "true" ]]; then
-  __log "WARNING" "Algunas pruebas fallaron. Revisa los reportes en: ${OUTPUT_DIR}"
+  __log "WARNING" "Some tests failed. Review reports in: ${OUTPUT_DIR}"
   exit 1
  else
-  __log "SUCCESS" "Todas las pruebas avanzadas completadas exitosamente. Reportes en: ${OUTPUT_DIR}"
+  __log "SUCCESS" "All advanced tests completed successfully. Reports in: ${OUTPUT_DIR}"
  fi
 }
 
