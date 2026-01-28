@@ -91,7 +91,7 @@ The project includes specialized tests for consolidated functions that eliminate
 
 - **Parallel Processing Functions**: Tests for `bin/lib/parallelProcessingFunctions.sh` ensure XML
   processing functions work correctly across different formats (API vs Planet)
-- **Validation Functions**: Tests for `bin/consolidatedValidationFunctions.sh` validate XML, CSV,
+- **Validation Functions**: Tests for `lib/osm-common/consolidatedValidationFunctions.sh` validate XML, CSV,
   coordinate, and database validation functions
 - **Legacy Compatibility**: Tests ensure that existing scripts continue to work while using the new
   consolidated implementations

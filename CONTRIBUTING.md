@@ -255,7 +255,7 @@ Fixes #123
 
 3. **Implement the feature**:
    - Follow code standards and patterns (see [Code Standards](#code-standards))
-   - Use consolidated functions when possible: `bin/parallelProcessingFunctions.sh`, `bin/consolidatedValidationFunctions.sh`
+   - Use consolidated functions when possible: `bin/lib/parallelProcessingFunctions.sh`, `lib/osm-common/consolidatedValidationFunctions.sh`
    - Create comprehensive tests (see [Testing Requirements](#testing-requirements))
    - Update all relevant documentation
 
@@ -298,7 +298,7 @@ Closes #456
    - **Component Interactions**: Check [docs/Documentation.md](../docs/Documentation.md) and [docs/Component_Dependencies.md](../docs/Component_Dependencies.md)
    - **Consolidated Functions**: Review [CONTRIBUTING.md#consolidated-functions](#consolidated-functions)
      - `bin/parallelProcessingFunctions.sh`: Parallel processing functions
-     - `bin/consolidatedValidationFunctions.sh`: Validation functions
+     - `lib/osm-common/consolidatedValidationFunctions.sh`: Validation functions
    - **Shared Libraries**: Understand `lib/osm-common/` structure
    - **Error Codes**: Ensure consistency with `lib/osm-common/commonFunctions.sh`
    - **Script Patterns**: Review existing scripts for established patterns
@@ -651,7 +651,7 @@ project/
 │   ├── monitor/          # Monitoring scripts
 │   ├── functionsProcess.sh # Shared functions
 │   ├── parallelProcessingFunctions.sh # Consolidated parallel processing functions
-│   └── consolidatedValidationFunctions.sh # Consolidated validation functions
+│   └── (validation functions in lib/osm-common/consolidatedValidationFunctions.sh)
 ├── sql/                   # Database scripts
 │   ├── process/          # Processing SQL scripts
 │   ├── dwh/             # Data warehouse SQL
@@ -725,12 +725,13 @@ The project uses a consolidation strategy to eliminate code duplication and impr
 - **Usage**: All scripts that need parallel processing should source this file
 - **Fallback**: Legacy scripts maintain compatibility through wrapper functions
 
-#### 2. Validation Functions (`bin/consolidatedValidationFunctions.sh`)
+#### 2. Validation Functions (`lib/osm-common/consolidatedValidationFunctions.sh`)
 
 - **Purpose**: Centralizes all validation functions for XML, CSV, coordinates, and databases
 - **Functions**: `__validate_xml_with_enhanced_error_handling`, `__validate_csv_structure`, `__validate_coordinates`
 - **Usage**: All validation operations should use these consolidated functions
 - **Fallback**: Legacy scripts maintain compatibility through wrapper functions
+- **Location**: Located in `lib/osm-common/` (OSM-Notes-Common submodule), not in `bin/lib/`
 
 #### 3. Implementation Guidelines
 
