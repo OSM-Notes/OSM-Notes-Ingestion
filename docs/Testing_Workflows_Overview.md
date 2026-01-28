@@ -60,55 +60,7 @@ requested.
 
 ---
 
-### 2. Quality Tests (quality-tests.yml)
-
-**Purpose:** Focuses on ensuring source code quality and compliance with best practices.
-
-**What it validates:**
-
-- Bash and SQL scripts comply with defined format and style standards (shellcheck, shfmt,
-  markdownlint)
-- No duplicate variables, syntax errors, or permission issues in scripts
-- Documentation and configuration files are present and properly formatted
-- Validation of naming conventions and code structure
-
-**When it runs:** On each push or pull request to the main branch (`main`), or when manually
-requested.
-
-**Main test files:**
-
-- `tests/run_quality_tests.sh`
-- `tests/run_quality_tests_simple.sh`
-- `tests/scripts/check_variable_duplicates.sh`
-
----
-
-### 3. Integration Tests (integration-tests.yml)
-
-**Purpose:** Validates the integration of different system modules, especially in environments that
-simulate real infrastructure (using Docker).
-
-**What it validates:**
-
-- Scripts can interact correctly with PostgreSQL databases and simulated external services (mock
-  API)
-- Note processing works end-to-end
-- Integration with external tools (Docker, PostGIS, etc.) is successful
-
-> **Note:** ETL flow tests are maintained in
-> [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics).
-
-- Network connectivity and configuration tests
-
-**When it runs:** On each push or pull request to the main branch (`main`), or when manually
-requested.
-
-**Main test files:**
-
-- `tests/docker/run_ci_tests.sh`
-- `tests/docker/run_integration_tests.sh`
-- `tests/run_integration_tests.sh`
-- `tests/run_mock_integration_tests.sh`
+**Note:** All testing workflows have been consolidated into `ci.yml`. The previous separate workflows (`quality-tests.yml`, `integration-tests.yml`, `tests.yml`) were deprecated and merged on 2025-10-21.
 
 ---
 
@@ -128,10 +80,8 @@ requested.
 > **Note:** DWH/ETL tests are maintained in
 > [OSM-Notes-Analytics](https://github.com/OSM-Notes/OSM-Notes-Analytics). | `run_ci_tests.sh` |
 > tests/docker/ | CI/CD tests in Docker environment | | `run_integration_tests.sh` | tests/docker/ |
-> Integration tests in Docker environment | | `quality-tests.yml` | .github/workflows/ | GitHub
-> Actions workflow for quality tests | | `integration-tests.yml` | .github/workflows/ | GitHub
-> Actions workflow for integration tests | | `tests.yml` | .github/workflows/ | GitHub Actions
-> workflow for main unit and integration tests |
+> Integration tests in Docker environment | | `ci.yml` | .github/workflows/ | Unified GitHub Actions
+> workflow for all tests (quality, integration, unit, etc.) |
 
 ## How to Interpret Results
 
@@ -168,11 +118,11 @@ tail -f tests/tmp/*.log
 
 ## Workflow Configuration
 
-The workflows are defined in the `.github/workflows/` folder:
+The workflow is defined in the `.github/workflows/` folder:
 
-- `.github/workflows/tests.yml` - Main tests
-- `.github/workflows/quality-tests.yml` - Quality tests
-- `.github/workflows/integration-tests.yml` - Integration tests
+- `.github/workflows/ci.yml` - Unified CI/CD workflow (includes all tests: quality, integration, unit, etc.)
+
+**Note:** Previous separate workflows (`tests.yml`, `quality-tests.yml`, `integration-tests.yml`) were deprecated and merged into `ci.yml` on 2025-10-21.
 
 Each YAML file contains:
 

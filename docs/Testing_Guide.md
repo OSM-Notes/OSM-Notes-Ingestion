@@ -39,22 +39,7 @@ request:
 - Main data processing flows, XML validation, error handling, and parallelism work as expected
 - Includes tests with real data, mock tests, and hybrid tests
 
-### 2. Quality Tests (quality-tests.yml)
-
-**Purpose:** Ensures source code quality and compliance with best practices. **What it validates:**
-
-- Bash and SQL scripts comply with defined format and style standards
-- No duplicate variables, syntax errors, or permission issues in scripts
-- Documentation and configuration files are present and properly formatted
-
-### 3. Integration Tests (integration-tests.yml)
-
-**Purpose:** Validates system module integration, especially in environments that simulate real
-infrastructure. **What it validates:**
-
-- Scripts can interact correctly with PostgreSQL databases and external services
-- Note processing works end-to-end
-- Integration with external tools (Docker, PostGIS, etc.) is successful
+**Note:** All testing workflows have been consolidated into `ci.yml` (deprecated workflows: `quality-tests.yml`, `integration-tests.yml`, `tests.yml` were merged on 2025-10-21).
 
 ## Testing Scripts Summary Table
 
@@ -71,9 +56,7 @@ infrastructure. **What it validates:**
 | `run_error_handling_tests.sh`     | tests/             | Error handling and edge case validation tests                |
 | `run_ci_tests.sh`                 | tests/docker/      | CI/CD tests in Docker environment                            |
 | `run_integration_tests.sh`        | tests/docker/      | Integration tests in Docker environment                      |
-| `quality-tests.yml`               | .github/workflows/ | GitHub Actions workflow for quality tests                    |
-| `integration-tests.yml`           | .github/workflows/ | GitHub Actions workflow for integration tests                |
-| `tests.yml`                       | .github/workflows/ | GitHub Actions workflow for main unit and integration tests  |
+| `ci.yml`                          | .github/workflows/ | GitHub Actions workflow for all tests (unified workflow)     |
 
 ## Types of Tests
 

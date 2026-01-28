@@ -198,9 +198,7 @@ git push origin main
 
 **Available workflows:**
 
-- `tests.yml` - Complete test suite
-- `integration-tests.yml` - Integration tests
-- `quality-tests.yml` - Quality tests
+- `ci.yml` - Unified CI/CD workflow (includes all tests: quality, integration, unit, etc.)
 
 **Estimated time:** 77-116 minutes (complete workflow)
 
