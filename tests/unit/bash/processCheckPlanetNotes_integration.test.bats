@@ -79,7 +79,7 @@ if [[ "${COMMAND}" == *"PostGIS_version"* ]]; then
 fi
 
 # Simulate execution of SQL files used by the test
-if [[ "${COMMAND}" == *"processPlanetNotes_22_createBaseTables_tables.sql"* ]] \
+if [[ "${COMMAND}" == *"processPlanetNotes_21_createBaseTables_tables.sql"* ]] \
  || [[ "${COMMAND}" == *"processCheckPlanetNotes_21_createCheckTables.sql"* ]]; then
  echo "Running SQL file"
  exit 0
@@ -178,7 +178,7 @@ teardown() {
  [ "$status" -eq 0 ]
 
  # Create base tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
  [ "$status" -eq 0 ]
 
  # Create check tables

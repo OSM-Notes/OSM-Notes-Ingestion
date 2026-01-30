@@ -1156,7 +1156,7 @@ function __reassignAffectedNotes {
  __logi "Updating notes within affected areas (batch size: ${BATCH_SIZE})..."
 
  # Check if batch SQL file exists (new approach with commits)
- local BATCH_SQL_FILE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes_batch.sql"
+ local BATCH_SQL_FILE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_37_reassignAffectedNotes_batch.sql"
  if [[ -f "${BATCH_SQL_FILE}" ]]; then
   # Process in batches with commits after each batch
   local TOTAL_PROCESSED=0

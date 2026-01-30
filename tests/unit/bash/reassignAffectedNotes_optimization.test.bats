@@ -1,6 +1,6 @@
 #!/usr/bin/env bats
 
-# Test for functionsProcess_36_reassignAffectedNotes_batch.sql optimization
+# Test for functionsProcess_37_reassignAffectedNotes_batch.sql optimization
 # Validates that the SQL only updates notes where country actually changed
 # Version: 2025-12-12
 
@@ -120,7 +120,7 @@ SQL
 SQL
 
  # Execute the optimized batch SQL
- psql -d "${DBNAME}" -c "SET app.batch_size = '10';" -f "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes_batch.sql" > "${TMP_DIR}/output.log" 2>&1
+ psql -d "${DBNAME}" -c "SET app.batch_size = '10';" -f "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_37_reassignAffectedNotes_batch.sql" > "${TMP_DIR}/output.log" 2>&1
  
  # Check that only notes that needed updating were updated
  # Note 1 and 2: Already in country 1, should NOT be updated (country didn't change)
@@ -181,7 +181,7 @@ SQL
 
  # Execute batch SQL and capture processed count
  local output
- output=$(psql -d "${DBNAME}" -c "SET app.batch_size = '100';" -f "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes_batch.sql" 2>&1)
+ output=$(psql -d "${DBNAME}" -c "SET app.batch_size = '100';" -f "${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_37_reassignAffectedNotes_batch.sql" 2>&1)
  
  # Extract processed count from RAISE NOTICE
  local processed_count

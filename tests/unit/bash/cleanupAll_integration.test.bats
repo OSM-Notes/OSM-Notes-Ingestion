@@ -111,8 +111,8 @@ teardown() {
   local SQL_FILES=(
     "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropAllPartitions.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql"
-    "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+    "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_10_dropSyncTables.sql"
+    "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
     "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
   )

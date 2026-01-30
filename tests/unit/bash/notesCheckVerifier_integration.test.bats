@@ -169,7 +169,7 @@ teardown() {
  fi
 
  # Create base tables (use IF NOT EXISTS where possible to avoid errors)
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2>&1
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql" 2>&1
  if [[ "${status}" -ne 0 ]]; then
   # Check if error is due to tables already existing (which is OK)
   if [[ "${output}" != *"already exists"* ]] && [[ "${output}" != *"duplicate"* ]]; then

@@ -82,15 +82,15 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create required enums first (dependency for API tables)
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create base tables 
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_20_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Test that the properties table script works with empty database
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createPropertiesTables.sql"
  [ "$status" -eq 0 ]
  
  # Verify that the script executed successfully
@@ -148,15 +148,15 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create required enums first (dependency for API tables)
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create base tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_20_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Create properties table
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_23_createPropertiesTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createPropertiesTables.sql"
  [ "$status" -eq 0 ]
  
  # Verify tables exist (more tolerant check)
@@ -174,12 +174,12 @@ teardown() {
 # Test that all SQL files are valid
 @test "processAPINotes SQL files should be valid" {
  local SQL_FILES=(
-   "sql/process/processAPINotes_21_createApiTables.sql"
-   "sql/process/processAPINotes_23_createPropertiesTables.sql"
-   "sql/process/processAPINotes_31_loadApiNotes.sql"
-   "sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
-   "sql/process/processAPINotes_33_loadNewTextComments.sql"
-   "sql/process/processAPINotes_34_updateLastValues.sql"
+   "sql/process/processAPINotes_20_createApiTables.sql"
+   "sql/process/processAPINotes_21_createPropertiesTables.sql"
+   "sql/process/processAPINotes_30_loadApiNotes.sql"
+   "sql/process/processAPINotes_31_insertNewNotesAndComments.sql"
+   "sql/process/processAPINotes_32_loadNewTextComments.sql"
+   "sql/process/processAPINotes_33_updateLastValues.sql"
  )
  
  for SQL_FILE in "${SQL_FILES[@]}"; do
@@ -239,11 +239,11 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create required enums first
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create API tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_20_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Check that notes_api table exists and is not partitioned
@@ -277,11 +277,11 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create required enums first
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create API tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_20_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Check that notes_api does not have part_id column
@@ -315,11 +315,11 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create required enums first
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create API tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_20_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Check that notes_api has required columns (without part_id)
@@ -357,11 +357,11 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create required enums first
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create API tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_20_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Verify specific columns exist (without part_id)
@@ -391,11 +391,11 @@ teardown() {
  [ "$status" -eq 0 ]
  
  # Create required enums first
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  [ "$status" -eq 0 ]
  
  # Create API tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_21_createApiTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_20_createApiTables.sql"
  [ "$status" -eq 0 ]
  
  # Verify specific columns exist (without part_id)

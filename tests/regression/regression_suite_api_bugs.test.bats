@@ -76,12 +76,12 @@ teardown() {
 #      __insertNewNotesAndComments to execute both SQL files in the same psql connection
 # Date: 2025-12-13
 # Files changed:
-#   - sql/process/processAPINotes_32_insertNewNotesAndComments.sql
+#   - sql/process/processAPINotes_31_insertNewNotesAndComments.sql
 #   - bin/process/processAPINotes.sh
 #   - bin/process/processAPINotesDaemon.sh
 
 @test "REGRESSION: app.integrity_check_passed should use set_config with true" {
- local SQL_FILE="${TEST_BASE_DIR}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
+ local SQL_FILE="${TEST_BASE_DIR}/sql/process/processAPINotes_31_insertNewNotesAndComments.sql"
  
  if [[ ! -f "${SQL_FILE}" ]]; then
   skip "SQL file not found"
@@ -101,7 +101,7 @@ teardown() {
  
  # Verify that both SQL files are executed in the same psql connection
  # This ensures the session variable persists between transactions
- run grep -qE "(processAPINotes_32.*processAPINotes_34|__insertNewNotesAndComments)" "${SCRIPT_FILE}"
+ run grep -qE "(processAPINotes_31.*processAPINotes_33|__insertNewNotesAndComments)" "${SCRIPT_FILE}"
  [[ "${status}" -eq 0 ]] || echo "Should execute both SQL files in same connection"
 }
 

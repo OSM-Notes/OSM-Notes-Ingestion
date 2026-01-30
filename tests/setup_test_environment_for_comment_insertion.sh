@@ -147,7 +147,7 @@ setup_functions() {
   # Create insert_note procedure
   log_info "  Creating insert_note procedure..."
   psql -d "${TEST_DBNAME}" \
-    -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" \
+    -f "${PROJECT_ROOT}/sql/functionsProcess_21_createProcedure_insertNote.sql" \
     > /dev/null 2>&1 || {
     log_error "  Failed to create insert_note procedure"
     exit 1
@@ -156,7 +156,7 @@ setup_functions() {
   # Create insert_note_comment procedure
   log_info "  Creating insert_note_comment procedure..."
   psql -d "${TEST_DBNAME}" \
-    -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" \
+    -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNoteComment.sql" \
     > /dev/null 2>&1 || {
     log_error "  Failed to create insert_note_comment procedure"
     exit 1
@@ -165,7 +165,7 @@ setup_functions() {
   # Create sequence trigger for note_comments
   log_info "  Creating sequence trigger for note_comments..."
   psql -d "${TEST_DBNAME}" \
-    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_43_commentsSequence.sql" \
+    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_32_commentsSequence.sql" \
     > /dev/null 2>&1 || {
     log_error "  Failed to create sequence trigger"
     exit 1

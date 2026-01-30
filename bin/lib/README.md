@@ -97,7 +97,7 @@ __retry_file_operation \
 
 - **`__consolidatePartitions()`**: Consolidate partition data into main API tables
   - Usage: Merges partition tables into `notes_api`, `note_comments_api`
-  - Related SQL: `sql/process/processAPINotes_35_consolidatePartitions.sql`
+  - Related SQL: `sql/process/processPlanetNotes_31_consolidatePartitions.sql` (shared with Planet)
 
 - **`__updateLastValue()`**: Update last processed sequence number
   - Parameters: `last_value`

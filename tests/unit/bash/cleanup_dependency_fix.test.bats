@@ -13,7 +13,7 @@ load "../../test_helper.bash"
   
   # Find line numbers for each script
   GENERIC_LINE=$(echo "$CLEANUP_SECTION" | grep -n "consolidated_cleanup.sql:Generic Objects" | cut -d: -f1)
-  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_13_dropBaseTables.sql:Base Tables" | cut -d: -f1)
+  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_12_dropBaseTables.sql:Base Tables" | cut -d: -f1)
   
   # Generic Objects should come before Base Tables
   [ ! -z "$GENERIC_LINE" ]
@@ -23,8 +23,8 @@ load "../../test_helper.bash"
 
 @test "DROP TYPE statements should use CASCADE" {
   # Check that both enum types use CASCADE
-  grep -q "DROP TYPE IF EXISTS note_event_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
-  grep -q "DROP TYPE IF EXISTS note_status_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+  grep -q "DROP TYPE IF EXISTS note_event_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql"
+  grep -q "DROP TYPE IF EXISTS note_status_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql"
 }
 
 @test "insert_note_comment procedure should be dropped in Generic Objects" {
@@ -39,15 +39,15 @@ load "../../test_helper.bash"
   # Solution 1: Correct execution order
   CLEANUP_SECTION=$(grep -A 10 "local BASE_SCRIPTS=" "${SCRIPT_BASE_DIRECTORY}/bin/cleanupAll.sh")
   echo "$CLEANUP_SECTION" | grep -B1 -A1 "consolidated_cleanup.sql:Generic Objects"
-  echo "$CLEANUP_SECTION" | grep -B1 -A1 "processPlanetNotes_13_dropBaseTables.sql:Base Tables"
+  echo "$CLEANUP_SECTION" | grep -B1 -A1 "processPlanetNotes_12_dropBaseTables.sql:Base Tables"
   
   # Verify Generic Objects comes before Base Tables
   GENERIC_LINE=$(echo "$CLEANUP_SECTION" | grep -n "consolidated_cleanup.sql:Generic Objects" | cut -d: -f1)
-  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_13_dropBaseTables.sql:Base Tables" | cut -d: -f1)
+  BASE_LINE=$(echo "$CLEANUP_SECTION" | grep -n "processPlanetNotes_12_dropBaseTables.sql:Base Tables" | cut -d: -f1)
   [ "$GENERIC_LINE" -lt "$BASE_LINE" ]
   
   # Solution 2: CASCADE handles remaining dependencies automatically
-  grep -q "CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+  grep -q "CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql"
 }
 
 

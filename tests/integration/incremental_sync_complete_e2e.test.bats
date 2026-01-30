@@ -312,7 +312,7 @@ BEGIN
 END $$;
 EOSQL
 
-  # Use structure from DDL (processAPINotes_21_createApiTables.sql):
+  # Use structure from DDL (processAPINotes_20_createApiTables.sql):
   # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
   # Ensure PRIMARY KEY exists for ON CONFLICT to work
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true
@@ -425,7 +425,7 @@ EOF
  TABLE_EXISTS=$(psql -d "${DBNAME}" -Atq -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'notes_api');" 2> /dev/null || echo "f")
 
  if [[ "${TABLE_EXISTS}" == "t" ]]; then
-  # Use structure from DDL (processAPINotes_21_createApiTables.sql):
+  # Use structure from DDL (processAPINotes_20_createApiTables.sql):
   # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
   # Ensure PRIMARY KEY exists for ON CONFLICT to work
   psql -d "${DBNAME}" << 'EOSQL' > /dev/null 2>&1 || true

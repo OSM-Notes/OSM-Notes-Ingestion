@@ -3069,43 +3069,59 @@ function __processPlanetSyncMode {
 function __processGeographicDataBaseMode {
  __log_start
  __logi "Processing geographic data in base mode..."
+ __logd "Starting __processGeographicDataBaseMode function"
  if ! __processGeographicData; then
   __loge "ERROR: Failed to process geographic data"
   __log_finish
   return 1
  fi
+ __logd "__processGeographicData completed successfully"
 
  __logi "Creating get_country() function..."
+ __logd "Calling __createFunctionToGetCountry..."
  if ! __createFunctionToGetCountry; then
   __loge "ERROR: Failed to create get_country() function"
+  __loge "__createFunctionToGetCountry returned non-zero exit code"
   __log_finish
   return 1
  fi
+ __logd "__createFunctionToGetCountry completed successfully"
 
  local COUNTRIES_COUNT
+ __logd "Checking countries count..."
  # Extract only numeric value from psql output (may include connection messages)
  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
+ __logd "Countries count: ${COUNTRIES_COUNT}"
  if [[ "${COUNTRIES_COUNT:-0}" -gt 0 ]]; then
   __logi "Processing location notes with get_country() function..."
+  __logd "Calling __getLocationNotes..."
   if ! __getLocationNotes "$@"; then
    __loge "ERROR: Failed to process location notes"
    __log_finish
    return 1
   fi
+  __logd "__getLocationNotes completed successfully"
+ else
+  __logd "Skipping location notes processing (no countries found)"
  fi
 
  __logi "Organizing areas after geographic data is loaded..."
+ __logd "Calling __organizeAreas..."
  set +e
  export RET_FUNC=0
  if ! __organizeAreas; then
   local ORGANIZE_AREAS_EXIT_CODE=$?
   export RET_FUNC="${ORGANIZE_AREAS_EXIT_CODE}"
   __logw "Areas organization failed (exit code: ${ORGANIZE_AREAS_EXIT_CODE}), but continuing with process..."
+  __logd "__organizeAreas returned exit code: ${ORGANIZE_AREAS_EXIT_CODE}"
+ else
+  __logd "__organizeAreas completed successfully"
  fi
  set -e
  if [[ "${RET_FUNC}" -ne 0 ]]; then
   __logw "Areas organization failed, but continuing with process..."
  fi
+ __logd "__processGeographicDataBaseMode completed successfully, returning 0"
  __log_finish
  return 0
 }
@@ -3176,22 +3192,55 @@ function __processGeographicDataBaseMode {
 function __processGeographicDataSyncMode {
  __log_start
  __logi "Processing geographic data in sync mode..."
- __createFunctionToGetCountry
- __dropSyncTables
- __processGeographicData
+ __logd "Starting __processGeographicDataSyncMode function"
+
+ __logi "Creating get_country() function..."
+ __logd "Calling __createFunctionToGetCountry..."
+ if ! __createFunctionToGetCountry; then
+  __loge "ERROR: Failed to create get_country() function"
+  __loge "__createFunctionToGetCountry returned non-zero exit code"
+  __log_finish
+  return 1
+ fi
+ __logd "__createFunctionToGetCountry completed successfully"
+
+ __logi "Dropping sync tables..."
+ __logd "Calling __dropSyncTables..."
+ if ! __dropSyncTables; then
+  __loge "ERROR: Failed to drop sync tables"
+  __loge "__dropSyncTables returned non-zero exit code"
+  __log_finish
+  return 1
+ fi
+ __logd "__dropSyncTables completed successfully"
+
+ __logi "Processing geographic data..."
+ __logd "Calling __processGeographicData..."
+ if ! __processGeographicData; then
+  __loge "ERROR: Failed to process geographic data"
+  __loge "__processGeographicData returned non-zero exit code"
+  __log_finish
+  return 1
+ fi
+ __logd "__processGeographicData completed successfully"
 
  __logi "Organizing areas after geographic data is loaded..."
+ __logd "Calling __organizeAreas..."
  set +e
  export RET_FUNC=0
  if ! __organizeAreas; then
   local ORGANIZE_AREAS_EXIT_CODE=$?
   export RET_FUNC="${ORGANIZE_AREAS_EXIT_CODE}"
   __logw "Areas organization failed (exit code: ${ORGANIZE_AREAS_EXIT_CODE}), but continuing with process..."
+  __logd "__organizeAreas returned exit code: ${ORGANIZE_AREAS_EXIT_CODE}"
+ else
+  __logd "__organizeAreas completed successfully"
  fi
  set -e
  if [[ "${RET_FUNC}" -ne 0 ]]; then
   __logw "Areas organization failed, but continuing with process..."
  fi
+ __logd "__processGeographicDataSyncMode completed successfully, returning 0"
  __log_finish
  return 0
 }

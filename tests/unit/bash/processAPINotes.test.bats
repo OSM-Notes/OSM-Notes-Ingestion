@@ -46,13 +46,13 @@ SPECIAL_CASES_DIR="$TEST_BASE_DIR/tests/fixtures/special_cases"
 
 @test "SQL files should exist" {
   # Check if required SQL files exist
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_12_dropApiTables.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_21_createApiTables.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_23_createPropertiesTables.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_31_loadApiNotes.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_33_loadNewTextComments.sql" ]
-  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_34_updateLastValues.sql" ]
+  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_10_dropApiTables.sql" ]
+  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_20_createApiTables.sql" ]
+  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_21_createPropertiesTables.sql" ]
+  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_30_loadApiNotes.sql" ]
+  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_31_insertNewNotesAndComments.sql" ]
+  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_32_loadNewTextComments.sql" ]
+  [ -f "${TEST_BASE_DIR}/sql/process/processAPINotes_33_updateLastValues.sql" ]
 }
 
 @test "AWK files should exist" {
@@ -207,7 +207,7 @@ source "${TEST_BASE_DIR}/lib/osm-common/consolidatedValidationFunctions.sh"
   create_test_database
   
   # Create API tables (ignore notices about existing tables)
-  mock_psql -d "${TEST_DBNAME}" -f "sql/process/processAPINotes_21_createApiTables.sql" 2>/dev/null || true
+  mock_psql -d "${TEST_DBNAME}" -f "sql/process/processAPINotes_20_createApiTables.sql" 2>/dev/null || true
   
   # Check if tables were created
   table_exists "notes" "${TEST_DBNAME}"

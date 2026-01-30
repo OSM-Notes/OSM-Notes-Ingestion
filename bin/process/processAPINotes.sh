@@ -379,72 +379,74 @@ function __checkPrereqs {
  fi
  set +e
  # Checks prereqs.
+ __logd "Checking required commands..."
  __checkPrereqsCommands
+ __logd "Required commands check passed"
 
-  ##
-  # Detects and recovers from data gaps in recent notes
-  # Checks for notes without comments in the last 7 days (potential data integrity issue).
-  # Queries database to find notes created after max_note_timestamp minus 7 days that have
-  # no associated comments. Logs gap details and optionally triggers recovery. Returns error
-  # if large gaps detected (>100 notes).
-  #
-  # Parameters:
-  #   None (uses environment variables)
-  #
-  # Returns:
-  #   0: Success - No gaps detected or gaps are manageable (<100 notes)
-  #   1: Failure - Large gaps detected (>100 notes) or query execution failed
-  #
-  # Error codes:
-  #   0: Success - No gaps detected or gaps are manageable
-  #   0: Success - max_note_timestamp table does not exist (skips check)
-  #   1: Failure - Large gaps detected (>100 notes, requires manual intervention)
-  #   1: Failure - Gap query execution failed after retries
-  #
-  # Error conditions:
-  #   0: Success - No gaps detected in recent data
-  #   0: Success - Gaps detected but manageable (<100 notes)
-  #   0: Success - max_note_timestamp table does not exist (skips check gracefully)
-  #   1: Large gaps detected - >100 notes without comments (requires manual intervention)
-  #   1: Query execution failed - Database query failed after retries
-  #
-  # Context variables:
-  #   Reads:
-  #     - DBNAME: PostgreSQL database name (required)
-  #     - PGAPPNAME: PostgreSQL application name (optional)
-  #     - TMP_DIR: Temporary directory for temp files (optional, default: /tmp)
-  #     - LOG_LEVEL: Controls logging verbosity
-  #   Sets: None
-  #   Modifies: None
-  #
-  # Side effects:
-  #   - Queries database to check max_note_timestamp table existence
-  #   - Queries database to find notes without comments in last 7 days
-  #   - Queries database to get sample gap details (up to 10 notes)
-  #   - Creates temporary files for query results
-  #   - Writes log messages to stderr
-  #   - No file, database, or network modifications
-  #
-  # Notes:
-  #   - Checks for notes without comments in last 7 days (data integrity check)
-  #   - Uses max_note_timestamp table to determine recent data window
-  #   - Skips check gracefully if max_note_timestamp table does not exist
-  #   - Logs sample gap details (up to 10 notes) for debugging
-  #   - Returns error if large gaps detected (>100 notes)
-  #   - Critical function: Part of data integrity validation workflow
-  #   - Used before processing API notes to detect data quality issues
-  #
-  # Example:
-  #   export DBNAME="osm_notes"
-  #   __recover_from_gaps
-  #   # Checks for gaps, logs details, returns 0 if manageable or 1 if large gaps
-  #
-  # Related: __checkHistoricalData() (validates historical data exists)
-  # Related: __validateHistoricalDataAndRecover() (validates and recovers from gaps)
-  # Related: STANDARD_ERROR_CODES.md (error code definitions)
-  ##
-  # Function to detect and recover from data gaps
-  __recover_from_gaps() {
+ ##
+ # Detects and recovers from data gaps in recent notes
+ # Checks for notes without comments in the last 7 days (potential data integrity issue).
+ # Queries database to find notes created after max_note_timestamp minus 7 days that have
+ # no associated comments. Logs gap details and optionally triggers recovery. Returns error
+ # if large gaps detected (>100 notes).
+ #
+ # Parameters:
+ #   None (uses environment variables)
+ #
+ # Returns:
+ #   0: Success - No gaps detected or gaps are manageable (<100 notes)
+ #   1: Failure - Large gaps detected (>100 notes) or query execution failed
+ #
+ # Error codes:
+ #   0: Success - No gaps detected or gaps are manageable
+ #   0: Success - max_note_timestamp table does not exist (skips check)
+ #   1: Failure - Large gaps detected (>100 notes, requires manual intervention)
+ #   1: Failure - Gap query execution failed after retries
+ #
+ # Error conditions:
+ #   0: Success - No gaps detected in recent data
+ #   0: Success - Gaps detected but manageable (<100 notes)
+ #   0: Success - max_note_timestamp table does not exist (skips check gracefully)
+ #   1: Large gaps detected - >100 notes without comments (requires manual intervention)
+ #   1: Query execution failed - Database query failed after retries
+ #
+ # Context variables:
+ #   Reads:
+ #     - DBNAME: PostgreSQL database name (required)
+ #     - PGAPPNAME: PostgreSQL application name (optional)
+ #     - TMP_DIR: Temporary directory for temp files (optional, default: /tmp)
+ #     - LOG_LEVEL: Controls logging verbosity
+ #   Sets: None
+ #   Modifies: None
+ #
+ # Side effects:
+ #   - Queries database to check max_note_timestamp table existence
+ #   - Queries database to find notes without comments in last 7 days
+ #   - Queries database to get sample gap details (up to 10 notes)
+ #   - Creates temporary files for query results
+ #   - Writes log messages to stderr
+ #   - No file, database, or network modifications
+ #
+ # Notes:
+ #   - Checks for notes without comments in last 7 days (data integrity check)
+ #   - Uses max_note_timestamp table to determine recent data window
+ #   - Skips check gracefully if max_note_timestamp table does not exist
+ #   - Logs sample gap details (up to 10 notes) for debugging
+ #   - Returns error if large gaps detected (>100 notes)
+ #   - Critical function: Part of data integrity validation workflow
+ #   - Used before processing API notes to detect data quality issues
+ #
+ # Example:
+ #   export DBNAME="osm_notes"
+ #   __recover_from_gaps
+ #   # Checks for gaps, logs details, returns 0 if manageable or 1 if large gaps
+ #
+ # Related: __checkHistoricalData() (validates historical data exists)
+ # Related: __validateHistoricalDataAndRecover() (validates and recovers from gaps)
+ # Related: STANDARD_ERROR_CODES.md (error code definitions)
+ ##
+ # Function to detect and recover from data gaps
+ __recover_from_gaps() {
   # shellcheck disable=SC2034
   local -r FUNCTION_NAME="__recover_from_gaps"
   __logd "Starting gap recovery process"
@@ -562,12 +564,14 @@ function __checkPrereqs {
  __logi "Validating required files..."
 
  # Validate sync script
+ __logd "Validating sync script: ${NOTES_SYNC_SCRIPT}"
  # shellcheck disable=SC2310
  # Function is invoked in if condition intentionally
  if ! __validate_input_file "${NOTES_SYNC_SCRIPT}" "Notes sync script"; then
   __loge "ERROR: Notes sync script validation failed: ${NOTES_SYNC_SCRIPT}"
   exit "${ERROR_MISSING_LIBRARY}"
  fi
+ __logd "Sync script validation passed"
 
  ## Validate SQL script files using centralized validation
  __logi "Validating SQL script files..."
@@ -585,12 +589,16 @@ function __checkPrereqs {
 
  # Validate each SQL file
  for SQL_FILE in "${SQL_FILES[@]}"; do
+  __logd "Validating SQL file: ${SQL_FILE}"
   # shellcheck disable=SC2310
   # Function is invoked in if condition intentionally
   if ! __validate_sql_structure "${SQL_FILE}"; then
    __loge "ERROR: SQL file validation failed: ${SQL_FILE}"
+   __loge "File path: ${SQL_FILE}"
+   __loge "File exists: $([[ -f "${SQL_FILE}" ]] && echo 'yes' || echo 'no')"
    exit "${ERROR_MISSING_LIBRARY}"
   fi
+  __logd "SQL file validation passed: ${SQL_FILE}"
  done
 
  # Validate dates in API notes file if it exists (only if validation is enabled)

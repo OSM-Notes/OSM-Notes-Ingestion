@@ -825,8 +825,8 @@ ensure_real_psql() {
 setup_environment_variables() {
  log_info "Setting up environment variables..."
 
- # Set logging level
- export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+ # Set logging level (default to DEBUG for hybrid scripts)
+ export LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
 
  # Set clean flag
  export CLEAN="${CLEAN:-false}"
@@ -1100,6 +1100,17 @@ GREP_WRAPPER_EOF
  
  if [[ ${script_exit_code} -ne 0 ]]; then
   log_error "Script failed with exit code: ${script_exit_code}"
+  
+  # Show first 50 lines to see initialization errors
+  if [[ -f "${error_log}" ]] && [[ -s "${error_log}" ]]; then
+   log_error "First 50 lines of error log (to see initialization errors):"
+   head -n 50 "${error_log}" 2>/dev/null | while IFS= read -r line || true; do
+    if [[ -n "${line}" ]] && [[ -n "${line// /}" ]]; then
+     log_error "  ${line}"
+    fi
+   done || true
+  fi
+  
   log_error "Full output (last 200 lines):"
   
   # Check if error log file exists and has content
@@ -1108,6 +1119,7 @@ GREP_WRAPPER_EOF
     # Count total lines first (avoid using arithmetic expansion in sed)
     local total_lines
     total_lines=$(wc -l < "${error_log}" 2>/dev/null | tr -d ' ' || echo "0")
+    log_error "Total lines in error log: ${total_lines}"
     # Get last 200 lines, filter out empty lines completely, then limit to 200 non-empty lines
     # Use grep to filter empty lines BEFORE head to avoid processing empty lines
     # Process directly through pipe to avoid storing in variable (prevents empty line issues)

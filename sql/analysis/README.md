@@ -488,10 +488,11 @@ This is the main process for synchronizing recent notes from the OSM API.
    - **When it runs**: When inserting new notes and comments from API tables to main tables
 
 3. **`analyze_partition_consolidation_performance.sql`**
-   - **Related SQL**: `sql/process/processAPINotes_35_consolidatePartitions.sql`
-   - **Bash function**: `__consolidatePartitions()` in `bin/process/processAPINotes.sh`
+   - **Related SQL**: `sql/process/processPlanetNotes_31_consolidatePartitions.sql` (shared with Planet)
+   - **Bash function**: `__consolidatePartitions()` in `bin/lib/functionsProcess.sh`
    - **What it analyzes**: Performance of API partition consolidation
    - **When it runs**: After loading API partitions, when consolidating into main API tables
+   - **Note**: API uses the same consolidation logic as Planet (no separate SQL script)
 
 ### 🌍 `updateCountries.sh` - Country Boundaries Update
 
@@ -512,7 +513,7 @@ This process updates country boundaries when they change in OSM.
 | `analyze_partition_loading_performance.sql` | `processPlanetNotes.sh` | `processPlanetNotes_30_loadPartitionedSyncNotes.sql` | `__loadPartitionedSyncNotes()` |
 | `analyze_partition_loading_performance.sql` | `processAPINotes.sh` | `processAPINotes_30_loadApiNotes.sql` | `__loadApiNotes()` |
 | `analyze_partition_consolidation_performance.sql` | `processPlanetNotes.sh` | `processPlanetNotes_31_consolidatePartitions.sql` | `__consolidatePartitions()` |
-| `analyze_partition_consolidation_performance.sql` | `processAPINotes.sh` | `processAPINotes_35_consolidatePartitions.sql` | `__consolidatePartitions()` |
+| `analyze_partition_consolidation_performance.sql` | `processAPINotes.sh` | `processPlanetNotes_31_consolidatePartitions.sql` (shared) | `__consolidatePartitions()` |
 | `analyze_api_insertion_performance.sql` | `processAPINotes.sh` | `processAPINotes_31_insertNewNotesAndComments.sql` | `__insertNewNotesAndComments()` |
 | `analyze_integrity_verification_performance.sql` | `processPlanetNotes.sh` | `functionsProcess_33_verifyNoteIntegrity.sql` | `__getLocationNotes()` |
 | `analyze_country_assignment_performance.sql` | `processPlanetNotes.sh` | `functionsProcess_32_assignCountryToNotesChunk.sql` | `__getLocationNotes()` |

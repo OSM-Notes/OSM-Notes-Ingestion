@@ -104,7 +104,7 @@ log_info "Running updateCountries in update mode (should compare IDs first)"
 
 # Set up environment
 export DBNAME="${DBNAME}"
-export LOG_LEVEL="INFO"
+export LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
 export TEST_MODE="true"
 export SCRIPT_BASE_DIRECTORY="${PROJECT_ROOT}"
 

@@ -400,8 +400,8 @@ processAPINotes.sh
     │
     ├─▶ processAPIFunctions.sh::__insertNewNotesAndComments()
     │   └─▶ Executes: sql/process/processAPINotes_31_insertNewNotesAndComments.sql
-    │       └─▶ Uses: sql/functionsProcess_22_createProcedure_insertNote.sql
-    │       └─▶ Uses: sql/functionsProcess_23_createProcedure_insertNoteComment.sql
+    │       └─▶ Uses: sql/functionsProcess_21_createProcedure_insertNote.sql
+    │       └─▶ Uses: sql/functionsProcess_22_createProcedure_insertNoteComment.sql
     │           └─▶ Inserts into base tables (notes, note_comments)
     │
     └─▶ PostgreSQL Database
@@ -669,7 +669,7 @@ get_country(lon, lat, note_id)
 
 insert_note(note_id, lat, lon, created_at, process_id)
     │
-    ├─▶ Defined in: functionsProcess_22_createProcedure_insertNote.sql
+    ├─▶ Defined in: functionsProcess_21_createProcedure_insertNote.sql
     │
     ├─▶ Depends on:
     │   ├─▶ get_country() function
@@ -683,7 +683,7 @@ insert_note(note_id, lat, lon, created_at, process_id)
 
 insert_note_comment(...)
     │
-    ├─▶ Defined in: functionsProcess_23_createProcedure_insertNoteComment.sql
+    ├─▶ Defined in: functionsProcess_22_createProcedure_insertNoteComment.sql
     │
     ├─▶ Depends on:
     │   ├─▶ note_comments table
@@ -726,7 +726,7 @@ insert_note_comment(...)
 | `processAPINotes_20_createApiTables.sql`             | PostgreSQL, PostGIS                                                     | `notes_api`, `note_comments_api`, `note_comments_text_api`              |
 | `processAPINotes_31_insertNewNotesAndComments.sql`   | `get_country()` function, `notes`, `note_comments`, `properties` tables | `notes`, `note_comments`, `note_comments_text` (bulk INSERT operations) |
 | `functionsProcess_20_createFunctionToGetCountry.sql` | `countries`, `maritimes`, `notes` tables, PostGIS                       | `get_country()` function                                                |
-| `functionsProcess_22_createProcedure_insertNote.sql` | `get_country()` function, `notes`, `properties` tables                  | `insert_note()` procedure                                               |
+| `functionsProcess_21_createProcedure_insertNote.sql` | `get_country()` function, `notes`, `properties` tables                  | `insert_note()` procedure                                               |
 | `functionsProcess_32_assignCountryToNotesChunk.sql`  | `get_country()` function, `notes` table                                 | Updates `notes.id_country`                                              |
 
 ---

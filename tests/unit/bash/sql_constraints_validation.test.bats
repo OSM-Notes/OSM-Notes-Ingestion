@@ -30,8 +30,8 @@ teardown() {
 
 # Test that tables with PRIMARY KEY in CREATE TABLE don't have duplicate PRIMARY KEY in ALTER TABLE
 @test "tables with PRIMARY KEY in CREATE TABLE should not have duplicate PRIMARY KEY in ALTER TABLE" {
- local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
- local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
+ local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  
  # Check if files exist
  if [[ ! -f "$create_table_file" ]]; then
@@ -80,8 +80,8 @@ teardown() {
  
  # Focus on specific files that are known to work
  local test_files=(
-   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
-   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
+   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  )
  
  local issues_found=false
@@ -106,8 +106,8 @@ teardown() {
 }
 
 # Test that the specific problematic constraint is now fixed
-@test "processPlanetNotes_23_createBaseTables_constraints.sql should not have duplicate PRIMARY KEY" {
- local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+@test "processPlanetNotes_22_createBaseTables_constraints.sql should not have duplicate PRIMARY KEY" {
+ local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  
  # Check if file exists
  if [[ ! -f "$constraints_file" ]]; then
@@ -121,8 +121,8 @@ teardown() {
 
 # Test that all tables have proper PRIMARY KEY definitions
 @test "all tables should have proper PRIMARY KEY definitions" {
- local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
- local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
+ local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  
  # Check if files exist
  if [[ ! -f "$create_table_file" ]]; then
@@ -173,8 +173,8 @@ teardown() {
 
 # Test that foreign key constraints reference existing tables
 @test "foreign key constraints should reference existing tables" {
- local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
- local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
+ local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  
  # Check if files exist
  if [[ ! -f "$create_table_file" ]]; then
@@ -214,8 +214,8 @@ teardown() {
 
 # Test that SQL files can be executed without constraint errors
 @test "SQL files should be executable without constraint errors" {
- local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
- local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
+ local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  
  # Check if files exist
  if [[ ! -f "$create_table_file" ]]; then
@@ -236,8 +236,8 @@ teardown() {
 
 # Test that the specific error from the user's report is not reproduced
 @test "should not reproduce multiple PRIMARY KEY error for users table" {
- local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
- local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ local create_table_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
+ local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  
  # Check if files exist
  if [[ ! -f "$create_table_file" ]]; then
@@ -260,7 +260,7 @@ teardown() {
 # Test that all constraint files are valid
 @test "all constraint files should be valid" {
  local constraint_files=(
-   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+   "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  )
  local failed_files=()
  
@@ -288,7 +288,7 @@ teardown() {
 
 # Test that constraint definitions follow naming conventions
 @test "constraint definitions should follow naming conventions" {
- local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
+ local constraints_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
  
  # Check if file exists
  if [[ ! -f "$constraints_file" ]]; then

@@ -3470,12 +3470,15 @@ function __downloadPlanetNotes {
 ##
 function __createFunctionToGetCountry {
  __log_start
+ __logd "Checking if countries table exists..."
  # Check if countries table exists before creating get_country function
  local COUNTRIES_TABLE_EXISTS
  COUNTRIES_TABLE_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+ __logd "Countries table exists check result: ${COUNTRIES_TABLE_EXISTS}"
 
  if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
   __logw "Countries table does not exist. Creating stub get_country function."
+  __logd "Using stub SQL file: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}"
   # Validate SQL file exists
   if [[ ! -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" ]]; then
    __loge "ERROR: SQL file does not exist: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}"
@@ -3483,33 +3486,40 @@ function __createFunctionToGetCountry {
    return 1
   fi
   # Create a stub function that returns NULL when countries table doesn't exist
+  __logd "Executing stub function creation SQL..."
   local STUB_PSQL_EXIT_CODE=0
   local STUB_PSQL_OUTPUT
   set +e
   STUB_PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" 2>&1) || STUB_PSQL_EXIT_CODE=$?
   set -e
-  
+
   if [[ "${STUB_PSQL_EXIT_CODE}" -ne 0 ]]; then
    __logw "WARNING: Stub function creation had warnings (exit code: ${STUB_PSQL_EXIT_CODE}), but continuing..."
    __logd "Stub psql output: ${STUB_PSQL_OUTPUT}"
+  else
+   __logd "Stub function created successfully (exit code: ${STUB_PSQL_EXIT_CODE})"
   fi
+  __logd "Stub function creation completed, returning 0"
   __log_finish
   return 0
  fi
 
+ __logd "Countries table exists, creating full get_country function"
+ __logd "Using SQL file: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
  if [[ ! -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" ]]; then
   __loge "ERROR: SQL file does not exist: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
   __log_finish
   return 1
  fi
 
+ __logd "Executing main function creation SQL..."
  local PSQL_EXIT_CODE=0
  local PSQL_OUTPUT
  set +e
  PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" 2>&1) || PSQL_EXIT_CODE=$?
  set -e
- 
+
  if [[ "${PSQL_EXIT_CODE}" -ne 0 ]]; then
   __loge "ERROR: Failed to create get_country function from ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
   __loge "psql exit code: ${PSQL_EXIT_CODE}"
@@ -3517,6 +3527,8 @@ function __createFunctionToGetCountry {
   __log_finish
   return 1
  fi
+ __logd "Main function created successfully (exit code: ${PSQL_EXIT_CODE})"
+ __logd "Function creation completed, returning 0"
  __log_finish
  return 0
 }
@@ -3688,8 +3700,10 @@ function __createProcedures {
 function __organizeAreas {
  __log_start
  __logd "Organizing areas."
+ __logd "Starting __organizeAreas function"
 
  # Validate that POSTGRES_31_ORGANIZE_AREAS is defined
+ __logd "Checking POSTGRES_31_ORGANIZE_AREAS variable..."
  if [[ -z "${POSTGRES_31_ORGANIZE_AREAS:-}" ]]; then
   __loge "ERROR: POSTGRES_31_ORGANIZE_AREAS variable is not defined"
   __loge "ERROR: This variable should be defined in the calling script"
@@ -3698,8 +3712,10 @@ function __organizeAreas {
   __log_finish
   return "${ERROR_MISSING_LIBRARY}"
  fi
+ __logd "POSTGRES_31_ORGANIZE_AREAS=${POSTGRES_31_ORGANIZE_AREAS}"
 
  # Validate that the SQL file exists
+ __logd "Checking if SQL file exists..."
  if [[ ! -f "${POSTGRES_31_ORGANIZE_AREAS}" ]]; then
   __loge "ERROR: SQL file not found: ${POSTGRES_31_ORGANIZE_AREAS}"
   # shellcheck disable=SC2154
@@ -3707,31 +3723,39 @@ function __organizeAreas {
   __log_finish
   return "${ERROR_MISSING_LIBRARY}"
  fi
+ __logd "SQL file exists: ${POSTGRES_31_ORGANIZE_AREAS}"
 
  # Check if countries table exists
+ __logd "Checking if countries table exists..."
  local COUNTRIES_TABLE_EXISTS
  COUNTRIES_TABLE_EXISTS=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'countries');" 2> /dev/null || echo "f")
+ __logd "Countries table exists check result: ${COUNTRIES_TABLE_EXISTS}"
 
  if [[ "${COUNTRIES_TABLE_EXISTS}" != "t" ]]; then
   __logw "Countries table does not exist. Skipping areas organization."
   __logw "Areas organization requires countries table to be created first."
   __logw "Run updateCountries.sh --base to create countries table."
+  __logd "__organizeAreas skipping (no countries table), returning 0"
   __log_finish
   return 0
  fi
 
  # Check if countries table has data
+ __logd "Checking countries table count..."
  local COUNTRIES_COUNT
  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null || echo "0")
+ __logd "Countries count: ${COUNTRIES_COUNT}"
 
  if [[ "${COUNTRIES_COUNT}" -eq "0" ]]; then
   __logw "Countries table is empty. Skipping areas organization."
   __logw "Areas organization requires countries table to have data."
   __logw "Run updateCountries.sh --base to load countries data."
+  __logd "__organizeAreas skipping (empty countries table), returning 0"
   __log_finish
   return 0
  fi
 
+ __logd "Executing organize areas SQL script..."
  set +e
  # Insert values for representative countries in each area.
  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_31_ORGANIZE_AREAS}"
@@ -3739,10 +3763,15 @@ function __organizeAreas {
  set -e
  # shellcheck disable=SC2034
  RET_FUNC="${RET}"
- __log_finish
+ __logd "psql command completed with exit code: ${RET}"
+
  if [[ "${RET}" -ne 0 ]]; then
+  __loge "ERROR: Failed to organize areas (exit code: ${RET})"
+  __log_finish
   return "${RET}"
  fi
+ __logd "__organizeAreas completed successfully, returning 0"
+ __log_finish
  return 0
 }
 

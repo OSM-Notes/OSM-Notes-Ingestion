@@ -156,11 +156,11 @@ teardown() {
  [ "$status" -eq 0 ]
 
  # Create base tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
  [ "$status" -eq 0 ]
 
  # Create sync tables
- run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_24_createSyncTables.sql"
+ run psql -d "${TEST_DBNAME}" -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_23_createSyncTables.sql"
  [ "$status" -eq 0 ]
 
  # Create country tables
@@ -188,19 +188,19 @@ teardown() {
 # Test that all SQL files are valid
 @test "processPlanetNotes SQL files should be valid" {
  local SQL_FILES=(
-  "sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
-  "sql/process/processPlanetNotes_22_createBaseTables_tables.sql"
-  "sql/process/processPlanetNotes_23_createBaseTables_constraints.sql"
-  "sql/process/processPlanetNotes_24_createSyncTables.sql"
+  "sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
+  "sql/process/processPlanetNotes_21_createBaseTables_tables.sql"
+  "sql/process/processPlanetNotes_22_createBaseTables_constraints.sql"
+  "sql/process/processPlanetNotes_23_createSyncTables.sql"
   "sql/process/processPlanetNotes_25_createCountryTables.sql"
-  "sql/process/processPlanetNotes_25_createPartitions.sql"
+  "sql/process/processPlanetNotes_24_createPartitions.sql"
   "sql/consolidated_cleanup.sql"
-  "sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
-  "sql/process/processPlanetNotes_42_consolidatePartitions.sql"
-  "sql/process/processPlanetNotes_43_moveSyncToMain.sql"
-  "sql/process/processPlanetNotes_43_removeDuplicates.sql"
-  "sql/process/processPlanetNotes_44_loadTextComments.sql"
-  "sql/process/processPlanetNotes_45_objectsTextComments.sql"
+  "sql/process/processPlanetNotes_30_loadPartitionedSyncNotes.sql"
+  "sql/process/processPlanetNotes_31_consolidatePartitions.sql"
+  "sql/process/processPlanetNotes_33_moveSyncToMain.sql"
+  "sql/process/processPlanetNotes_34_removeDuplicates.sql"
+  "sql/process/processPlanetNotes_35_loadTextComments.sql"
+  "sql/process/processPlanetNotes_36_objectsTextComments.sql"
  )
 
  for SQL_FILE in "${SQL_FILES[@]}"; do

@@ -32,15 +32,15 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
 }
 
 @test "SQL files should exist" {
- # Check if required SQL files exist
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_11_dropSyncTables.sql" ]
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" ]
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" ]
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql" ]
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_24_createSyncTables.sql" ]
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_25_createPartitions.sql" ]
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_42_consolidatePartitions.sql" ]
- [ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_43_moveSyncToMain.sql" ]
+# Check if required SQL files exist
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_10_dropSyncTables.sql" ]
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql" ]
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql" ]
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql" ]
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_23_createSyncTables.sql" ]
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_24_createPartitions.sql" ]
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_31_consolidatePartitions.sql" ]
+[ -f "${TEST_BASE_DIR}/sql/process/processPlanetNotes_33_moveSyncToMain.sql" ]
 }
 
 @test "AWK files should exist" {
@@ -69,11 +69,11 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
  # Create test database
  create_test_database
 
- # Create enums first (ignore errors if they already exist)
- mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
+# Create enums first (ignore errors if they already exist)
+mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_20_createBaseTables_enum.sql" 2> /dev/null || true
 
- # Then create tables (ignore notices about existing tables)
- mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
+# Then create tables (ignore notices about existing tables)
+mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_21_createBaseTables_tables.sql" 2> /dev/null || true
 
  # Check if tables were created
  table_exists "notes" "${TEST_DBNAME}"
@@ -96,14 +96,14 @@ load "$(dirname "$BATS_TEST_FILENAME")/../../test_helper.bash"
  # Create test database
  create_test_database
 
- # Create enums first (ignore errors if they already exist)
- mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
+# Create enums first (ignore errors if they already exist)
+mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_20_createBaseTables_enum.sql" 2> /dev/null || true
 
- # Create base tables first
- mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
+# Create base tables first
+mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_21_createBaseTables_tables.sql" 2> /dev/null || true
 
- # Try to create sync tables (ignore notices about existing tables)
- mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_24_createSyncTables.sql" 2> /dev/null || true
+# Try to create sync tables (ignore notices about existing tables)
+mock_psql -d "${TEST_DBNAME}" -f "sql/process/processPlanetNotes_23_createSyncTables.sql" 2> /dev/null || true
 
  # Check if sync tables were created
  # Note: sync tables might not exist in all database configurations

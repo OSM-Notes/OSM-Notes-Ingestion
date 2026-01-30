@@ -500,8 +500,8 @@ ensure_real_psql() {
 setup_environment_variables() {
  log_info "Setting up environment variables..."
 
- # Set logging level
- export LOG_LEVEL="${LOG_LEVEL:-INFO}"
+ # Set logging level (default to DEBUG for hybrid scripts)
+ export LOG_LEVEL="${LOG_LEVEL:-DEBUG}"
 
  # Set clean flag
  export CLEAN="${CLEAN:-false}"

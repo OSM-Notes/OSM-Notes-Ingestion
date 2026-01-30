@@ -143,12 +143,12 @@ teardown() {
 #      total_comments_in_db = 0
 # Date: 2025-12-14
 # Files changed:
-#   - sql/process/processAPINotes_32_insertNewNotesAndComments.sql
-#   - sql/process/processAPINotes_34_updateLastValues.sql
+#   - sql/process/processAPINotes_31_insertNewNotesAndComments.sql
+#   - sql/process/processAPINotes_33_updateLastValues.sql
 
 @test "REGRESSION: Integrity check should handle databases without comments" {
- local SQL_FILE1="${TEST_BASE_DIR}/sql/process/processAPINotes_32_insertNewNotesAndComments.sql"
- local SQL_FILE2="${TEST_BASE_DIR}/sql/process/processAPINotes_34_updateLastValues.sql"
+ local SQL_FILE1="${TEST_BASE_DIR}/sql/process/processAPINotes_31_insertNewNotesAndComments.sql"
+ local SQL_FILE2="${TEST_BASE_DIR}/sql/process/processAPINotes_33_updateLastValues.sql"
  
  __verify_file_exists "${SQL_FILE1}" "SQL files not found"
  __verify_file_exists "${SQL_FILE2}" "SQL files not found"

@@ -78,7 +78,7 @@ teardown() {
 @test "CSV column order should match SQL COPY command expectations (notes)" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
  local output_file="${TMP_DIR}/test_notes_order.csv"
- local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
+ local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_30_loadApiNotes.sql"
 
  [ -f "${awk_file}" ]
  [ -f "${sql_file}" ]
@@ -124,7 +124,7 @@ teardown() {
 @test "CSV column order should match SQL COPY command expectations (comments)" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comments.awk"
  local output_file="${TMP_DIR}/test_comments_order.csv"
- local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
+ local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_30_loadApiNotes.sql"
 
  [ -f "${awk_file}" ]
  [ -f "${sql_file}" ]
@@ -159,7 +159,7 @@ teardown() {
 @test "CSV column order should match SQL COPY command expectations (text comments)" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_comment_texts.awk"
  local output_file="${TMP_DIR}/test_text_comments_order.csv"
- local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_31_loadApiNotes.sql"
+ local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_30_loadApiNotes.sql"
 
  [ -f "${awk_file}" ]
  [ -f "${sql_file}" ]
@@ -186,10 +186,10 @@ teardown() {
  [[ "${first_line}" =~ ^[0-9]+,[0-9]+,\".* ]]
 }
 
-@test "CSV column order should match SQL COPY command expectations for Planet notes (processPlanetNotes_41)" {
+@test "CSV column order should match SQL COPY command expectations for Planet notes (processPlanetNotes_30)" {
  local awk_file="${SCRIPT_BASE_DIRECTORY}/awk/extract_notes.awk"
  local output_file="${TMP_DIR}/test_notes_planet_order.csv"
- local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql"
+ local sql_file="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_30_loadPartitionedSyncNotes.sql"
 
  [ -f "${awk_file}" ]
  [ -f "${sql_file}" ]

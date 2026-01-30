@@ -17,7 +17,12 @@ setup() {
  export SCRIPT_BASE_DIRECTORY="${TEST_BASE_DIR}"
  export TMP_DIR="$(mktemp -d)"
  export TEST_DIR="${TMP_DIR}"
- export DBNAME="${TEST_DBNAME:-osm_notes_ingestion_test}"
+ # Override TEST_DBNAME for connectivity tests (test_helper.bash may have set it to osm_notes_test)
+ # Connectivity tests need to use osm_notes_ingestion_test which exists in the local environment
+ if [[ -z "${TEST_DBNAME:-}" ]] || [[ "${TEST_DBNAME}" == "osm_notes_test" ]]; then
+  export TEST_DBNAME="osm_notes_ingestion_test"
+ fi
+ export DBNAME="${TEST_DBNAME}"
  export BASENAME="test_connectivity_check"
  export LOG_LEVEL="ERROR"
  export TEST_MODE="true"
@@ -43,6 +48,7 @@ teardown() {
   skip "psql not available"
  fi
 
+ # DBNAME is set in setup() to osm_notes_ingestion_test
  run psql -d "${DBNAME}" -c "SELECT version();" 2>&1
 
  [ "$status" -eq 0 ]

@@ -36,8 +36,8 @@ teardown() {
 
 @test "dropBaseTables script should use CASCADE for dependent types" {
   # Check that the script uses CASCADE for dropping types
-  grep -q "DROP TYPE.*note_event_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
-  grep -q "DROP TYPE.*note_status_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+  grep -q "DROP TYPE.*note_event_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql"
+  grep -q "DROP TYPE.*note_status_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql"
 }
 
 @test "dropGenericObjects script should drop insert_note_comment procedure" {
@@ -50,8 +50,8 @@ teardown() {
   [ -f "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql" ]
   [ -r "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql" ]
   
-  [ -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql" ]
-  [ -r "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql" ]
+  [ -f "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql" ]
+  [ -r "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql" ]
 }
 
 @test "SQL scripts should have valid syntax" {
@@ -61,7 +61,7 @@ teardown() {
   [ "$status" -eq 0 ]
   
   # Validate Base Tables script
-  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh' && __validate_sql_structure '${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql'"
+  run bash -c "export TEST_BASE_DIR='${SCRIPT_BASE_DIRECTORY}'; setup_test_properties; source '${SCRIPT_BASE_DIRECTORY}/lib/osm-common/validationFunctions.sh' && __validate_sql_structure '${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql'"
   [ "$status" -eq 0 ]
 }
 
@@ -99,7 +99,7 @@ teardown() {
   [ "$GENERIC_LINE" -lt "$BASE_LINE" ]
   
   # Solution 2: CASCADE option
-  grep -q "DROP TYPE.*note_event_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql"
+  grep -q "DROP TYPE.*note_event_enum CASCADE" "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql"
 }
 
 

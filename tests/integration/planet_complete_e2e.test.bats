@@ -146,7 +146,7 @@ DELETE FROM note_comments WHERE note_id IN (1001, 1002);
 DELETE FROM notes WHERE note_id IN (1001, 1002);
 EOSQL
 
-  # Use structure from DDL (processPlanetNotes_22_createBaseTables_tables.sql):
+  # Use structure from DDL (processPlanetNotes_21_createBaseTables_tables.sql):
   # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
   # Check for latitude/longitude vs lat/lon (test_helper.bash uses lat/lon)
   local HAS_LATITUDE
@@ -643,7 +643,7 @@ EOSQL
 DELETE FROM notes WHERE note_id IN (1001, 1002);
 EOSQL
 
-  # Use structure from DDL (processPlanetNotes_22_createBaseTables_tables.sql):
+  # Use structure from DDL (processPlanetNotes_21_createBaseTables_tables.sql):
   # note_id INTEGER NOT NULL, latitude DECIMAL, longitude DECIMAL
   # Check if PRIMARY KEY exists to use ON CONFLICT
   local HAS_PK

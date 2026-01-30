@@ -148,8 +148,8 @@ setup_test_database() {
  # Create functions and procedures
  log_info "Creating functions and procedures..."
  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_20_createFunctionToGetCountry.sql" 2> /dev/null || true
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || true
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createProcedure_insertNote.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNoteComment.sql" 2> /dev/null || true
 
  log_success "Test database setup completed"
 }

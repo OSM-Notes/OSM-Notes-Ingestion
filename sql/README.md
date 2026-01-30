@@ -87,7 +87,7 @@ Scripts for processing and loading data, organized by processing type:
   - Usage: Called after all partitions are loaded
   - Performance: Massive INSERT operation
 
-- **`processPlanetNotes_43_commentsSequence.sql`**: Creates comment sequences
+- **`processPlanetNotes_32_commentsSequence.sql`**: Creates comment sequences
   - Purpose: Sets up sequences for comment IDs
   - Usage: Called before comment loading
 
@@ -95,15 +95,15 @@ Scripts for processing and loading data, organized by processing type:
   - Purpose: Consolidates sync tables into main tables
   - Usage: Called after sync tables are populated
 
-- **`processPlanetNotes_43_removeDuplicates.sql`**: Removes duplicates
+- **`processPlanetNotes_34_removeDuplicates.sql`**: Removes duplicates
   - Purpose: Cleans up duplicate notes/comments
   - Usage: Called after consolidation
 
-- **`processPlanetNotes_44_loadTextComments.sql`**: Loads text comments
+- **`processPlanetNotes_35_loadTextComments.sql`**: Loads text comments
   - Purpose: Loads note comment text data
   - Usage: Called after comments are loaded
 
-- **`processPlanetNotes_45_objectsTextComments.sql`**: Processes text comment objects
+- **`processPlanetNotes_36_objectsTextComments.sql`**: Processes text comment objects
   - Purpose: Final processing of text comments
   - Usage: Called after text comments are loaded
 
@@ -152,7 +152,7 @@ Scripts for processing and loading data, organized by processing type:
   - Purpose: Stores last processed API sequence number
   - Usage: Called at end of API processing
 
-- **`processAPINotes_35_consolidatePartitions.sql`**: Consolidates API partitions
+- **`processAPINotes_34_consolidatePartitions.sql`**: Consolidates API partitions
   - Purpose: Merges API partition tables into main API tables
   - Usage: Called after all partitions are loaded
 
@@ -178,7 +178,7 @@ Database functions and procedures (located directly in `sql/`):
 
 #### Note Processing Procedures
 
-- **`functionsProcess_22_createProcedure_insertNote.sql`**: Insert note procedure
+- **`functionsProcess_21_createProcedure_insertNote.sql`**: Insert note procedure
   - **Purpose**: Inserts a new note into the database with country assignment
   - **Procedure**: `insert_note(note_id, latitude, longitude, created_at, process_id)`
   - **Features**:
@@ -187,7 +187,7 @@ Database functions and procedures (located directly in `sql/`):
     - Inserts note as "opened" (status updated when closing comment is processed)
   - **Usage**: Called by `processAPINotes.sh` for incremental API synchronization
 
-- **`functionsProcess_23_createProcedure_insertNoteComment.sql`**: Insert comment procedure
+- **`functionsProcess_22_createProcedure_insertNoteComment.sql`**: Insert comment procedure
   - **Purpose**: Inserts a note comment and updates note status if closing
   - **Procedure**:
     `insert_note_comment(note_id, comment_id, created_at, action, user_id, user_name, text, process_id)`
@@ -198,7 +198,7 @@ Database functions and procedures (located directly in `sql/`):
 
 #### Country Assignment Functions
 
-- **`functionsProcess_31_organizeAreas.sql`**: Organize areas for country assignment
+- **`functionsProcess_30_organizeAreas.sql`**: Organize areas for country assignment
   - **Purpose**: Sets up spatial organization for efficient country lookup
   - **Usage**: Called during initial setup
 
@@ -230,7 +230,7 @@ Database functions and procedures (located directly in `sql/`):
   - **Strategy**: Uses bounding box queries before full geometry checks
   - **Usage**: Called by `updateCountries.sh` for efficient reassignment
 
-- **`functionsProcess_36_reassignAffectedNotes_batch.sql`**: Reassign affected notes (batch,
+- **`functionsProcess_37_reassignAffectedNotes_batch.sql`**: Reassign affected notes (batch,
   optimized)
   - **Purpose**: Batch processing version with optimization to only update notes where country
     changed
