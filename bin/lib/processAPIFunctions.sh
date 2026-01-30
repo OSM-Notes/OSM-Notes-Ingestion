@@ -56,6 +56,59 @@ if [[ -z "${POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS:-}" ]]; then declare -r PO
 if [[ -z "${POSTGRES_33_INSERT_NEW_TEXT_COMMENTS:-}" ]]; then declare -r POSTGRES_33_INSERT_NEW_TEXT_COMMENTS="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_33_loadNewTextComments.sql"; fi
 if [[ -z "${POSTGRES_34_UPDATE_LAST_VALUES:-}" ]]; then declare -r POSTGRES_34_UPDATE_LAST_VALUES="${SCRIPT_BASE_DIRECTORY}/sql/process/processAPINotes_34_updateLastValues.sql"; fi
 
+##
+# Counts XML notes in API format file
+# Counts the number of notes in an API-format XML file using grep. This is a lightweight
+# version suitable for quick counting. For comprehensive counting with validation, use
+# __countXmlNotesAPI() from functionsProcess.sh. Exits script if file not found.
+#
+# Parameters:
+#   $1: XML_FILE - Path to API-format XML file to count (required)
+#
+# Returns:
+#   Outputs count to stdout (capture with: COUNT=$(__countXmlNotesAPI "${FILE}"))
+#   Exits with ERROR_MISSING_LIBRARY if file not found
+#
+# Error codes:
+#   Outputs count: Success - Note count written to stdout
+#   ERROR_MISSING_LIBRARY: File not found - XML file does not exist
+#
+# Error conditions:
+#   Outputs count: Success - Notes counted successfully
+#   ERROR_MISSING_LIBRARY: File missing - XML file does not exist (exits script)
+#
+# Context variables:
+#   Reads:
+#     - ERROR_MISSING_LIBRARY: Error code for missing library (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Counts notes using grep -c '<note' pattern
+#   - Writes count to stdout (for capture by calling script)
+#   - Writes log messages to stderr
+#   - Exits script if file not found
+#   - File operations: Reads XML file
+#   - No database or network operations
+#
+# Notes:
+#   - Lightweight version: Uses grep for fast counting
+#   - API format: Counts '<note' pattern (matches <note ...> with attributes)
+#   - Outputs count to stdout (must be captured)
+#   - Exits script on file not found (does not return)
+#   - For comprehensive counting with validation, use __countXmlNotesAPI() from functionsProcess.sh
+#   - Used by scripts that need quick note count without validation
+#
+# Example:
+#   local COUNT
+#   COUNT=$(__countXmlNotesAPI "${API_NOTES_FILE}")
+#   echo "Found ${COUNT} notes"
+#
+# Related: __countXmlNotesAPI() in functionsProcess.sh (comprehensive version with validation)
+# Related: __countXmlNotesPlanet() (Planet format counting)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Count XML notes for API
 function __countXmlNotesAPI() {
  __log_start
@@ -78,7 +131,79 @@ function __countXmlNotesAPI() {
  echo "${COUNT}"
 }
 
-# Get new notes from API
+##
+# Downloads new notes from OSM Notes API since last update
+# Retrieves the last update timestamp from database, constructs API request URL with
+# date filter, and downloads new notes from OSM Notes API. Validates network connectivity,
+# handles database queries with retry, and validates downloaded XML structure.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Notes downloaded successfully (even if 0 notes)
+#   1: Failure - Network error, database error, or download failure
+#   ERROR_INTERNET_ISSUE: Network connectivity check failed
+#   ERROR_NO_LAST_UPDATE: No last update timestamp found in database
+#
+# Error codes:
+#   0: Success - Notes downloaded and saved to API_NOTES_FILE
+#   1: Failure - Download failed or file validation failed
+#   ERROR_INTERNET_ISSUE: Network connectivity check failed
+#   ERROR_NO_LAST_UPDATE: Database query failed or no last update timestamp found
+#
+# Error conditions:
+#   0: Success - Notes downloaded successfully (file exists, has content, contains XML)
+#   1: Network failure - Network connectivity check failed
+#   ERROR_NO_LAST_UPDATE: Database query failed after retries
+#   ERROR_NO_LAST_UPDATE: No last update timestamp in database (empty result)
+#   1: Download failure - __retry_osm_api failed
+#   1: File missing - Downloaded file does not exist
+#   1: Empty file - Downloaded file is 0 bytes
+#   1: Invalid XML - Downloaded file does not contain XML structure (<osm> tag)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - OSM_API: OSM Notes API base URL (required)
+#     - MAX_NOTES: Maximum number of notes to download (required)
+#     - API_NOTES_FILE: Output file path for downloaded notes (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_INTERNET_ISSUE: Error code for network issues (defined in calling script)
+#     - ERROR_NO_LAST_UPDATE: Error code for missing last update (defined in calling script)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes network connectivity check
+#   - Executes psql query to retrieve last update timestamp
+#   - Downloads XML file from OSM Notes API (saves to API_NOTES_FILE)
+#   - Creates temporary file for database query result
+#   - Removes temporary file after use
+#   - Writes log messages to stderr
+#   - No database modifications
+#
+# Notes:
+#   - Checks network connectivity before attempting download
+#   - Retrieves last update timestamp from max_note_timestamp table
+#   - Constructs API URL with date filter: ?limit=${MAX_NOTES}&closed=-1&sort=updated_at&from=${LAST_UPDATE}
+#   - Uses __retry_osm_api with 5 retries, 2 second backoff, 120 second timeout
+#   - Validates downloaded file: exists, has content (>0 bytes), contains XML structure
+#   - Empty XML (<osm></osm>) is valid and indicates 0 notes scenario
+#   - Requires max_note_timestamp table to exist (created during initial load)
+#   - If no last update found, returns ERROR_NO_LAST_UPDATE (indicates need for initial load)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export OSM_API="https://api.openstreetmap.org/api/0.6"
+#   export MAX_NOTES=10000
+#   export API_NOTES_FILE="/tmp/api_notes.xml"
+#   __getNewNotesFromApi
+#
+# Related: __retry_osm_api() (OSM API download with retry)
+# Related: __check_network_connectivity() (network connectivity check)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __getNewNotesFromApi() {
  __log_start
  __logd "Getting new notes from API."

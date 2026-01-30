@@ -174,6 +174,84 @@ function __init_lock_dir() {
  echo "${BASE_LOCK_DIR}"
 }
 
+##
+# Initializes all directories at once (logs, temp, locks)
+# Initializes log, temporary, and lock directories based on installation status and script type.
+# Detects if system is installed (production mode) or uses fallback mode (testing). Creates
+# directories if needed and exports environment variables for use by calling scripts.
+# Handles script type detection (daemon, monitoring, processing) for subdirectory organization.
+#
+# Parameters:
+#   $1: SCRIPT_BASENAME - Script basename for directory naming (optional, uses BASENAME or $0 if not provided)
+#   $2: FORCE_FALLBACK - If "true", forces fallback mode (/tmp) even if installed (optional, default: false)
+#
+# Returns:
+#   0: Success - All directories initialized successfully
+#   ERROR_MISSING_LIBRARY: Failure - Directory initialization failed
+#
+# Error codes:
+#   0: Success - All directories initialized and exported
+#   ERROR_MISSING_LIBRARY: Log directory initialization failed
+#   ERROR_MISSING_LIBRARY: Temporary directory initialization failed
+#   ERROR_MISSING_LIBRARY: Lock directory initialization failed
+#
+# Error conditions:
+#   0: Success - All directories initialized successfully
+#   ERROR_MISSING_LIBRARY: Failed to initialize log directory
+#   ERROR_MISSING_LIBRARY: Failed to initialize temporary directory
+#   ERROR_MISSING_LIBRARY: Failed to initialize lock directory
+#
+# Context variables:
+#   Reads:
+#     - BASENAME: Script basename (readonly, optional)
+#     - FORCE_FALLBACK_MODE: If "true", forces fallback mode (optional)
+#     - LOG_DIR: Override log directory (optional, if set uses this instead)
+#     - TMP_DIR: Override temporary directory (optional, if set uses this instead)
+#     - LOCK_DIR: Override lock directory (optional, if set uses this instead)
+#     - ERROR_MISSING_LIBRARY: Error code for missing library (optional, default: 241)
+#   Sets:
+#     - LOG_DIR: Log directory path (exported)
+#     - TMP_DIR: Temporary directory path (exported)
+#     - LOCK_DIR: Lock directory path (exported)
+#     - LOG_FILENAME: Log file path (exported)
+#     - LOCK: Lock file path (exported)
+#   Modifies:
+#     - Creates directories if they don't exist
+#
+# Side effects:
+#   - Detects installation status (production vs fallback mode)
+#   - Creates log directory (with subdirectory based on script type)
+#   - Creates temporary directory (with subdirectory based on script type)
+#   - Creates lock directory (production: /var/run, fallback: /tmp)
+#   - Exports directory paths as environment variables
+#   - Sets log filename and lock file path
+#   - Writes log messages (if logging available)
+#   - File operations: Creates directories (mkdir -p)
+#   - No database or network operations
+#
+# Notes:
+#   - Detects installation status by checking standard directories (/var/log, /var/tmp, /var/run)
+#   - Production mode: Uses /var/log, /var/tmp, /var/run (persistent)
+#   - Fallback mode: Uses /tmp subdirectories (non-persistent, for testing)
+#   - Script type detection: daemon, monitoring, processing (for subdirectory organization)
+#   - Respects FORCE_FALLBACK_MODE environment variable
+#   - Respects directory override environment variables (LOG_DIR, TMP_DIR, LOCK_DIR)
+#   - Critical function: Required before any file operations in scripts
+#   - Used by all processing scripts for directory initialization
+#
+# Example:
+#   __init_directories "processAPINotes"
+#   # Initializes directories and exports LOG_DIR, TMP_DIR, LOCK_DIR, LOG_FILENAME, LOCK
+#
+#   export FORCE_FALLBACK_MODE=true
+#   __init_directories "processAPINotesDaemon" "true"
+#   # Forces fallback mode even if installed
+#
+# Related: __init_log_dir() (initializes log directory)
+# Related: __init_tmp_dir() (initializes temporary directory)
+# Related: __init_lock_dir() (initializes lock directory)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Initialize all directories at once
 # Sets: LOG_DIR, TMP_DIR, LOCK_DIR, LOG_FILENAME, LOCK
 function __init_directories() {

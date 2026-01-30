@@ -483,6 +483,168 @@ function __checkPrereqs {
 }
 
 # Drop sync tables.
+##
+# Drops sync tables used for Planet note processing
+# Executes SQL script to drop temporary sync tables (notes_sync, note_comments_sync,
+# note_comments_text_sync) used during Planet processing. Sets max_threads before
+# dropping to optimize performance for large tables.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Tables dropped successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Sync tables dropped successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - MAX_THREADS: Maximum threads for parallel operations (optional)
+#     - POSTGRES_11_DROP_SYNC_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to set max_threads configuration
+#   - Executes psql to drop sync tables (notes_sync, note_comments_sync, etc.)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Sets app.max_threads before dropping (optimizes for large tables)
+#   - Drops all sync tables and dependent objects (CASCADE)
+#   - Used during cleanup or before recreating sync tables
+#   - Part of Planet processing workflow (drops sync tables before base mode or sync mode)
+#   - Sync tables are temporary and can be safely dropped
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_11_DROP_SYNC_TABLES="/path/to/drop_sync_tables.sql"
+#   __dropSyncTables
+#
+# Related: __createSyncTables() (creates sync tables)
+# Related: __dropBaseTables() (drops base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Drops sync tables used for Planet processing
+# Executes SQL script to drop temporary sync tables (notes_sync, note_comments_sync,
+# note_comments_text_sync) and all partitions. Sets max_threads before dropping to
+# optimize performance for large tables. Used during cleanup or before recreating sync tables.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Sync tables dropped successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Sync tables dropped successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - MAX_THREADS: Maximum threads for parallel operations (optional)
+#     - POSTGRES_11_DROP_SYNC_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to set max_threads configuration
+#   - Executes psql to drop sync tables and all partitions
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Sets app.max_threads before dropping (optimizes for large tables)
+#   - Drops all sync tables and partitions (CASCADE)
+#   - Used during cleanup or before recreating sync tables
+#   - Part of Planet processing workflow (drops after consolidation)
+#   - Sync tables are temporary (used only during Planet processing)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_11_DROP_SYNC_TABLES="/path/to/drop_sync_tables.sql"
+#   export MAX_THREADS=4
+#   __dropSyncTables
+#
+# Related: __createSyncTables() (creates sync tables)
+# Related: __dropBaseTables() (drops base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Drops sync tables used for Planet note processing
+# Executes SQL script to drop temporary sync tables (notes_sync, note_comments_sync,
+# note_comments_text_sync) and all their partitions. Sets max_threads before dropping
+# to optimize performance for large tables. Used after data is moved to base tables.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Sync tables dropped successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Sync tables dropped successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - MAX_THREADS: Maximum threads for parallel operations (optional)
+#     - POSTGRES_11_DROP_SYNC_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to set max_threads configuration
+#   - Executes psql to drop sync tables and all partitions
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Sets app.max_threads before dropping (optimizes for large tables)
+#   - Drops all sync tables and their partitions (CASCADE)
+#   - Used after data is moved from sync tables to base tables
+#   - Part of Planet processing workflow (drops after consolidation)
+#   - WARNING: This deletes all data in sync tables (should be empty after move)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_11_DROP_SYNC_TABLES="/path/to/drop_sync_tables.sql"
+#   export MAX_THREADS=8
+#   __dropSyncTables
+#
+# Related: __createSyncTables() (creates sync tables)
+# Related: __moveSyncToMain() (moves data from sync to base tables)
+# Related: __dropBaseTables() (drops base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __dropSyncTables {
  __log_start
  __logi "=== DROPPING SYNC TABLES ==="
@@ -492,7 +654,56 @@ function __dropSyncTables {
  __log_finish
 }
 
-# Drop tables for notes from API.
+##
+# Drops API-related tables from database
+# Executes SQL script to drop tables used for API notes processing.
+# Sets max_threads before dropping to optimize performance for large tables.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Tables dropped successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - API tables dropped successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - MAX_THREADS: Maximum threads for parallel operations (optional)
+#     - POSTGRES_12_DROP_API_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to set max_threads configuration
+#   - Executes psql to drop API tables (notes_api, note_comments_api, etc.)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Sets app.max_threads before dropping (optimizes for large tables)
+#   - Drops all API-related tables and dependent objects (CASCADE)
+#   - Used during cleanup or before recreating API tables
+#   - Part of Planet processing workflow (drops API tables before base mode)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_12_DROP_API_TABLES="/path/to/drop_api_tables.sql"
+#   __dropApiTables
+#
+# Related: __createBaseTables() (creates base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __dropApiTables {
  __log_start
  __logi "=== DROPPING API TABLES ==="
@@ -502,7 +713,57 @@ function __dropApiTables {
  __log_finish
 }
 
-# Drop existing base tables.
+##
+# Drops base tables that hold complete note history
+# Executes SQL script to drop base tables (notes, note_comments, note_comments_text)
+# and all dependent objects. Used during base mode to start with clean database.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Tables dropped successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Base tables dropped successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_13_DROP_BASE_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to drop base tables (notes, note_comments, note_comments_text)
+#   - Drops all dependent objects (indexes, constraints, sequences, etc.)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Drops all base tables and dependent objects (CASCADE)
+#   - Used during base mode to start with clean database
+#   - Part of Planet processing workflow (drops before creating new base tables)
+#   - WARNING: This deletes all note history data
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_13_DROP_BASE_TABLES="/path/to/drop_base_tables.sql"
+#   __dropBaseTables
+#
+# Related: __createBaseTables() (creates base tables)
+# Related: __dropSyncTables() (drops sync tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __dropBaseTables {
  __log_start
  __logi "=== DROPPING BASE TABLES ==="
@@ -512,7 +773,64 @@ function __dropBaseTables {
  __log_finish
 }
 
-# Creates base tables that hold the whole history.
+##
+# Creates base tables that hold complete note history
+# Creates ENUM types, base tables (notes, note_comments, note_comments_text), and constraints
+# in sequence. These tables store the complete history of all OSM notes. Must be executed
+# in order: enums first, then tables, then constraints.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - All tables created successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Base tables created successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - All SQL scripts executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_21_CREATE_ENUMS: Path to ENUM creation SQL script (required)
+#     - POSTGRES_22_CREATE_BASE_TABLES: Path to table creation SQL script (required)
+#     - POSTGRES_23_CREATE_CONSTRAINTS: Path to constraint creation SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to create ENUM types (note_status_enum, note_action_enum)
+#   - Executes psql to create base tables (notes, note_comments, note_comments_text)
+#   - Executes psql to create constraints (primary keys, foreign keys, indexes, etc.)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Must be executed in sequence: enums -> tables -> constraints
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Creates complete schema for storing note history
+#   - Used during base mode to set up database structure
+#   - Part of Planet processing workflow (creates before loading Planet data)
+#   - Base tables store complete history (all notes, all comments)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_21_CREATE_ENUMS="/path/to/create_enums.sql"
+#   export POSTGRES_22_CREATE_BASE_TABLES="/path/to/create_tables.sql"
+#   export POSTGRES_23_CREATE_CONSTRAINTS="/path/to/create_constraints.sql"
+#   __createBaseTables
+#
+# Related: __dropBaseTables() (drops base tables)
+# Related: __createSyncTables() (creates sync tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __createBaseTables {
  __log_start
  __logi "=== CREATING BASE TABLES ==="
@@ -529,8 +847,111 @@ function __createBaseTables {
  __log_finish
 }
 
-# Creates sync tables that receives the whole history, but then keep the new
-# ones.
+##
+# Creates sync tables for receiving Planet note history
+# Creates temporary sync tables (notes_sync, note_comments_sync, note_comments_text_sync)
+# that receive the complete Planet note history. After processing, only new notes are kept
+# and moved to base tables. Used during Planet processing workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Sync tables created successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Sync tables created successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_24_CREATE_SYNC_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to create sync tables (notes_sync, note_comments_sync, note_comments_text_sync)
+#   - Creates temporary tables with same structure as base tables
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Creates temporary tables for receiving Planet data
+#   - Sync tables have same structure as base tables
+#   - Used during Planet processing: data loaded into sync tables, then filtered
+#   - After processing, only new notes are moved to base tables
+#   - Part of Planet processing workflow (creates before loading Planet data)
+#   - Sync tables are dropped after consolidation (see __dropSyncTables)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_24_CREATE_SYNC_TABLES="/path/to/create_sync_tables.sql"
+#   __createSyncTables
+#
+# Related: __dropSyncTables() (drops sync tables)
+# Related: __createBaseTables() (creates base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Creates sync tables for receiving Planet note history
+# Creates temporary sync tables (notes_sync, note_comments_sync, note_comments_text_sync)
+# that receive the complete Planet note history. After processing, only new notes are kept
+# and moved to base tables. Used during Planet processing workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Sync tables created successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Sync tables created successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_24_CREATE_SYNC_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to create sync tables (notes_sync, note_comments_sync, note_comments_text_sync)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Sync tables are temporary and receive Planet note history
+#   - After processing, only new notes are kept and moved to base tables
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Part of Planet processing workflow (creates before loading Planet data)
+#   - Sync tables are dropped after data is moved to base tables
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_24_CREATE_SYNC_TABLES="/path/to/create_sync_tables.sql"
+#   __createSyncTables
+#
+# Related: __dropSyncTables() (drops sync tables)
+# Related: __createBaseTables() (creates base tables)
+# Related: __moveSyncToMain() (moves data from sync to base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __createSyncTables {
  __log_start
  __logi "Creating tables."
@@ -541,6 +962,59 @@ function __createSyncTables {
 }
 
 # Clean files and tables.
+##
+# Cleans up partial processing files and temporary import table
+# Removes temporary files created during boundary processing (countries, maritimes)
+# and drops the temporary import table if CLEAN environment variable is set to true.
+# Used for cleanup after boundary processing operations.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Always returns 0 (success) - cleanup function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs cleanup operations
+#
+# Error conditions:
+#   Always succeeds - File removal and table drop failures are handled gracefully
+#
+# Context variables:
+#   Reads:
+#     - CLEAN: If "true", removes files and drops table; if "false" or unset, skips cleanup (optional, default: false)
+#     - COUNTRIES_FILE: Path to countries file (required)
+#     - MARITIMES_FILE: Path to maritimes file (required)
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Removes countries and maritimes files if CLEAN=true
+#   - Executes psql to drop import table if CLEAN=true
+#   - Writes log messages to stderr
+#   - No network operations
+#
+# Notes:
+#   - Only performs cleanup if CLEAN environment variable is "true"
+#   - Uses rm -f to ignore missing files (non-fatal)
+#   - Drops import table using DROP TABLE IF EXISTS (safe if table doesn't exist)
+#   - Safe to call multiple times (idempotent)
+#   - Used for cleanup after boundary processing (countries/maritimes)
+#   - Import table is temporary and used during boundary import operations
+#
+# Example:
+#   export CLEAN=true
+#   export COUNTRIES_FILE="/tmp/countries"
+#   export MARITIMES_FILE="/tmp/maritimes"
+#   export DBNAME="osm_notes"
+#   __cleanPartial
+#
+# Related: __cleanNotesFiles() (cleans note processing files)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __cleanPartial {
  __log_start
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
@@ -551,7 +1025,59 @@ function __cleanPartial {
  __log_finish
 }
 
-# Calculates statistics on all tables and vacuum.
+##
+# Performs VACUUM and ANALYZE on all database tables
+# Executes PostgreSQL VACUUM and ANALYZE commands to reclaim storage space and update
+# table statistics. Improves query performance by updating planner statistics and
+# removing dead tuples. Should be run periodically after large data loads.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - VACUUM and ANALYZE completed successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - VACUUM and ANALYZE executed successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_31_VACUUM_AND_ANALYZE: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to run VACUUM (reclaims storage, removes dead tuples)
+#   - Executes psql to run ANALYZE (updates table statistics for query planner)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#   - May lock tables during VACUUM (depends on PostgreSQL version and options)
+#
+# Notes:
+#   - VACUUM reclaims storage space and removes dead tuples
+#   - ANALYZE updates table statistics for query planner optimization
+#   - Should be run after large data loads or deletions
+#   - Can take significant time on large tables
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Part of database maintenance workflow
+#   - Improves query performance by updating planner statistics
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_31_VACUUM_AND_ANALYZE="/path/to/vacuum_analyze.sql"
+#   __analyzeAndVacuum
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __analyzeAndVacuum {
  __log_start
  # shellcheck disable=SC2097,SC2098
@@ -560,7 +1086,65 @@ function __analyzeAndVacuum {
  __log_finish
 }
 
-# Loads new notes from sync.
+##
+# Loads new notes and comments from sync tables into partition tables
+# Loads data from CSV files (OUTPUT_NOTES_FILE, OUTPUT_NOTE_COMMENTS_FILE) into
+# partition tables using envsubst for file path substitution. Used during parallel
+# processing to load data from processed XML parts into database partitions.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Data loaded successfully
+#   Non-zero: Failure - psql command failed (SQL error, connection error, etc.)
+#
+# Error codes:
+#   0: Success - Data loaded successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (SQL syntax error, connection error, file not found, etc.)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - OUTPUT_NOTES_FILE: Path to notes CSV file (required, exported)
+#     - OUTPUT_NOTE_COMMENTS_FILE: Path to note comments CSV file (required, exported)
+#     - POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES: Path to SQL script template (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - OUTPUT_NOTES_FILE: Exported for envsubst substitution
+#     - OUTPUT_NOTE_COMMENTS_FILE: Exported for envsubst substitution
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to load CSV data into partition tables
+#   - Uses envsubst to substitute file paths in SQL template
+#   - Writes log messages to stderr
+#   - No file or network operations
+#   - Database operations: INSERT into partition tables
+#
+# Notes:
+#   - Uses envsubst to substitute $OUTPUT_NOTES_FILE and $OUTPUT_NOTE_COMMENTS_FILE in SQL template
+#   - SQL template must contain ${OUTPUT_NOTES_FILE} and ${OUTPUT_NOTE_COMMENTS_FILE} placeholders
+#   - Used during parallel processing to load data from processed XML parts
+#   - Part of parallel processing workflow (called by __processPlanetXmlPart)
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - CSV files must exist and be readable
+#
+# Example:
+#   export OUTPUT_NOTES_FILE="/tmp/notes.csv"
+#   export OUTPUT_NOTE_COMMENTS_FILE="/tmp/comments.csv"
+#   export POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES="/path/to/load_partitioned.sql"
+#   __loadSyncNotes
+#
+# Related: __processPlanetXmlPart() (processes XML part and calls this function)
+# Related: __processPlanetNotesWithParallel() (orchestrates parallel processing)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __loadSyncNotes {
  __log_start
  # Loads the data in the database.
@@ -573,7 +1157,148 @@ function __loadSyncNotes {
  __log_finish
 }
 
-# Removes notes and comments from the new set that are already in the database.
+##
+# Removes duplicate notes and comments from sync tables
+# Removes notes and comments from sync tables that already exist in main tables.
+# Uses database locking (put_lock/remove_lock) to ensure single execution.
+# Creates temporary tables (notes_sync_no_duplicates, note_comments_sync_no_duplicates),
+# filters duplicates, and updates sequences. Part of Planet sync workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Duplicates removed successfully
+#   Non-zero: Failure - Database lock failed, SQL execution failed, or sequence update failed
+#
+# Error codes:
+#   0: Success - Duplicates removed successfully
+#   Non-zero: Failure - Lock acquisition failed, SQL execution failed, or sequence update failed
+#
+# Error conditions:
+#   0: Success - All operations completed successfully
+#   Non-zero: Lock acquisition failed - put_lock() failed
+#   Non-zero: SQL execution failed - remove_duplicates SQL script failed
+#   Non-zero: Lock removal failed - remove_lock() failed
+#   Non-zero: Sequence update failed - comments sequence SQL script failed
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - PROCESS_ID: Process ID (generated from $$, exported)
+#     - POSTGRES_43_REMOVE_DUPLICATES: Path to SQL script template (required)
+#     - POSTGRES_44_COMMENTS_SEQUENCE: Path to SQL script for sequence update (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - PROCESS_ID: Process ID (exported for envsubst substitution)
+#   Modifies:
+#     - Creates temporary tables (notes_sync_no_duplicates, note_comments_sync_no_duplicates)
+#     - Drops and recreates sync tables (notes_sync, note_comments_sync)
+#     - Updates sequences in database
+#
+# Side effects:
+#   - Acquires database lock (put_lock)
+#   - Executes SQL to remove duplicates (creates filtered tables, drops old sync tables)
+#   - Releases database lock (remove_lock)
+#   - Updates comment sequences
+#   - Writes log messages to stderr
+#   - Database operations: CREATE TABLE, DROP TABLE, ALTER TABLE, UPDATE sequences
+#   - No file or network operations
+#
+# Notes:
+#   - Uses database locking to ensure single execution (prevents concurrent duplicate removal)
+#   - Process ID is generated from $$ (shell PID) and used for locking
+#   - Creates temporary tables with filtered data (no duplicates)
+#   - Replaces sync tables with filtered versions
+#   - Updates sequences to handle re-execution scenarios (some objects may already exist)
+#   - Critical function: Part of Planet sync workflow
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Uses envsubst to substitute PROCESS_ID in SQL template
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_43_REMOVE_DUPLICATES="/path/to/remove_duplicates.sql"
+#   export POSTGRES_44_COMMENTS_SEQUENCE="/path/to/comments_sequence.sql"
+#   __removeDuplicates
+#
+# Related: put_lock() (PostgreSQL function for locking)
+# Related: remove_lock() (PostgreSQL function for unlocking)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Removes duplicate notes and comments from sync tables
+# Removes notes and comments from sync tables that already exist in main tables.
+# Uses database locking (put_lock/remove_lock) to ensure single execution.
+# Creates temporary tables (notes_sync_no_duplicates, note_comments_sync_no_duplicates),
+# filters duplicates, and updates sequences. Part of Planet sync workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Duplicates removed successfully
+#   Non-zero: Failure - Database lock failed, SQL execution failed, or sequence update failed
+#
+# Error codes:
+#   0: Success - Duplicates removed and sequences updated successfully
+#   Non-zero: Lock acquisition failed - put_lock failed
+#   Non-zero: SQL execution failed - envsubst or psql failed
+#   Non-zero: Lock removal failed - remove_lock failed
+#   Non-zero: Sequence update failed - psql failed
+#
+# Error conditions:
+#   0: Success - All operations completed successfully
+#   Non-zero: Lock acquisition failed - Cannot acquire database lock
+#   Non-zero: SQL execution failed - Duplicate removal SQL failed
+#   Non-zero: Lock removal failed - Cannot remove database lock
+#   Non-zero: Sequence update failed - Sequence update SQL failed
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_43_REMOVE_DUPLICATES: Path to SQL script template (required)
+#     - POSTGRES_44_COMMENTS_SEQUENCE: Path to SQL script for sequence update (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - PROCESS_ID: Process ID (exported, used in SQL)
+#   Modifies:
+#     - Creates temporary tables (notes_sync_no_duplicates, note_comments_sync_no_duplicates)
+#     - Removes duplicates from sync tables
+#     - Updates sequences for note_comments
+#
+# Side effects:
+#   - Generates process ID (PID)
+#   - Acquires database lock (put_lock)
+#   - Creates temporary tables for duplicate filtering
+#   - Removes duplicates from sync tables (via SQL script)
+#   - Updates sequences for note_comments
+#   - Removes database lock (remove_lock)
+#   - Writes log messages to stderr
+#   - Database operations: Lock acquisition, duplicate removal, sequence update
+#   - No file or network operations
+#
+# Notes:
+#   - Uses database locking to prevent concurrent duplicate removal
+#   - Creates temporary tables to filter duplicates before removal
+#   - Updates sequences after duplicate removal (ensures correct sequence values)
+#   - Critical function: Part of Planet sync workflow
+#   - Must be called before moving data from sync to main tables
+#   - Uses envsubst for process_id substitution in SQL template
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_43_REMOVE_DUPLICATES="/path/to/remove_duplicates.sql"
+#   export POSTGRES_44_COMMENTS_SEQUENCE="/path/to/update_sequence.sql"
+#   __removeDuplicates
+#   # Removes duplicates and updates sequences
+#
+# Related: __moveSyncToMain() (moves data from sync to main tables)
+# Related: __loadSyncNotes() (loads data into sync tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __removeDuplicates {
  __log_start
  PROCESS_ID="${$}"
@@ -599,7 +1324,65 @@ function __removeDuplicates {
  __log_finish
 }
 
-# Loads text comments.
+##
+# Loads text comments from CSV file into database
+# Loads text comments from CSV file (OUTPUT_TEXT_COMMENTS_FILE) into database using
+# envsubst for file path substitution. Handles existing objects gracefully (some
+# objects may already exist). Part of Planet processing workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Text comments loaded successfully
+#   Non-zero: Failure - psql command failed (SQL error, connection error, etc.)
+#
+# Error codes:
+#   0: Success - Text comments loaded successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (SQL syntax error, connection error, file not found, etc.)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - OUTPUT_TEXT_COMMENTS_FILE: Path to text comments CSV file (required, exported)
+#     - POSTGRES_45_LOAD_TEXT_COMMENTS: Path to SQL script template (required)
+#     - POSTGRES_46_OBJECTS_TEXT_COMMENTS: Path to SQL script for handling existing objects (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - OUTPUT_TEXT_COMMENTS_FILE: Exported for envsubst substitution
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to load CSV data into note_comments_text table
+#   - Uses envsubst to substitute file path in SQL template
+#   - Handles existing objects (some objects may already exist)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#   - Database operations: INSERT into note_comments_text table
+#
+# Notes:
+#   - Uses envsubst to substitute $OUTPUT_TEXT_COMMENTS_FILE in SQL template
+#   - SQL template must contain ${OUTPUT_TEXT_COMMENTS_FILE} placeholder
+#   - Handles existing objects gracefully (second SQL script handles conflicts)
+#   - Part of Planet processing workflow (called after processing XML parts)
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - CSV file must exist and be readable
+#
+# Example:
+#   export OUTPUT_TEXT_COMMENTS_FILE="/tmp/text_comments.csv"
+#   export POSTGRES_45_LOAD_TEXT_COMMENTS="/path/to/load_text_comments.sql"
+#   export POSTGRES_46_OBJECTS_TEXT_COMMENTS="/path/to/objects_text_comments.sql"
+#   __loadTextComments
+#
+# Related: __processPlanetXmlPart() (generates text comments CSV)
+# Related: __loadSyncNotes() (loads notes and comments)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __loadTextComments {
  __log_start
  # Loads the text comment in the database.
@@ -618,7 +1401,131 @@ function __loadTextComments {
  __log_finish
 }
 
-# Moves data from sync tables to main tables after consolidation.
+##
+# Moves data from sync tables to main tables after consolidation
+# Moves data from sync tables (notes_sync, note_comments_sync, note_comments_text_sync)
+# to main tables (notes, note_comments, note_comments_text). Performs deduplication,
+# handles conflicts with ON CONFLICT DO UPDATE, and updates statistics. Part of Planet
+# processing workflow (final step before cleanup).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Data moved successfully
+#   Non-zero: Failure - psql command failed (SQL error, connection error, etc.)
+#
+# Error codes:
+#   0: Success - Data moved successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (SQL syntax error, connection error, file not found, etc.)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_43_MOVE_SYNC_TO_MAIN: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Moves data from sync tables to main tables
+#     - Updates statistics on main tables (ANALYZE)
+#
+# Side effects:
+#   - Executes psql to move data from sync to main tables
+#   - Performs deduplication (removes duplicates before insertion)
+#   - Handles conflicts with ON CONFLICT DO UPDATE
+#   - Updates statistics on main tables (ANALYZE)
+#   - Writes log messages to stderr
+#   - Uses --pset pager=off to prevent blocking on long output
+#   - Database operations: INSERT ... ON CONFLICT DO UPDATE, ANALYZE
+#   - No file or network operations
+#
+# Notes:
+#   - Moves notes, comments, and text comments from sync to main tables
+#   - Performs deduplication before final insertion
+#   - Uses ON CONFLICT DO UPDATE to handle existing records
+#   - Updates statistics on main tables for query optimization
+#   - Critical function: Final step in Planet processing workflow
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Uses --pset pager=off to prevent blocking on SELECT output
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_43_MOVE_SYNC_TO_MAIN="/path/to/move_sync_to_main.sql"
+#   __moveSyncToMain
+#
+# Related: __consolidatePartitions() (consolidates partitions into sync tables)
+# Related: __removeDuplicates() (removes duplicates from sync tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Moves data from sync tables to main tables after consolidation
+# Moves data from sync tables (notes_sync, note_comments_sync, note_comments_text_sync)
+# to main tables (notes, note_comments, note_comments_text). Performs deduplication,
+# handles conflicts with ON CONFLICT DO UPDATE, and updates statistics. Part of Planet
+# processing workflow (final step before cleanup).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Data moved successfully
+#   Non-zero: Failure - psql command failed (SQL error, connection error, etc.)
+#
+# Error codes:
+#   0: Success - Data moved successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (SQL syntax error, connection error, file not found, etc.)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_43_MOVE_SYNC_TO_MAIN: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Moves data from sync tables to main tables
+#     - Updates statistics on main tables
+#
+# Side effects:
+#   - Executes psql to move data from sync tables to main tables
+#   - Performs deduplication (removes notes/comments that already exist)
+#   - Handles conflicts with ON CONFLICT DO UPDATE (updates existing records)
+#   - Updates statistics on main tables (ANALYZE)
+#   - Writes log messages to stderr
+#   - Uses --pset pager=off to prevent blocking on SELECT output
+#   - Database operations: INSERT ... ON CONFLICT DO UPDATE, ANALYZE
+#   - No file or network operations
+#
+# Notes:
+#   - Moves data from sync tables to main tables (final step before cleanup)
+#   - Performs deduplication (only new notes/comments are moved)
+#   - Handles conflicts with ON CONFLICT DO UPDATE (updates status, closed_at, etc.)
+#   - Updates statistics after moving data (improves query performance)
+#   - Critical function: Part of Planet processing workflow
+#   - Must be called after duplicate removal (__removeDuplicates)
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Sync tables are dropped after this step (see __dropSyncTables)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_43_MOVE_SYNC_TO_MAIN="/path/to/move_sync_to_main.sql"
+#   __moveSyncToMain
+#   # Moves data from sync tables to main tables
+#
+# Related: __removeDuplicates() (removes duplicates before moving)
+# Related: __dropSyncTables() (drops sync tables after moving)
+# Related: __loadSyncNotes() (loads data into sync tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __moveSyncToMain {
  __log_start
  __logi "Moving data from sync tables to main tables"
@@ -628,9 +1535,67 @@ function __moveSyncToMain {
  __log_finish
 }
 
-# Creates partition tables for parallel processing and verifies their creation.
+##
+# Creates partition tables for parallel processing and verifies their creation
+# Creates partition tables for parallel processing of Planet notes. Sets PostgreSQL
+# session variable (app.max_threads) and executes SQL script to create partition
+# tables. Verifies partition tables were created by querying information_schema.
+# Creates partitions for notes_sync, note_comments_sync, and note_comments_text_sync.
+#
 # Parameters:
-#   $1: Number of partitions to create
+#   $1: NUM_PARTITIONS - Number of partitions to create (required)
+#
+# Returns:
+#   0: Success - Partition tables created successfully
+#   Non-zero: Failure - psql command failed (SQL error, connection error, etc.)
+#
+# Error codes:
+#   0: Success - Partition tables created successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Error conditions:
+#   0: Success - Partition tables created and verified
+#   Non-zero: psql execution failed (SQL syntax error, connection error, file not found, etc.)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_25_CREATE_PARTITIONS: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Creates partition tables in database (notes_sync_part_N, note_comments_sync_part_N, etc.)
+#     - Sets PostgreSQL session variable (app.max_threads)
+#
+# Side effects:
+#   - Sets PostgreSQL session variable (app.max_threads = NUM_PARTITIONS)
+#   - Executes psql to create partition tables
+#   - Queries information_schema to verify partition creation
+#   - Writes log messages to stderr
+#   - Uses --pset pager=off to prevent blocking on SELECT output
+#   - Database operations: CREATE TABLE (partition tables)
+#   - No file or network operations
+#
+# Notes:
+#   - Creates partitions for notes_sync, note_comments_sync, and note_comments_text_sync
+#   - Partition names: {table}_part_{N} (e.g., notes_sync_part_1, notes_sync_part_2)
+#   - Sets app.max_threads session variable for SQL script (used by SQL to determine partition count)
+#   - Verifies partition creation by querying information_schema.tables
+#   - Critical function: Required for parallel processing workflow
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Must be called before splitting XML and processing parts
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_25_CREATE_PARTITIONS="/path/to/create_partitions.sql"
+#   __createPartitionTables 8
+#   # Creates 8 partitions for each sync table (24 tables total)
+#
+# Related: __processPlanetNotesWithParallel() (orchestrates parallel processing)
+# Related: __splitXmlForParallelSafe() (splits XML into parts)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __createPartitionTables {
  __log_start
  local -r NUM_PARTITIONS="${1}"
@@ -666,6 +1631,80 @@ function __createPartitionTables {
 # Processes Planet notes with SIMPLIFIED parallel approach (prevents crash with large files)
 # Large XML files (2.2GB) can cause issues, so we split first then process parts with AWK
 # This is the working approach: split XML -> process parts -> load DB
+##
+# Processes Planet notes using parallel processing (SPLIT+PROCESS approach)
+# Splits Planet XML file into multiple parts and processes them in parallel using AWK.
+# Uses GNU parallel if available, otherwise falls back to sequential processing.
+# Creates partition tables, splits XML, processes parts with AWK, loads data into partitions,
+# and consolidates partitions. Optimizes memory usage by limiting notes per part (100k).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - All parts processed successfully
+#   ERROR_EXECUTING_PLANET_DUMP: Failure - Split failed, no parts found, or parallel processing failed
+#
+# Error codes:
+#   0: Success - All parts processed successfully
+#   ERROR_EXECUTING_PLANET_DUMP: Failure - XML split failed, no part files found, or parallel processing failed
+#
+# Error conditions:
+#   0: Success - All parts processed and loaded successfully
+#   ERROR_EXECUTING_PLANET_DUMP: XML split failed - __splitXmlForParallelSafe returned error
+#   ERROR_EXECUTING_PLANET_DUMP: No part files found - Directory empty after split
+#   ERROR_EXECUTING_PLANET_DUMP: Parallel processing failed - One or more parts failed
+#
+# Context variables:
+#   Reads:
+#     - TOTAL_NOTES: Total number of notes in XML file (required)
+#     - MAX_THREADS: Maximum number of parallel threads (required)
+#     - PLANET_NOTES_FILE: Path to Planet XML file (required)
+#     - TMP_DIR: Temporary directory for parts (required)
+#     - DBNAME: PostgreSQL database name (required)
+#     - POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES: SQL script path (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for scripts (required)
+#     - LOG_FILENAME: Log file path (required)
+#     - ERROR_EXECUTING_PLANET_DUMP: Error code for processing failures (defined in calling script)
+#   Sets:
+#     - SCRIPT_EXIT_CODE: Exit code for error handling (exported)
+#   Modifies:
+#     - Creates partition tables in database
+#     - Creates part files in TMP_DIR/parts
+#
+# Side effects:
+#   - Creates partition tables (__createPartitionTables)
+#   - Splits XML file into parts (__splitXmlForParallelSafe)
+#   - Processes parts in parallel (GNU parallel or sequential)
+#   - Loads data into partition tables
+#   - Consolidates partitions into sync tables
+#   - Creates temporary files and directories
+#   - Writes log messages to stderr
+#   - Exports functions and variables for parallel workers
+#   - Sources bash_logger.sh for parallel workers
+#
+# Notes:
+#   - Uses SPLIT+PROCESS approach: split XML first, then process parts in parallel
+#   - Limits notes per part to 100k to prevent OOM kills with large text fields
+#   - Automatically adjusts number of parts if TOTAL_NOTES exceeds MAX_THREADS * 100k
+#   - Uses GNU parallel if available (faster), falls back to sequential if not
+#   - Each parallel worker processes one part file using AWK
+#   - Workers write to shared log file (synchronized by parallel)
+#   - Critical function: Main processing workflow for Planet notes
+#   - Performance: Significantly faster than sequential processing for large files
+#
+# Example:
+#   export TOTAL_NOTES=5000000
+#   export MAX_THREADS=8
+#   export PLANET_NOTES_FILE="/tmp/planet_notes.xml"
+#   export TMP_DIR="/tmp"
+#   __processPlanetNotesWithParallel
+#
+# Related: __splitXmlForParallelSafe() (splits XML into parts)
+# Related: __createPartitionTables() (creates partition tables)
+# Related: __processPlanetXmlPart() (processes single part file)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __processPlanetNotesWithParallel {
  __log_start
  __logi "Processing Planet notes with SPLIT+PROCESS approach (using AWK for fast processing)"
@@ -885,6 +1924,62 @@ function __processPlanetNotesWithParallel {
 }
 
 # Cleans files generated during the process.
+##
+# Cleans up files generated during Planet notes processing
+# Removes temporary files created during Planet processing if CLEAN environment variable
+# is set to true. Files removed include Planet XML file, generated CSV files, and
+# partial boundary files (part_country_*, part_maritime_*).
+# Used for cleanup after successful or failed processing.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Always returns 0 (success) - cleanup function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs file removal
+#
+# Error conditions:
+#   Always succeeds - File removal failures are ignored (rm -f)
+#
+# Context variables:
+#   Reads:
+#     - CLEAN: If "true", removes files; if "false" or unset, skips cleanup (optional, default: false)
+#     - PLANET_NOTES_FILE: Path to Planet XML file (required)
+#     - OUTPUT_NOTES_FILE: Path to notes CSV file (required)
+#     - OUTPUT_NOTE_COMMENTS_FILE: Path to comments CSV file (required)
+#     - OUTPUT_TEXT_COMMENTS_FILE: Path to text comments CSV file (required)
+#     - TMP_DIR: Temporary directory containing partial boundary files (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Removes Planet XML file and CSV files if CLEAN=true
+#   - Removes partial boundary files (part_country_*, part_maritime_*) if CLEAN=true
+#   - Writes log messages to stderr
+#   - No database or network operations
+#   - File removal failures are ignored (rm -f)
+#
+# Notes:
+#   - Only removes files if CLEAN environment variable is "true"
+#   - Uses rm -f to ignore missing files (non-fatal)
+#   - Removes partial boundary files using glob pattern (part_country_*, part_maritime_*)
+#   - Safe to call multiple times (idempotent)
+#   - Used for cleanup after Planet processing (success or failure)
+#   - Files are removed silently (no error if file doesn't exist)
+#
+# Example:
+#   export CLEAN=true
+#   export PLANET_NOTES_FILE="/tmp/planet_notes.xml"
+#   export OUTPUT_NOTES_FILE="/tmp/notes.csv"
+#   export TMP_DIR="/tmp"
+#   __cleanNotesFiles
+#
+# Related: __cleanPartial() (cleans partial boundary processing files)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __cleanNotesFiles {
  __log_start
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
@@ -895,11 +1990,74 @@ function __cleanNotesFiles {
  __log_finish
 }
 
-# Validates Planet notes XML file completely (structure, dates, coordinates)
+##
+# Performs complete validation of Planet notes XML file
+# Validates XML structure against schema, dates, and coordinates. Performs comprehensive
+# validation to ensure downloaded Planet file is valid before processing. Cleans up
+# temporary validation files. Exits script with ERROR_DATA_VALIDATION if any validation fails.
+#
 # Parameters:
-#   None (uses global PLANET_NOTES_FILE variable)
+#   None (uses environment variables)
+#
 # Returns:
-#   0 if all validations pass, exits with ERROR_DATA_VALIDATION if any validation fails
+#   Exits with ERROR_DATA_VALIDATION if any validation fails
+#   Returns 0 if all validations pass
+#
+# Error codes:
+#   0: Success - All validations passed (structure, dates, coordinates)
+#   ERROR_DATA_VALIDATION: Failure - File not found, structure invalid, dates invalid, or coordinates invalid (exits script)
+#
+# Error conditions:
+#   0: Success - All validations passed successfully
+#   ERROR_DATA_VALIDATION: File not found - PLANET_NOTES_FILE does not exist
+#   ERROR_DATA_VALIDATION: Structure invalid - XML does not match schema
+#   ERROR_DATA_VALIDATION: Dates invalid - Dates are not in expected format or invalid
+#   ERROR_DATA_VALIDATION: Coordinates invalid - Coordinates are missing or invalid
+#
+# Context variables:
+#   Reads:
+#     - PLANET_NOTES_FILE: Path to Planet notes XML file (required)
+#     - XMLSCHEMA_PLANET_NOTES: Path to XML schema file (required)
+#     - FAILED_EXECUTION_FILE: Path to failed execution marker file (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_DATA_VALIDATION: Error code for validation failures (defined in calling script)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Cleans up temporary validation files (before and after validation)
+#   - Validates XML structure against schema (using xmllint)
+#   - Validates dates in XML file (ISO 8601 format)
+#   - Validates coordinates in XML file (lat/lon attributes)
+#   - Creates failed execution marker if validation fails
+#   - Writes log messages to stderr
+#   - Exits script with ERROR_DATA_VALIDATION if validation fails
+#   - No file modifications or database operations
+#
+# Notes:
+#   - Performs three validation steps: structure, dates, coordinates
+#   - Cleans up temporary validation files before starting
+#   - Uses __validate_xml_with_enhanced_error_handling for structure validation
+#   - Uses __validate_xml_dates for date validation
+#   - Uses __validate_xml_coordinates for coordinate validation
+#   - Cleans up temporary files after validation (success or failure)
+#   - All validations must pass for function to succeed
+#   - Critical function: exits script on failure (does not return)
+#   - Used before processing Planet notes to ensure data quality
+#
+# Example:
+#   export PLANET_NOTES_FILE="/tmp/planet_notes.xml"
+#   export XMLSCHEMA_PLANET_NOTES="/path/to/schema.xsd"
+#   export FAILED_EXECUTION_FILE="/tmp/failed_execution"
+#   __validatePlanetNotesXMLFileComplete
+#   # All validations passed - file is valid
+#
+# Related: __validateApiNotesXMLFileComplete() (API notes validation)
+# Related: __validate_xml_with_enhanced_error_handling() (XML structure validation)
+# Related: __validate_xml_dates() (date validation)
+# Related: __validate_xml_coordinates() (coordinate validation)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __validatePlanetNotesXMLFileComplete {
  __log_start
 
@@ -1386,6 +2544,116 @@ function __trapOn() {
 # This function handles the logic for checking countries/maritimes data
 # and delegating to updateCountries.sh if needed
 # Note: Maritimes are imported into the 'countries' table, not a separate table
+##
+# Processes geographic data and prepares for location note processing
+# Checks if countries table exists and has data. If running in base mode and
+# countries table is empty/missing, attempts to load countries automatically by
+# calling updateCountries.sh --base. Logs geographic data status and prepares
+# for subsequent location note processing (which requires get_country() function).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Geographic data found or loaded successfully
+#   ERROR_EXECUTING_PLANET_DUMP: Failure - updateCountries.sh failed (exits script)
+#
+# Error codes:
+#   0: Success - Geographic data found or loaded successfully
+#   ERROR_EXECUTING_PLANET_DUMP: Failure - updateCountries.sh failed (exits script)
+#
+# Error conditions:
+#   0: Success - Countries table exists and has data
+#   0: Success - Countries loaded automatically (base mode)
+#   ERROR_EXECUTING_PLANET_DUMP: updateCountries.sh failed - Cannot continue without geographic data (exits script)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - PROCESS_TYPE: Process type ("--base" or empty) (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for scripts (required)
+#     - SKIP_AUTO_LOAD_COUNTRIES: If "true", skips automatic country loading (optional)
+#     - ERROR_EXECUTING_PLANET_DUMP: Error code for processing failures (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Queries database to check countries table existence and count
+#   - Executes updateCountries.sh --base if needed (base mode, empty table, script exists)
+#   - Creates failed execution marker if updateCountries.sh fails
+#   - Writes log messages to stderr
+#   - Exits script with ERROR_EXECUTING_PLANET_DUMP if updateCountries.sh fails
+#   - No direct database modifications (updateCountries.sh modifies database)
+#
+# Notes:
+#   - Checks countries table count (includes both countries and maritimes)
+#   - In base mode: Attempts automatic loading if table is empty/missing
+#   - Automatic loading can take 30-60 minutes (downloads and processes all boundaries)
+#   - updateCountries.sh is executed as independent subprocess (separate TMP_DIR and log file)
+#   - Location notes processing is deferred until after get_country() function is created
+#   - Critical function: Ensures geographic data is available before processing location notes
+#   - Can be skipped with SKIP_AUTO_LOAD_COUNTRIES=true (for testing or manual loading)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export PROCESS_TYPE="--base"
+#   export SCRIPT_BASE_DIRECTORY="/path/to/scripts"
+#   __processGeographicData
+#
+# Related: updateCountries.sh (loads country boundaries)
+# Related: __createFunctionToGetCountry() (creates get_country function)
+# Related: __getLocationNotes() (processes location notes)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Processes geographic data and manages country boundary loading for Planet notes processing
+# Checks if countries table has data and optionally triggers automatic loading via updateCountries.sh
+# in base mode. Handles empty database scenarios by calling updateCountries.sh --base to download
+# and process all country and maritime boundaries. Verifies data loading success before proceeding.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Geographic data verified or loaded successfully
+#   Exits with ERROR_EXECUTING_PLANET_DUMP if updateCountries.sh fails or no data loaded
+#
+# Error codes:
+#   0: Success - Countries table has data or was loaded successfully
+#   ERROR_EXECUTING_PLANET_DUMP (238): updateCountries.sh failed or no countries loaded after execution
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PROCESS_TYPE: Processing mode, must be "--base" for auto-loading (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for script paths (required)
+#     - SKIP_AUTO_LOAD_COUNTRIES: Set to "true" to disable auto-loading (optional, default: false)
+#     - PGAPPNAME: PostgreSQL application name for connection (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Queries PostgreSQL database to check countries table count
+#   - Executes updateCountries.sh --base as subprocess if in base mode and table is empty
+#   - Creates failed execution marker file if updateCountries.sh fails
+#   - Exits script with ERROR_EXECUTING_PLANET_DUMP on critical failures
+#   - Logs all operations to standard logger
+#   - Note: Does NOT call __getLocationNotes() - that is called later after get_country() function creation
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export PROCESS_TYPE="--base"
+#   export SCRIPT_BASE_DIRECTORY="/path/to/repo"
+#   __processGeographicData
+#
+# Related: updateCountries.sh (loads country boundaries)
+# Related: __createFunctionToGetCountry() (creates get_country function for location notes)
+# Related: __getLocationNotes() (processes location notes after get_country() exists)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __processGeographicData {
  __log_start
  __logi "Processing geographic data and location notes..."
@@ -1476,6 +2744,61 @@ function __processGeographicData {
 
 # Checks for previous failed execution and displays error message.
 # Exits if failed execution marker file exists.
+##
+# Checks for previous failed execution marker file
+# Verifies if a previous execution failed by checking for failed execution marker file.
+# If marker file exists, displays error details and recovery instructions, then exits
+# script with ERROR_PREVIOUS_EXECUTION_FAILED. Prevents repeated failures by blocking
+# execution until issue is resolved.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_PREVIOUS_EXECUTION_FAILED if marker file exists
+#   Returns 0 if no marker file exists
+#
+# Error codes:
+#   0: Success - No previous failure detected
+#   ERROR_PREVIOUS_EXECUTION_FAILED: Failure - Previous execution failed (exits script)
+#
+# Error conditions:
+#   0: Success - No failed execution marker found
+#   ERROR_PREVIOUS_EXECUTION_FAILED: Previous failure detected - Marker file exists (exits script)
+#
+# Context variables:
+#   Reads:
+#     - FAILED_EXECUTION_FILE: Path to failed execution marker file (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_PREVIOUS_EXECUTION_FAILED: Error code for previous execution failure (defined in calling script)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Checks for failed execution marker file existence
+#   - Displays error details from marker file
+#   - Displays recovery instructions
+#   - Exits script with ERROR_PREVIOUS_EXECUTION_FAILED if marker exists
+#   - Writes log messages to stderr
+#   - No file, database, or network operations
+#
+# Notes:
+#   - Marker file is created by __trapOn() ERR trap handler on script failure
+#   - Prevents repeated failures by blocking execution until issue is resolved
+#   - User must manually remove marker file after fixing the issue
+#   - Critical function: Prevents cascading failures
+#   - Should be called early in script execution (before processing starts)
+#   - Recovery instructions are displayed to help user fix the issue
+#
+# Example:
+#   export FAILED_EXECUTION_FILE="/tmp/processPlanetNotes_failed_execution"
+#   export ERROR_PREVIOUS_EXECUTION_FAILED=255
+#   __checkPreviousFailedExecution
+#   # Exits if marker file exists, continues if not
+#
+# Related: __trapOn() (creates failed execution marker on error)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __checkPreviousFailedExecution {
  __log_start
  if [[ -f "${FAILED_EXECUTION_FILE}" ]]; then
@@ -1678,8 +3001,71 @@ function __processPlanetSyncMode {
  __log_finish
 }
 
-# Processes geographic data and location notes in base mode.
-# Processes geographic data, creates get_country function, processes location notes, and organizes areas.
+##
+# Processes geographic data and location notes in base mode
+# Orchestrates geographic data processing workflow for base mode. Processes geographic
+# data (countries/maritimes), creates get_country() function, processes location notes
+# (assigns countries to notes), and organizes areas. Used when processing Planet data
+# from scratch (--base mode).
+#
+# Parameters:
+#   $@: Optional arguments passed to __getLocationNotes (optional)
+#
+# Returns:
+#   0: Success - All operations completed successfully (or skipped if no countries)
+#   Non-zero: Failure - Geographic data processing, function creation, or location processing failed
+#
+# Error codes:
+#   0: Success - All operations completed successfully
+#   Non-zero: Failure - Any step failed (geographic data, function creation, location processing, area organization)
+#
+# Error conditions:
+#   0: Success - All operations completed successfully
+#   0: Success - No countries found (skips location processing, continues)
+#   Non-zero: Geographic data processing failed - __processGeographicData returned error
+#   Non-zero: Function creation failed - __createFunctionToGetCountry returned error
+#   Non-zero: Location processing failed - __getLocationNotes returned error
+#   Non-zero: Area organization failed - __organizeAreas returned error (logged as warning, continues)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - RET_FUNC: Return code from __organizeAreas (set by function)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - RET_FUNC: Return code from __organizeAreas (exported)
+#   Modifies: None
+#
+# Side effects:
+#   - Processes geographic data (countries/maritimes boundaries)
+#   - Creates get_country() PostgreSQL function
+#   - Queries database to count countries
+#   - Processes location notes (assigns countries to notes)
+#   - Organizes areas (optimizes country lookup)
+#   - Writes log messages to stderr
+#   - Database operations: Function creation, note updates, area organization
+#   - No file or network operations (delegated to called functions)
+#
+# Notes:
+#   - Workflow: Process geographic data → Create function → Process location notes → Organize areas
+#   - Only processes location notes if countries table has data (COUNTRIES_COUNT > 0)
+#   - Area organization failure is non-fatal (logged as warning, continues)
+#   - Used in base mode (--base) when processing Planet data from scratch
+#   - Critical function: Part of Planet base mode workflow
+#   - Location notes processing requires get_country() function to exist
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export PROCESS_TYPE="--base"
+#   __processGeographicDataBaseMode
+#
+# Related: __processGeographicData() (processes geographic data)
+# Related: __createFunctionToGetCountry() (creates get_country function)
+# Related: __getLocationNotes() (processes location notes)
+# Related: __organizeAreas() (organizes areas)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __processGeographicDataBaseMode {
  __log_start
  __logi "Processing geographic data in base mode..."
@@ -1707,8 +3093,69 @@ function __processGeographicDataBaseMode {
  __log_finish
 }
 
-# Processes geographic data and location notes in sync mode.
-# Creates get_country function, processes geographic data, and organizes areas.
+##
+# Processes geographic data and location notes in sync mode
+# Orchestrates geographic data processing workflow for sync mode. Creates get_country()
+# function, drops sync tables, processes geographic data (countries/maritimes), and
+# organizes areas. Used when syncing Planet data (incremental updates, not --base mode).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - All operations completed successfully
+#   Non-zero: Failure - Function creation, table drop, geographic data processing, or area organization failed
+#
+# Error codes:
+#   0: Success - All operations completed successfully
+#   Non-zero: Failure - Any step failed (function creation, table drop, geographic data, area organization)
+#
+# Error conditions:
+#   0: Success - All operations completed successfully
+#   Non-zero: Function creation failed - __createFunctionToGetCountry returned error
+#   Non-zero: Table drop failed - __dropSyncTables returned error
+#   Non-zero: Geographic data processing failed - __processGeographicData returned error
+#   Non-zero: Area organization failed - __organizeAreas returned error (logged as warning, continues)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - RET_FUNC: Return code from __organizeAreas (set by function)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - RET_FUNC: Return code from __organizeAreas (exported)
+#   Modifies:
+#     - Drops sync tables (via __dropSyncTables)
+#
+# Side effects:
+#   - Creates get_country() PostgreSQL function
+#   - Drops sync tables (notes_sync, note_comments_sync)
+#   - Processes geographic data (countries/maritimes boundaries)
+#   - Organizes areas (optimizes country lookup)
+#   - Writes log messages to stderr
+#   - Database operations: Function creation, table drops, area organization
+#   - No file or network operations (delegated to called functions)
+#
+# Notes:
+#   - Workflow: Create function → Drop sync tables → Process geographic data → Organize areas
+#   - Sync mode does not process location notes (only base mode does)
+#   - Area organization failure is non-fatal (logged as warning, continues)
+#   - Used in sync mode (incremental updates, not --base mode)
+#   - Critical function: Part of Planet sync mode workflow
+#   - Drops sync tables before processing geographic data (cleanup)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export PROCESS_TYPE=""
+#   __processGeographicDataSyncMode
+#
+# Related: __createFunctionToGetCountry() (creates get_country function)
+# Related: __dropSyncTables() (drops sync tables)
+# Related: __processGeographicData() (processes geographic data)
+# Related: __organizeAreas() (organizes areas)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __processGeographicDataSyncMode {
  __log_start
  __logi "Processing geographic data in sync mode..."

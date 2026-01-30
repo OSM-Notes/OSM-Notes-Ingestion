@@ -200,6 +200,49 @@ source "${SCRIPT_BASE_DIRECTORY}/lib/osm-common/alertFunctions.sh"
 source "${SCRIPT_BASE_DIRECTORY}/bin/lib/functionsProcess.sh"
 
 # Shows the help information.
+##
+# Shows help information for processAPINotes.sh script
+# Displays script version, description, usage instructions, and environment variable
+# configuration options. Exits with ERROR_HELP_MESSAGE after displaying help.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_HELP_MESSAGE after displaying help
+#
+# Error codes:
+#   ERROR_HELP_MESSAGE: Success - Help displayed successfully (exits script)
+#
+# Error conditions:
+#   ERROR_HELP_MESSAGE: Success - Help displayed and script exited
+#
+# Context variables:
+#   Reads:
+#     - VERSION: Script version (required)
+#     - ERROR_HELP_MESSAGE: Error code for help message (defined in calling script)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Writes help text to stdout
+#   - Exits script with ERROR_HELP_MESSAGE
+#   - No file, database, or network operations
+#
+# Notes:
+#   - Displays script version and description
+#   - Shows usage instructions (no parameters for regular execution)
+#   - Documents environment variables (CLEAN, LOG_LEVEL)
+#   - Mentions processPlanetNotes.sh integration
+#   - Exits script after displaying help (does not return)
+#   - Used when script is called with --help or -h
+#
+# Example:
+#   __show_help
+#   # Displays help and exits with ERROR_HELP_MESSAGE
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __show_help {
  echo "${0} version ${VERSION}."
  echo
@@ -243,7 +286,85 @@ function __create_failed_marker() {
   "${3:-Verify the issue and fix it manually}" "${FAILED_EXECUTION_FILE}"
 }
 
-# Checks prerequisites to run the script.
+##
+# Checks prerequisites to run the script
+# Validates script parameters, checks required commands, validates SQL script files,
+# validates notes sync script, and validates XML dates (if validation enabled). Exits
+# script with ERROR_INVALID_ARGUMENT if invalid parameter, ERROR_MISSING_LIBRARY if
+# required files missing. Part of script initialization workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_INVALID_ARGUMENT if invalid parameter
+#   Exits with ERROR_MISSING_LIBRARY if required files missing
+#   Returns 0 if all prerequisites validated successfully
+#
+# Error codes:
+#   0: Success - All prerequisites validated successfully
+#   ERROR_INVALID_ARGUMENT: Failure - Invalid PROCESS_TYPE parameter (exits script)
+#   ERROR_MISSING_LIBRARY: Failure - Required command, SQL file, or script missing (exits script)
+#
+# Error conditions:
+#   0: Success - All prerequisites validated successfully
+#   ERROR_INVALID_ARGUMENT: Invalid PROCESS_TYPE - Must be empty string, --help, or -h (exits script)
+#   ERROR_MISSING_LIBRARY: Required command missing - __checkPrereqsCommands failed (exits script)
+#   ERROR_MISSING_LIBRARY: SQL file missing - __validate_sql_structure failed (exits script)
+#   ERROR_MISSING_LIBRARY: Notes sync script missing - __validate_input_file failed (exits script)
+#   ERROR_MISSING_LIBRARY: XML date validation failed - __validate_xml_dates failed (exits script)
+#
+# Context variables:
+#   Reads:
+#     - PROCESS_TYPE: Process type parameter (required, must be empty, --help, or -h)
+#     - NOTES_SYNC_SCRIPT: Path to notes sync script (required)
+#     - POSTGRES_12_DROP_API_TABLES: Path to SQL script (required)
+#     - POSTGRES_21_CREATE_API_TABLES: Path to SQL script (required)
+#     - POSTGRES_23_CREATE_PROPERTIES_TABLE: Path to SQL script (required)
+#     - POSTGRES_31_LOAD_API_NOTES: Path to SQL script (required)
+#     - POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS: Path to SQL script (required)
+#     - POSTGRES_33_INSERT_NEW_TEXT_COMMENTS: Path to SQL script (required)
+#     - POSTGRES_34_UPDATE_LAST_VALUES: Path to SQL script (required)
+#     - API_NOTES_FILE: Path to API notes XML file (optional, validated if exists)
+#     - SKIP_XML_VALIDATION: If "true", skips XML validation (optional)
+#     - ERROR_INVALID_ARGUMENT: Error code for invalid arguments (defined in calling script)
+#     - ERROR_MISSING_LIBRARY: Error code for missing files (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Validates PROCESS_TYPE parameter
+#   - Checks required commands (__checkPrereqsCommands)
+#   - Validates SQL script files (__validate_sql_structure)
+#   - Validates notes sync script (__validate_input_file)
+#   - Validates XML dates if file exists and validation enabled (__validate_xml_dates)
+#   - Writes log messages to stderr
+#   - Exits script with error code on failure
+#   - Temporarily disables set -e during command checks
+#   - No file, database, or network operations (validation only)
+#
+# Notes:
+#   - Validates all required files before script execution
+#   - SQL script validation ensures files are readable and have valid structure
+#   - XML date validation is optional (skipped if SKIP_XML_VALIDATION=true)
+#   - Critical function: Part of script initialization workflow
+#   - Should be called early in script execution (before processing starts)
+#   - Exits script immediately on validation failure
+#
+# Example:
+#   export PROCESS_TYPE=""
+#   export NOTES_SYNC_SCRIPT="/path/to/processPlanetNotes.sh"
+#   export ERROR_INVALID_ARGUMENT=1
+#   export ERROR_MISSING_LIBRARY=2
+#   __checkPrereqs
+#   # Validates all prerequisites, exits on failure
+#
+# Related: __checkPrereqsCommands() (checks required commands)
+# Related: __validate_sql_structure() (validates SQL files)
+# Related: __validate_input_file() (validates script files)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __checkPrereqs {
  __log_start
  __logi "=== STARTING PREREQUISITES CHECK ==="
@@ -260,8 +381,70 @@ function __checkPrereqs {
  # Checks prereqs.
  __checkPrereqsCommands
 
- # Function to detect and recover from data gaps
- __recover_from_gaps() {
+  ##
+  # Detects and recovers from data gaps in recent notes
+  # Checks for notes without comments in the last 7 days (potential data integrity issue).
+  # Queries database to find notes created after max_note_timestamp minus 7 days that have
+  # no associated comments. Logs gap details and optionally triggers recovery. Returns error
+  # if large gaps detected (>100 notes).
+  #
+  # Parameters:
+  #   None (uses environment variables)
+  #
+  # Returns:
+  #   0: Success - No gaps detected or gaps are manageable (<100 notes)
+  #   1: Failure - Large gaps detected (>100 notes) or query execution failed
+  #
+  # Error codes:
+  #   0: Success - No gaps detected or gaps are manageable
+  #   0: Success - max_note_timestamp table does not exist (skips check)
+  #   1: Failure - Large gaps detected (>100 notes, requires manual intervention)
+  #   1: Failure - Gap query execution failed after retries
+  #
+  # Error conditions:
+  #   0: Success - No gaps detected in recent data
+  #   0: Success - Gaps detected but manageable (<100 notes)
+  #   0: Success - max_note_timestamp table does not exist (skips check gracefully)
+  #   1: Large gaps detected - >100 notes without comments (requires manual intervention)
+  #   1: Query execution failed - Database query failed after retries
+  #
+  # Context variables:
+  #   Reads:
+  #     - DBNAME: PostgreSQL database name (required)
+  #     - PGAPPNAME: PostgreSQL application name (optional)
+  #     - TMP_DIR: Temporary directory for temp files (optional, default: /tmp)
+  #     - LOG_LEVEL: Controls logging verbosity
+  #   Sets: None
+  #   Modifies: None
+  #
+  # Side effects:
+  #   - Queries database to check max_note_timestamp table existence
+  #   - Queries database to find notes without comments in last 7 days
+  #   - Queries database to get sample gap details (up to 10 notes)
+  #   - Creates temporary files for query results
+  #   - Writes log messages to stderr
+  #   - No file, database, or network modifications
+  #
+  # Notes:
+  #   - Checks for notes without comments in last 7 days (data integrity check)
+  #   - Uses max_note_timestamp table to determine recent data window
+  #   - Skips check gracefully if max_note_timestamp table does not exist
+  #   - Logs sample gap details (up to 10 notes) for debugging
+  #   - Returns error if large gaps detected (>100 notes)
+  #   - Critical function: Part of data integrity validation workflow
+  #   - Used before processing API notes to detect data quality issues
+  #
+  # Example:
+  #   export DBNAME="osm_notes"
+  #   __recover_from_gaps
+  #   # Checks for gaps, logs details, returns 0 if manageable or 1 if large gaps
+  #
+  # Related: __checkHistoricalData() (validates historical data exists)
+  # Related: __validateHistoricalDataAndRecover() (validates and recovers from gaps)
+  # Related: STANDARD_ERROR_CODES.md (error code definitions)
+  ##
+  # Function to detect and recover from data gaps
+  __recover_from_gaps() {
   # shellcheck disable=SC2034
   local -r FUNCTION_NAME="__recover_from_gaps"
   __logd "Starting gap recovery process"
@@ -434,6 +617,58 @@ function __checkPrereqs {
 }
 
 # Drop tables for notes from API.
+##
+# Drops API-related tables from database
+# Executes SQL script to drop tables used for API notes processing (notes_api,
+# note_comments_api, note_comments_text_api). Uses --pset pager=off to prevent
+# blocking on long output. Used during cleanup or before recreating API tables.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - API tables dropped successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - API tables dropped successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_12_DROP_API_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to drop API tables (notes_api, note_comments_api, note_comments_text_api)
+#   - Drops all dependent objects (indexes, constraints, etc.)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Uses --pset pager=off to prevent blocking on long output
+#   - Drops all API-related tables and dependent objects (CASCADE)
+#   - Used during cleanup or before recreating API tables
+#   - Part of API processing workflow (cleanup after processing)
+#   - API tables are temporary staging tables (used only during API processing)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_12_DROP_API_TABLES="/path/to/drop_api_tables.sql"
+#   __dropApiTables
+#
+# Related: __createApiTables() (creates API tables)
+# Related: __prepareApiTables() (truncates or creates API tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __dropApiTables {
  __log_start
  __logi "=== DROPPING API TABLES ==="
@@ -444,7 +679,60 @@ function __dropApiTables {
  __log_finish
 }
 
-# Checks that no processPlanetNotes is running
+##
+# Checks that no processPlanetNotes script is currently running
+# Verifies that no instance of processPlanetNotes.sh is running to prevent conflicts
+# during API processing. Uses pgrep to find running processes matching the script name.
+# Exits script with ERROR_PLANET_PROCESS_IS_RUNNING if a Planet process is found.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_PLANET_PROCESS_IS_RUNNING if Planet process is running
+#   Returns 0 if no Planet process is running
+#
+# Error codes:
+#   0: Success - No Planet process is running
+#   ERROR_PLANET_PROCESS_IS_RUNNING: Failure - Planet process is currently running (exits script)
+#
+# Error conditions:
+#   0: Success - No Planet process is running
+#   ERROR_PLANET_PROCESS_IS_RUNNING: Planet process found - Another instance is running (exits script)
+#
+# Context variables:
+#   Reads:
+#     - PROCESS_PLANET_NOTES_SCRIPT: Path to processPlanetNotes.sh script (required)
+#     - BASENAME: Script basename for logging (required)
+#     - ERROR_PLANET_PROCESS_IS_RUNNING: Error code for Planet process conflict (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes pgrep to find running Planet processes
+#   - Writes log messages to stderr
+#   - Exits script with ERROR_PLANET_PROCESS_IS_RUNNING if Planet process found
+#   - No file, database, or network operations
+#
+# Notes:
+#   - Prevents conflicts between API processing and Planet processing
+#   - Uses pgrep to find processes matching script name (first 15 characters)
+#   - Exits script immediately if Planet process is running
+#   - Critical function: Prevents concurrent processing conflicts
+#   - Should be called before starting API processing
+#   - Uses set +e temporarily to handle pgrep errors gracefully
+#
+# Example:
+#   export PROCESS_PLANET_NOTES_SCRIPT="/path/to/processPlanetNotes.sh"
+#   export BASENAME="processAPINotes"
+#   export ERROR_PLANET_PROCESS_IS_RUNNING=252
+#   __checkNoProcessPlanet
+#   # Exits if Planet process is running, continues if not
+#
+# Related: __setupLockFile() (prevents concurrent API processing)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __checkNoProcessPlanet {
  __log_start
  __logi "=== CHECKING FOR RUNNING PLANET PROCESSES ==="
@@ -462,7 +750,116 @@ function __checkNoProcessPlanet {
  __log_finish
 }
 
+##
+# Creates API tables for notes processing
+# Creates temporary API tables (notes_api, note_comments_api, note_comments_text_api) used
+# for processing incremental API notes. These tables are staging tables that hold API data
+# before insertion into main production tables. Tables are created using SQL script.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - API tables created successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - API tables created successfully
+#   Non-zero: psql execution failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_21_CREATE_API_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to create API tables in database
+#   - Creates tables: notes_api, note_comments_api, note_comments_text_api
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Creates temporary staging tables for API data
+#   - Tables are used to hold API data before insertion into main tables
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Uses --pset pager=off to prevent blocking on long output
+#   - Critical function: Required before processing API notes
+#   - Tables can be truncated and reused across cycles
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_21_CREATE_API_TABLES="/path/to/create_api_tables.sql"
+#   __createApiTables
+#   # Creates notes_api, note_comments_api, note_comments_text_api tables
+#
+# Related: __prepareApiTables() (truncates or creates API tables)
+# Related: __insertNewNotesAndComments() (inserts data from API tables to main tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Creates tables for notes from API.
+##
+# Creates temporary API tables for processing incremental API notes
+# Creates temporary staging tables (notes_api, note_comments_api, note_comments_text_api)
+# that receive incremental API note data before insertion into main tables. These tables
+# are used to stage API downloads and process them before moving to production tables.
+# Used during API processing workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - API tables created successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - API tables created successfully
+#   Non-zero: psql execution failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_21_CREATE_API_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to create API staging tables (notes_api, note_comments_api, note_comments_text_api)
+#   - Writes log messages to stderr
+#   - Uses --pset pager=off to prevent blocking on SELECT output
+#   - No file or network operations
+#
+# Notes:
+#   - Creates temporary staging tables for API note processing
+#   - Tables are truncated or dropped/recreated between processing cycles
+#   - Used before downloading and processing incremental API notes
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Critical function: Required for API processing workflow
+#   - Tables are temporary and can be safely dropped/recreated
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_21_CREATE_API_TABLES="/path/to/create_api_tables.sql"
+#   __createApiTables
+#
+# Related: __prepareApiTables() (truncates or creates API tables)
+# Related: __dropApiTables() (drops API tables)
+# Related: __insertNewNotesAndComments() (moves data from API tables to main tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __createApiTables {
  __log_start
  __logi "=== CREATING API TABLES ==="
@@ -473,6 +870,63 @@ function __createApiTables {
  __log_finish
 }
 
+##
+# Creates properties table (max_note_timestamp)
+# Creates or updates the max_note_timestamp table which stores the most recent timestamp
+# of processed notes. This table is used to determine the starting point for incremental
+# API downloads. The table has a single row (id=1) with a timestamp constraint.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Properties table created/updated successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Properties table created/updated successfully
+#   Non-zero: psql execution failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_23_CREATE_PROPERTIES_TABLE: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to create/update max_note_timestamp table
+#   - Creates table if it doesn't exist
+#   - Updates timestamp if table exists (uses max from notes/note_comments tables)
+#   - Inserts default timestamp if base tables don't exist (empty database scenario)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Creates single-row table with id=1 constraint
+#   - Timestamp is calculated from max(created_at, closed_at) from notes and note_comments
+#   - Handles empty database scenario (sets default timestamp if base tables don't exist)
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Uses --pset pager=off to prevent blocking on SELECT output
+#   - Critical function: Required for incremental API sync (determines download start point)
+#   - Table can be created independently of base tables
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_23_CREATE_PROPERTIES_TABLE="/path/to/create_properties_table.sql"
+#   __createPropertiesTable
+#   # Creates/updates max_note_timestamp table
+#
+# Related: __updateLastValue() (updates timestamp after processing)
+# Related: __getNewNotesFromApi() (uses timestamp for API download)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Creates table properties during the execution.
 function __createPropertiesTable {
  __log_start
@@ -486,6 +940,60 @@ function __createPropertiesTable {
  __log_finish
 }
 
+##
+# Ensures get_country function exists before creating procedures
+# Checks if get_country function exists in database and creates it if missing. The procedures
+# (insert_note, insert_note_comment) require get_country to exist. If get_country exists but
+# countries table does not, recreates the function as stub to prevent procedure creation failures.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - get_country function exists or was created successfully
+#   Non-zero: Failure - Function creation failed
+#
+# Error codes:
+#   0: Success - get_country function exists or was created successfully
+#   Non-zero: Function creation failed (__createFunctionToGetCountry returned error)
+#
+# Error conditions:
+#   0: Success - Function exists or was created successfully
+#   Non-zero: Function creation failed (check __createFunctionToGetCountry logs)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Queries database to check if get_country function exists
+#   - Queries database to check if countries table exists
+#   - Creates get_country function if missing (via __createFunctionToGetCountry)
+#   - Recreates get_country function as stub if countries table missing
+#   - Writes log messages to stderr
+#   - Database operations: Queries pg_proc and information_schema
+#   - No file or network operations
+#
+# Notes:
+#   - Required before creating procedures (insert_note, insert_note_comment)
+#   - Handles missing countries table scenario (creates stub function)
+#   - Critical function: Prevents procedure creation failures
+#   - Used in both API processing and Planet processing workflows
+#   - Function can be created as stub if countries table doesn't exist yet
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   __ensureGetCountryFunction
+#   # Ensures get_country function exists before creating procedures
+#
+# Related: __createFunctionToGetCountry() (creates get_country function)
+# Related: __createProcedures() (requires get_country to exist)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Ensures get_country function exists before creating procedures.
 # The procedures (insert_note, insert_note_comment) require get_country to exist.
 # This function checks if get_country exists and creates it if missing.
@@ -517,6 +1025,71 @@ function __ensureGetCountryFunction {
 #   None (uses global API_NOTES_FILE variable)
 # Returns:
 #   0 if all validations pass, exits with ERROR_DATA_VALIDATION if any validation fails
+##
+# Performs complete validation of API notes XML file
+# Validates XML structure against schema, dates, and coordinates. Performs comprehensive
+# validation to ensure downloaded API file is valid before processing. Exits script
+# with ERROR_DATA_VALIDATION if any validation fails.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_DATA_VALIDATION if any validation fails
+#   Returns 0 if all validations pass
+#
+# Error codes:
+#   0: Success - All validations passed (structure, dates, coordinates)
+#   ERROR_DATA_VALIDATION: Failure - File not found, structure invalid, dates invalid, or coordinates invalid (exits script)
+#
+# Error conditions:
+#   0: Success - All validations passed successfully
+#   ERROR_DATA_VALIDATION: File not found - API_NOTES_FILE does not exist
+#   ERROR_DATA_VALIDATION: Structure invalid - XML does not match schema
+#   ERROR_DATA_VALIDATION: Dates invalid - Dates are not in expected format or invalid
+#   ERROR_DATA_VALIDATION: Coordinates invalid - Coordinates are missing or invalid
+#
+# Context variables:
+#   Reads:
+#     - API_NOTES_FILE: Path to API notes XML file (required)
+#     - XMLSCHEMA_API_NOTES: Path to XML schema file (required)
+#     - FAILED_EXECUTION_FILE: Path to failed execution marker file (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_DATA_VALIDATION: Error code for validation failures (defined in calling script)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Validates XML structure against schema (using xmllint)
+#   - Validates dates in XML file (ISO 8601 format)
+#   - Validates coordinates in XML file (lat/lon attributes)
+#   - Creates failed execution marker if validation fails
+#   - Writes log messages to stderr
+#   - Exits script with ERROR_DATA_VALIDATION if validation fails
+#   - No file modifications or database operations
+#
+# Notes:
+#   - Performs three validation steps: structure, dates, coordinates
+#   - Uses __validate_xml_with_enhanced_error_handling for structure validation
+#   - Uses __validate_xml_dates for date validation
+#   - Uses __validate_xml_coordinates for coordinate validation
+#   - All validations must pass for function to succeed
+#   - Critical function: exits script on failure (does not return)
+#   - Used before processing API notes to ensure data quality
+#
+# Example:
+#   export API_NOTES_FILE="/tmp/api_notes.xml"
+#   export XMLSCHEMA_API_NOTES="/path/to/schema.xsd"
+#   export FAILED_EXECUTION_FILE="/tmp/failed_execution"
+#   __validateApiNotesXMLFileComplete
+#   # All validations passed - file is valid
+#
+# Related: __validateApiNotesFile() (basic file existence check)
+# Related: __validate_xml_with_enhanced_error_handling() (XML structure validation)
+# Related: __validate_xml_dates() (date validation)
+# Related: __validate_xml_coordinates() (coordinate validation)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __validateApiNotesXMLFileComplete {
  __log_start
  __logi "=== COMPLETE API NOTES XML VALIDATION ==="
@@ -584,7 +1157,125 @@ function __validateApiNotesXMLFileComplete {
 # 3450803,'Existe otra iglesia sin nombre cercana a la posición de la nota, ¿es posible que se trate de un error, o hay una al lado de la otra?'
 # 3451247,'If you are in the area, could you please survey a more exact location for Nothing Bundt Cakes and move the node to that location? Thanks!'
 
-# Checks if the quantity of notes requires synchronization with Planet
+##
+# Processes API XML file or triggers Planet synchronization based on note count
+# Decides whether to process API XML sequentially or trigger full Planet synchronization
+# based on the number of notes. If note count exceeds MAX_NOTES threshold, triggers
+# Planet sync script. Otherwise, processes API XML file sequentially.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Processing completed successfully
+#   1: Failure - Sequential processing failed
+#   Non-zero: Failure - Planet sync script failed
+#
+# Error codes:
+#   0: Success - Processing completed (sequential or Planet sync)
+#   1: Failure - Sequential API XML processing failed
+#   Non-zero: Failure - Planet sync script failed (exit code from sync script)
+#
+# Error conditions:
+#   0: Success - Notes processed successfully (sequential or Planet sync)
+#   1: Sequential processing failed - __processApiXmlSequential failed
+#   Non-zero: Planet sync failed - NOTES_SYNC_SCRIPT returned non-zero exit code
+#
+# Context variables:
+#   Reads:
+#     - TOTAL_NOTES: Number of notes to process (required)
+#     - MAX_NOTES: Threshold for triggering Planet sync (required)
+#     - API_NOTES_FILE: Path to API XML file (required for sequential processing)
+#     - NOTES_SYNC_SCRIPT: Path to Planet sync script (required for Planet sync)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes NOTES_SYNC_SCRIPT if TOTAL_NOTES >= MAX_NOTES (Planet synchronization)
+#   - Calls __processApiXmlSequential if TOTAL_NOTES < MAX_NOTES (sequential processing)
+#   - Writes log messages to stderr
+#   - No direct database operations (delegated to sub-functions)
+#
+# Notes:
+#   - Decision logic: if TOTAL_NOTES >= MAX_NOTES, run Planet sync; else process sequentially
+#   - Planet sync is triggered for large note counts (full synchronization)
+#   - Sequential processing is used for smaller note counts (incremental updates)
+#   - Planet sync can take several minutes (large operation)
+#   - Sequential processing uses AWK for fast XML extraction
+#   - If TOTAL_NOTES is 0, skips processing (no notes to process)
+#
+# Example:
+#   export TOTAL_NOTES=5000
+#   export MAX_NOTES=10000
+#   export API_NOTES_FILE="/tmp/api_notes.xml"
+#   export NOTES_SYNC_SCRIPT="/path/to/processPlanetNotes.sh"
+#   __processXMLorPlanet
+#
+# Related: __processApiXmlSequential() (sequential API processing)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Decides between sequential API XML processing and full Planet synchronization
+# Determines processing strategy based on note count. If TOTAL_NOTES >= MAX_NOTES,
+# triggers full Planet synchronization (more efficient for large datasets). Otherwise,
+# processes API XML file sequentially using AWK extraction. Handles empty files gracefully.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Processing completed successfully (or no notes to process)
+#   Non-zero: Failure - Sequential processing failed or Planet sync failed
+#
+# Error codes:
+#   0: Success - Processing completed successfully
+#   0: Success - No notes found (valid scenario)
+#   Non-zero: Sequential processing failed (__processApiXmlSequential returned error)
+#   Non-zero: Planet sync failed (NOTES_SYNC_SCRIPT returned error)
+#
+# Error conditions:
+#   0: Success - Processing completed successfully
+#   0: Success - No notes found (skips processing)
+#   Non-zero: Sequential processing failed - AWK extraction or CSV loading failed
+#   Non-zero: Planet sync failed - processPlanetNotes.sh returned error
+#
+# Context variables:
+#   Reads:
+#     - TOTAL_NOTES: Total number of notes in XML file (required)
+#     - MAX_NOTES: Maximum notes threshold for Planet sync (required)
+#     - API_NOTES_FILE: Path to API notes XML file (required for sequential processing)
+#     - NOTES_SYNC_SCRIPT: Path to Planet sync script (required if TOTAL_NOTES >= MAX_NOTES)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes Planet sync script if TOTAL_NOTES >= MAX_NOTES
+#   - Processes API XML sequentially if TOTAL_NOTES < MAX_NOTES
+#   - Writes log messages to stderr
+#   - No direct database operations (delegated to called functions/scripts)
+#   - No file or network operations (delegated to called functions/scripts)
+#
+# Notes:
+#   - Decision logic: TOTAL_NOTES >= MAX_NOTES → Planet sync, else → Sequential processing
+#   - Planet sync is more efficient for large datasets (avoids processing many small API files)
+#   - Sequential processing uses AWK extraction (fast, dependency-free)
+#   - Handles empty files gracefully (no notes, skips processing)
+#   - Critical function: Determines processing strategy for API notes
+#   - Planet sync can take several minutes (full synchronization)
+#
+# Example:
+#   export TOTAL_NOTES=15000
+#   export MAX_NOTES=10000
+#   export NOTES_SYNC_SCRIPT="/path/to/processPlanetNotes.sh"
+#   __processXMLorPlanet
+#   # Triggers Planet sync (TOTAL_NOTES >= MAX_NOTES)
+#
+# Related: __processApiXmlSequential() (sequential API XML processing)
+# Related: processPlanetNotes.sh (full Planet synchronization)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __processXMLorPlanet {
  __log_start
 
@@ -606,9 +1297,67 @@ function __processXMLorPlanet {
  __log_finish
 }
 
-# Processes API XML file sequentially for small datasets
+##
+# Processes API XML file sequentially using AWK extraction
+# Extracts notes, comments, and text comments from API XML file into CSV files using AWK.
+# Processes the entire XML file sequentially (not parallel). Validates CSV structure and
+# enum compatibility if SKIP_CSV_VALIDATION is not true. Suitable for small to medium datasets.
+#
 # Parameters:
-#   $1: XML file path
+#   $1: XML file path - Path to API-format XML file to process (required)
+#
+# Returns:
+#   0: Success - All CSV files created successfully
+#   1: Failure - CSV file creation failed or validation failed
+#
+# Error codes:
+#   0: Success - All CSV files created and validated (if validation enabled)
+#   1: Failure - Notes CSV file was not created
+#   1: Failure - Comments CSV file was not created
+#   1: Failure - CSV structure validation failed
+#   1: Failure - CSV enum compatibility validation failed
+#
+# Error conditions:
+#   0: Success - Notes, comments, and text CSV files created successfully
+#   1: Notes CSV missing - AWK extraction failed for notes
+#   1: Comments CSV missing - AWK extraction failed for comments
+#   1: CSV validation failed - Structure or enum validation failed
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for output CSV files (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for AWK scripts (required)
+#     - SKIP_CSV_VALIDATION: If "true", skips CSV validation (optional, default: true)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes AWK scripts to extract notes, comments, and text comments
+#   - Creates CSV files in TMP_DIR (output-notes-sequential.csv, output-comments-sequential.csv, output-text-sequential.csv)
+#   - Validates CSV structure and enum compatibility (if SKIP_CSV_VALIDATION != true)
+#   - Writes log messages to stderr
+#   - No database or network operations
+#
+# Notes:
+#   - Uses AWK for fast XML extraction (dependency-free, no external tools)
+#   - Processes entire XML file sequentially (not split into parts)
+#   - Creates three CSV files: notes, comments, text comments
+#   - Text comments CSV is created as empty file if AWK extraction fails (non-fatal)
+#   - CSV validation is optional (controlled by SKIP_CSV_VALIDATION)
+#   - Suitable for datasets smaller than MAX_NOTES threshold
+#   - AWK scripts: extract_notes.awk, extract_comments.awk, extract_comment_texts.awk
+#
+# Example:
+#   __processApiXmlSequential "${API_NOTES_FILE}"
+#   # CSV files created in TMP_DIR:
+#   # - output-notes-sequential.csv
+#   # - output-comments-sequential.csv
+#   # - output-text-sequential.csv
+#
+# Related: __processXMLorPlanet() (decides sequential vs Planet sync)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __processApiXmlSequential {
  __log_start
  __logi "=== PROCESSING API XML SEQUENTIALLY ==="
@@ -746,6 +1495,226 @@ function __processApiXmlSequential {
 }
 
 # Inserts new notes and comments into the database
+##
+# Inserts new notes and comments from API tables to main tables with locking
+# Uses database locking mechanism to ensure single-process execution. Acquires lock,
+# inserts new notes and comments from API tables (notes_api, note_comments_api) to
+# main tables (notes, note_comments), updates last processed timestamp, and releases lock.
+# Includes cleanup trap to ensure lock is always released.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Notes and comments inserted successfully
+#   1: Failure - Lock acquisition failed or SQL execution failed
+#
+# Error codes:
+#   0: Success - Notes and comments inserted, lock released
+#   1: Failure - Failed to acquire lock after retries
+#   1: Failure - SQL execution failed (insertion or timestamp update)
+#   1: Failure - Failed to release lock
+#
+# Error conditions:
+#   0: Success - All operations completed successfully
+#   1: Lock acquisition failed - Could not acquire lock after MAX_RETRIES attempts
+#   1: SQL execution failed - Insertion or timestamp update failed
+#   1: Lock release failed - Failed to remove lock after successful insertion
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS: Path to insertion SQL script (required)
+#     - POSTGRES_34_UPDATE_LAST_VALUES: Path to timestamp update SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - PROCESS_ID: Unique process identifier (exported for SQL scripts)
+#   Modifies: None
+#
+# Side effects:
+#   - Creates unique process ID (PID_timestamp_random)
+#   - Executes psql to acquire database lock (put_lock procedure)
+#   - Creates temporary SQL file with process_id substitution
+#   - Executes psql to insert notes and comments (from API tables to main tables)
+#   - Executes psql to update last processed timestamp (in same connection)
+#   - Executes psql to release database lock (remove_lock procedure)
+#   - Registers EXIT trap for lock cleanup
+#   - Writes log messages to stderr
+#   - No file or network operations (except temporary SQL file)
+#
+# Notes:
+#   - Uses database locking (put_lock/remove_lock procedures) for single-process execution
+#   - Lock retry logic: 3 attempts with 2 second delay
+#   - Process ID format: ${$}_$(date +%s)_${RANDOM} (unique identifier)
+#   - Combines insertion and timestamp update in single connection (preserves app variables)
+#   - EXIT trap ensures lock is released even on error
+#   - Lock cleanup happens both via trap and explicit removal
+#   - Uses envsubst for process_id substitution in SQL
+#   - Sets app.process_id in SQL for tracking
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="/path/to/insert.sql"
+#   export POSTGRES_34_UPDATE_LAST_VALUES="/path/to/update.sql"
+#   __insertNewNotesAndComments
+#
+# Related: __loadApiTextComments() (loads text comments)
+# Related: __updateLastValue() (updates timestamp separately)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Inserts new notes and comments from API tables to main tables
+# Moves data from temporary API tables (notes_api, note_comments_api) to main production
+# tables (notes, note_comments). Uses database locking to prevent concurrent insertions.
+# Also updates the last processed timestamp in the same database connection. Handles lock
+# acquisition with retry logic and ensures lock cleanup on exit (via trap).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Notes and comments inserted successfully
+#   1: Failure - Lock acquisition failed after retries
+#   Non-zero: Failure - SQL execution failed or lock removal failed
+#
+# Error codes:
+#   0: Success - Notes and comments inserted successfully
+#   1: Failure - Lock acquisition failed after maximum retries
+#   Non-zero: SQL execution failed (SQL error, connection error, etc.)
+#   1: Failure - Lock removal failed
+#
+# Error conditions:
+#   0: Success - Data inserted and timestamp updated successfully
+#   1: Lock acquisition failed - Could not acquire lock after 3 attempts
+#   Non-zero: SQL execution failed - Insertion or timestamp update failed
+#   1: Lock removal failed - Could not remove lock after insertion
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS: Path to SQL script template (required)
+#     - POSTGRES_34_UPDATE_LAST_VALUES: Path to SQL script for timestamp update (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - PROCESS_ID: Unique process ID (exported, used in SQL)
+#   Modifies:
+#     - Creates temporary SQL file (removed after use)
+#     - Acquires database lock (put_lock)
+#     - Removes database lock (remove_lock)
+#
+# Side effects:
+#   - Generates unique process ID (PID_timestamp_random)
+#   - Acquires database lock with retry logic (3 attempts, 2 second delay)
+#   - Creates temporary SQL file with process_id substitution
+#   - Executes SQL to insert notes and comments from API tables to main tables
+#   - Updates last processed timestamp in same connection
+#   - Removes database lock after completion
+#   - Sets EXIT trap for lock cleanup (ensures lock removal on error)
+#   - Writes log messages to stderr
+#   - Database operations: Lock acquisition, INSERT from API tables, timestamp update
+#   - File operations: Creates and removes temporary SQL file
+#   - No network operations
+#
+# Notes:
+#   - Uses database locking (put_lock/remove_lock) to prevent concurrent insertions
+#   - Lock acquisition has retry logic (3 attempts, 2 second delay)
+#   - Lock cleanup is guaranteed via EXIT trap (even on error)
+#   - Updates timestamp in same connection as insertion (preserves app.integrity_check_passed)
+#   - Uses envsubst for process_id substitution in SQL template
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Uses --pset pager=off to prevent blocking on long output
+#   - Critical function: Moves API data to production tables
+#   - Must be called after data is loaded into API tables
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="/path/to/insert.sql"
+#   export POSTGRES_34_UPDATE_LAST_VALUES="/path/to/update_timestamp.sql"
+#   __insertNewNotesAndComments
+#   # Inserts notes/comments and updates timestamp
+#
+# Related: __loadApiTextComments() (loads text comments after insertion)
+# Related: __processApiXmlSequential() (loads data into API tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Inserts new notes and comments from API tables to main tables with database locking
+# Moves data from temporary API tables (notes_api, note_comments_api, note_comments_text_api)
+# to main production tables (notes, note_comments, note_comments_text). Uses database locking
+# (put_lock/remove_lock) to prevent concurrent insertions. Updates last processed timestamp
+# in the same transaction. Ensures lock cleanup via EXIT trap even on errors.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Data inserted successfully and lock released
+#   1: Failure - Lock acquisition failed, SQL execution failed, or lock removal failed
+#
+# Error codes:
+#   0: Success - Data inserted successfully and lock released
+#   1: Failure - Lock acquisition failed after retries
+#   1: Failure - SQL execution failed (insertion or timestamp update)
+#   1: Failure - Lock removal failed
+#
+# Error conditions:
+#   0: Success - All operations completed successfully
+#   1: Lock acquisition failed - Could not acquire lock after MAX_RETRIES attempts
+#   1: SQL execution failed - INSERT or UPDATE operations failed
+#   1: Lock removal failed - Could not release lock after insertion
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS: Path to SQL script (required)
+#     - POSTGRES_34_UPDATE_LAST_VALUES: Path to SQL script for timestamp update (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - PROCESS_ID: Unique process identifier (exported, used by SQL)
+#   Modifies:
+#     - Inserts data from API tables to main tables
+#     - Updates last processed timestamp in properties table
+#
+# Side effects:
+#   - Generates unique process ID (PID + timestamp + random)
+#   - Acquires database lock via put_lock() procedure (with retry logic)
+#   - Creates temporary SQL file with process_id substitution
+#   - Executes psql to insert notes/comments from API tables to main tables
+#   - Executes psql to update last processed timestamp
+#   - Releases database lock via remove_lock() procedure
+#   - Sets EXIT trap for lock cleanup (ensures lock is released even on error)
+#   - Writes log messages to stderr
+#   - Uses --pset pager=off to prevent blocking on SELECT output
+#   - Database operations: INSERT, UPDATE, stored procedure calls
+#   - File operations: Creates temporary SQL file
+#   - No network operations
+#
+# Notes:
+#   - Uses database locking to prevent concurrent insertions (critical for daemon mode)
+#   - Lock retry logic: 3 attempts with 2-second delay between retries
+#   - EXIT trap ensures lock cleanup even if function fails or is interrupted
+#   - Process ID is set as PostgreSQL session variable (app.process_id)
+#   - Updates timestamp in same transaction as insertion (preserves app.integrity_check_passed)
+#   - Critical function: Part of API processing workflow (final step before cleanup)
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Lock cleanup is guaranteed via EXIT trap (prevents deadlocks)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_32_INSERT_NEW_NOTES_AND_COMMENTS="/path/to/insert.sql"
+#   export POSTGRES_34_UPDATE_LAST_VALUES="/path/to/update_timestamp.sql"
+#   __insertNewNotesAndComments
+#   # Inserts data from API tables to main tables and updates timestamp
+#
+# Related: __createApiTables() (creates API staging tables)
+# Related: __prepareApiTables() (prepares API tables for processing)
+# Related: put_lock() (database lock procedure)
+# Related: remove_lock() (database unlock procedure)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __insertNewNotesAndComments {
  __log_start
 
@@ -847,7 +1816,60 @@ EOF
  return 0
 }
 
-# Inserts the new text comments.
+##
+# Loads text comments from API table to main table
+# Inserts text comments from note_comments_text_api to note_comments_text main table.
+# Uses envsubst to substitute OUTPUT_TEXT_COMMENTS_FILE path in SQL template.
+# Only inserts comments that have corresponding entries in note_comments (FK validation).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Text comments loaded successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Text comments inserted successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - OUTPUT_TEXT_COMMENTS_FILE: Path to text comments CSV file (required)
+#     - POSTGRES_33_INSERT_NEW_TEXT_COMMENTS: Path to SQL script template (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes envsubst to substitute OUTPUT_TEXT_COMMENTS_FILE in SQL template
+#   - Executes psql to insert text comments (from note_comments_text_api to note_comments_text)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Uses envsubst for file path substitution in SQL template
+#   - Only inserts comments with FK validation (must exist in note_comments)
+#   - Prevents FK violations when duplicate comments are deduplicated
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Text comments are loaded after notes and comments are inserted
+#   - Sequence numbers are already generated by AWK extraction
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export OUTPUT_TEXT_COMMENTS_FILE="/tmp/note_comments_text.csv"
+#   export POSTGRES_33_INSERT_NEW_TEXT_COMMENTS="/path/to/insert_text_comments.sql"
+#   __loadApiTextComments
+#
+# Related: __insertNewNotesAndComments() (inserts notes and comments)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __loadApiTextComments {
  __log_start
  export OUTPUT_TEXT_COMMENTS_FILE
@@ -860,7 +1882,59 @@ function __loadApiTextComments {
  __log_finish
 }
 
-# Updates the refreshed value.
+##
+# Updates the last processed timestamp in database
+# Updates the max_note_timestamp table with the most recent timestamp from processed notes.
+# This timestamp is used by __getNewNotesFromApi() to determine which notes to download
+# in the next API sync cycle. Should be called after successfully inserting notes.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Timestamp updated successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Last update timestamp updated successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_34_UPDATE_LAST_VALUES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to update max_note_timestamp table
+#   - Updates timestamp to most recent updated_at value from notes table
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Updates max_note_timestamp table with latest timestamp
+#   - Used by __getNewNotesFromApi() to determine download range
+#   - Should be called after successful note insertion
+#   - Uses ON_ERROR_STOP=1 to fail immediately on SQL errors
+#   - Critical for incremental API sync (determines next download start point)
+#   - Note: This function is also called within __insertNewNotesAndComments() in same connection
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_34_UPDATE_LAST_VALUES="/path/to/update_last_values.sql"
+#   __updateLastValue
+#
+# Related: __getNewNotesFromApi() (uses timestamp for API download)
+# Related: __insertNewNotesAndComments() (also updates timestamp)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __updateLastValue {
  __log_start
  __logi "Updating last update time."
@@ -870,6 +1944,57 @@ function __updateLastValue {
 }
 
 # Clean files generated during the process.
+##
+# Cleans up files generated during API notes processing
+# Removes temporary files created during API processing if CLEAN environment variable
+# is set to true. Files removed include API XML file and generated CSV files.
+# Used for cleanup after successful or failed processing.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Always returns 0 (success) - cleanup function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs file removal
+#
+# Error conditions:
+#   Always succeeds - File removal failures are ignored (rm -f)
+#
+# Context variables:
+#   Reads:
+#     - CLEAN: If "true", removes files; if "false" or unset, skips cleanup (optional, default: false)
+#     - API_NOTES_FILE: Path to API XML file (required)
+#     - OUTPUT_NOTES_FILE: Path to notes CSV file (required)
+#     - OUTPUT_NOTE_COMMENTS_FILE: Path to comments CSV file (required)
+#     - OUTPUT_TEXT_COMMENTS_FILE: Path to text comments CSV file (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Removes API XML file and CSV files if CLEAN=true
+#   - Writes log messages to stderr
+#   - No database or network operations
+#   - File removal failures are ignored (rm -f)
+#
+# Notes:
+#   - Only removes files if CLEAN environment variable is "true"
+#   - Uses rm -f to ignore missing files (non-fatal)
+#   - Safe to call multiple times (idempotent)
+#   - Used for cleanup after processing (success or failure)
+#   - Files are removed silently (no error if file doesn't exist)
+#
+# Example:
+#   export CLEAN=true
+#   export API_NOTES_FILE="/tmp/api_notes.xml"
+#   export OUTPUT_NOTES_FILE="/tmp/notes.csv"
+#   __cleanNotesFiles
+#
+# Related: __cleanPartial() (cleans partial processing files)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __cleanNotesFiles {
  __log_start
  if [[ -n "${CLEAN:-}" ]] && [[ "${CLEAN}" = true ]]; then
@@ -879,9 +2004,60 @@ function __cleanNotesFiles {
  __log_finish
 }
 
-# Validates that the API notes file was downloaded successfully.
-# Checks file existence and handles empty files gracefully (0 notes is valid).
-# Exits with error only if file was not downloaded.
+##
+# Validates that API notes file was downloaded successfully
+# Checks file existence and handles empty files gracefully (0 notes is valid scenario).
+# Empty files are valid when API returns no new notes. Exits with error only if file
+# was not downloaded (download failure).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - File exists (empty or with content)
+#   Exits with ERROR_INTERNET_ISSUE if file not found
+#
+# Error codes:
+#   0: Success - File exists and is valid (empty files are valid)
+#   ERROR_INTERNET_ISSUE: Failure - File was not downloaded (exits script)
+#
+# Error conditions:
+#   0: Success - File exists (empty files indicate 0 notes, which is valid)
+#   ERROR_INTERNET_ISSUE: File not found - Download failed or file not created
+#
+# Context variables:
+#   Reads:
+#     - API_NOTES_FILE: Path to API notes XML file (required)
+#     - FAILED_EXECUTION_FILE: Path to failed execution marker file (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_INTERNET_ISSUE: Error code for network issues (defined in calling script)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Checks file existence and size
+#   - Creates failed execution marker if file not found
+#   - Writes log messages to stderr
+#   - Exits script with ERROR_INTERNET_ISSUE if file not found
+#   - No file modifications, database, or network operations
+#
+# Notes:
+#   - Empty files (0 bytes) are valid and indicate 0 notes scenario
+#   - Only exits if file does not exist (download failure)
+#   - Creates failed execution marker for troubleshooting
+#   - Used after __getNewNotesFromApi() to verify download success
+#   - Empty file is a normal case (no new notes available)
+#
+# Example:
+#   export API_NOTES_FILE="/tmp/api_notes.xml"
+#   export FAILED_EXECUTION_FILE="/tmp/failed_execution"
+#   __validateApiNotesFile
+#   # File exists (empty or with content) - validation passed
+#
+# Related: __getNewNotesFromApi() (downloads API notes file)
+# Related: __validateApiNotesXMLFileComplete() (full XML validation)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __validateApiNotesFile {
  __log_start
  __logd "Validating API notes file: ${API_NOTES_FILE}"
@@ -907,9 +2083,79 @@ function __validateApiNotesFile {
  __log_finish
 }
 
-# Validates and processes the API notes XML file.
-# Performs XML validation (if enabled), counts notes, and processes them.
-# Handles empty files gracefully (0 notes is a valid scenario).
+##
+# Validates and processes API notes XML file
+# Orchestrates validation and processing workflow for API notes XML file. Handles empty
+# files gracefully (0 notes is valid). Counts notes first, then validates XML (if enabled),
+# processes XML (sequential or Planet sync), and inserts notes/comments. Skips validation
+# and processing if no notes found.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - File processed successfully (or empty file, no notes)
+#   Non-zero: Failure - Validation failed or processing failed (exits script on validation failure)
+#
+# Error codes:
+#   0: Success - File processed successfully
+#   0: Success - Empty file (0 notes, valid scenario)
+#   ERROR_DATA_VALIDATION: XML validation failed (exits script)
+#   Non-zero: Processing failed (sequential processing or Planet sync failed)
+#
+# Error conditions:
+#   0: Success - File processed successfully
+#   0: Success - Empty file (no notes to process)
+#   0: Success - File has structure but no <note> elements (skips processing)
+#   ERROR_DATA_VALIDATION: XML validation failed (exits script via __validateApiNotesXMLFileComplete)
+#   Non-zero: Note counting failed (continues with TOTAL_NOTES=0)
+#   Non-zero: Sequential processing failed (__processApiXmlSequential returned error)
+#   Non-zero: Planet sync failed (NOTES_SYNC_SCRIPT returned error)
+#
+# Context variables:
+#   Reads:
+#     - API_NOTES_FILE: Path to API notes XML file (required)
+#     - SKIP_XML_VALIDATION: If "true", skips XML validation (optional)
+#     - TOTAL_NOTES: Total number of notes (set by __countXmlNotesAPI, exported)
+#     - MAX_NOTES: Maximum notes threshold for Planet sync (required)
+#     - NOTES_SYNC_SCRIPT: Path to Planet sync script (required if TOTAL_NOTES >= MAX_NOTES)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - TOTAL_NOTES: Total number of notes (exported, set to 0 if empty or counting fails)
+#   Modifies: None
+#
+# Side effects:
+#   - Counts notes in XML file (__countXmlNotesAPI)
+#   - Validates XML file (__validateApiNotesXMLFileComplete, if enabled)
+#   - Processes XML file (__processXMLorPlanet)
+#   - Inserts notes and comments (__insertNewNotesAndComments, if TOTAL_NOTES > 0)
+#   - Loads text comments (__loadApiTextComments, if TOTAL_NOTES > 0)
+#   - Writes log messages to stderr
+#   - Exits script with ERROR_DATA_VALIDATION if validation fails
+#   - No file or network operations (delegated to called functions)
+#
+# Notes:
+#   - Handles empty files gracefully (0 notes is a valid scenario)
+#   - Counts notes BEFORE validation to handle XML files with structure but no notes
+#   - Skips validation and processing if no notes found (TOTAL_NOTES = 0)
+#   - Temporarily disables set -e during note counting to handle errors gracefully
+#   - Critical function: Main workflow for API notes processing
+#   - Workflow: Count → Validate (if enabled) → Process → Insert
+#   - Only inserts notes/comments if TOTAL_NOTES > 0
+#
+# Example:
+#   export API_NOTES_FILE="/tmp/api_notes.xml"
+#   export MAX_NOTES=10000
+#   export SKIP_XML_VALIDATION="false"
+#   __validateAndProcessApiXml
+#
+# Related: __countXmlNotesAPI() (counts notes in XML file)
+# Related: __validateApiNotesXMLFileComplete() (validates XML file)
+# Related: __processXMLorPlanet() (processes XML or triggers Planet sync)
+# Related: __insertNewNotesAndComments() (inserts notes and comments)
+# Related: __loadApiTextComments() (loads text comments)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __validateAndProcessApiXml {
  __log_start
  declare -i RESULT
@@ -997,8 +2243,72 @@ EOF
  __log_finish
 }
 
-# Validates historical data and recovers from gaps if needed.
-# Called when base tables exist (RET_FUNC == 0).
+##
+# Validates historical data and recovers from gaps if needed
+# Orchestrates historical data validation and gap recovery workflow. Validates that base
+# tables contain sufficient historical data (at least 30 days). If validation fails,
+# creates failed execution marker and exits script. If validation passes, attempts gap
+# recovery. Called when base tables exist (RET_FUNC == 0).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_EXECUTING_PLANET_DUMP if historical data validation failed
+#   Exits with ERROR_GENERAL if gap recovery failed
+#   Returns 0 if validation and recovery completed successfully
+#
+# Error codes:
+#   0: Success - Historical data validated and gaps recovered successfully
+#   ERROR_EXECUTING_PLANET_DUMP: Failure - Historical data validation failed (exits script)
+#   ERROR_GENERAL: Failure - Gap recovery failed (exits script via __handle_error_with_cleanup)
+#
+# Error conditions:
+#   0: Success - Historical data validated and gaps recovered successfully
+#   ERROR_EXECUTING_PLANET_DUMP: Historical data validation failed - Base tables exist but contain no historical data (exits script)
+#   ERROR_GENERAL: Gap recovery failed - Large gaps detected or recovery query failed (exits script)
+#
+# Context variables:
+#   Reads:
+#     - RET_FUNC: Return code from __checkHistoricalData (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for scripts (required)
+#     - ERROR_EXECUTING_PLANET_DUMP: Error code for Planet dump failures (defined in calling script)
+#     - ERROR_GENERAL: Error code for general failures (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Creates failed execution marker if validation fails
+#
+# Side effects:
+#   - Validates historical data (__checkHistoricalData)
+#   - Creates failed execution marker if validation fails
+#   - Recovers from gaps (__recover_from_gaps)
+#   - Handles errors with cleanup (__handle_error_with_cleanup)
+#   - Writes log messages to stderr
+#   - Exits script with error code on failure
+#   - No file or network operations (delegated to called functions)
+#
+# Notes:
+#   - Called when base tables exist (RET_FUNC == 0 from __checkBaseTables)
+#   - Historical data validation ensures ProcessAPI has context for incremental updates
+#   - Gap recovery detects and handles data integrity issues
+#   - Creates failed execution marker to prevent repeated failures
+#   - Critical function: Ensures data integrity before processing API notes
+#   - Workflow: Validate historical data → Recover from gaps
+#
+# Example:
+#   export RET_FUNC=0
+#   export SCRIPT_BASE_DIRECTORY="/path/to/scripts"
+#   export ERROR_EXECUTING_PLANET_DUMP=250
+#   export ERROR_GENERAL=1
+#   __validateHistoricalDataAndRecover
+#   # Validates historical data, recovers from gaps, exits on failure
+#
+# Related: __checkHistoricalData() (validates historical data)
+# Related: __recover_from_gaps() (recovers from data gaps)
+# Related: __create_failed_marker() (creates failed execution marker)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __validateHistoricalDataAndRecover {
  __log_start
  __logi "Base tables found. Validating historical data..."
@@ -1029,6 +2339,92 @@ function __validateHistoricalDataAndRecover {
 # and updates the lock file content. This is intentional behavior to prevent
 # lock conflicts with child processes. The lock file modification timestamp
 # will change when re-acquired, which is expected and normal.
+##
+# Creates base database structure and loads initial data from Planet
+# Executes processPlanetNotes.sh --base to create complete database structure and load
+# historical data. Releases lock file before spawning child process, then re-acquires
+# lock after completion. Verifies geographic data (countries/maritimes) was loaded.
+# Two-step process: (1) Create base structure, (2) Verify geographic data.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_EXECUTING_PLANET_DUMP if base structure creation failed
+#   Exits with ERROR_EXECUTING_PLANET_DUMP if geographic data verification failed
+#   Returns 0 if base structure created and geographic data verified successfully
+#
+# Error codes:
+#   0: Success - Base structure created and geographic data verified
+#   ERROR_EXECUTING_PLANET_DUMP: Failure - processPlanetNotes.sh --base failed (exits script)
+#   ERROR_EXECUTING_PLANET_DUMP: Failure - Geographic data not loaded (exits script)
+#   1: Failure - Failed to re-acquire lock after child processes (exits script)
+#
+# Error conditions:
+#   0: Success - Base structure created and geographic data verified
+#   ERROR_EXECUTING_PLANET_DUMP: processPlanetNotes.sh --base failed - Script execution failed
+#   ERROR_EXECUTING_PLANET_DUMP: Geographic data missing - Countries table empty after base load
+#   1: Lock re-acquisition failed - Another process acquired lock during child execution
+#
+# Context variables:
+#   Reads:
+#     - NOTES_SYNC_SCRIPT: Path to processPlanetNotes.sh script (required)
+#     - LOCK: Path to lock file (required)
+#     - ORIGINAL_PID: Original process ID (required)
+#     - BASENAME: Script basename (required)
+#     - PROCESS_START_TIME: Process start time (required)
+#     - TMP_DIR: Temporary directory (required)
+#     - PROCESS_TYPE: Process type (required)
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - SKIP_AUTO_LOAD_COUNTRIES: If "true", skips geographic data verification (optional)
+#     - HYBRID_MOCK_MODE: If set, skips geographic data verification (optional)
+#     - TEST_MODE: If set, skips geographic data verification (optional)
+#     - LOCK_DIR: Lock directory (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for scripts (required)
+#     - ERROR_EXECUTING_PLANET_DUMP: Error code for Planet dump failures (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Releases lock file descriptor (exec 8>&-)
+#     - Re-acquires lock file after child processes
+#     - Updates lock file content with re-acquisition timestamp
+#
+# Side effects:
+#   - Releases lock file before spawning child process
+#   - Executes processPlanetNotes.sh --base (creates base structure, loads historical data)
+#   - Verifies geographic data (countries/maritimes) was loaded
+#   - Checks for updateCountries.sh lock file (stale lock detection)
+#   - Re-acquires lock file after child processes complete
+#   - Updates lock file content with re-acquisition timestamp
+#   - Creates failed execution marker if base structure creation fails
+#   - Writes log messages to stderr
+#   - Exits script with error code on failure
+#   - Database operations: Queries countries table count
+#   - File operations: Lock file management
+#
+# Notes:
+#   - Two-step process: (1) Create base structure, (2) Verify geographic data
+#   - Releases lock before child process to prevent lock conflicts
+#   - Re-acquires lock after child process to maintain single execution guarantee
+#   - Geographic data verification can be skipped in test/hybrid mode
+#   - Checks for stale updateCountries.sh lock files
+#   - Critical function: Initializes database for first-time use
+#   - Takes approximately 1-2 hours for complete setup
+#   - Used when base tables are missing (RET_FUNC=1 from __checkBaseTables)
+#
+# Example:
+#   export NOTES_SYNC_SCRIPT="/path/to/processPlanetNotes.sh"
+#   export LOCK="/tmp/processAPINotes.lock"
+#   export ERROR_EXECUTING_PLANET_DUMP=250
+#   __createBaseStructure
+#   # Creates base structure, loads historical data, verifies geographic data
+#
+# Related: processPlanetNotes.sh (creates base structure)
+# Related: __checkBaseTables() (checks if base tables exist)
+# Related: __setupLockFile() (creates lock file)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __createBaseStructure {
  __log_start
  __logd "Releasing lock before spawning child processes"
@@ -1118,6 +2514,63 @@ EOF
  __log_finish
 }
 
+##
+# Checks and logs data gaps from database to file
+# Queries database for unprocessed gaps from the last 24 hours and writes them to a log file.
+# Used for monitoring data integrity issues. Only queries gaps that haven't been processed
+# (processed = FALSE). Writes up to 10 most recent gaps to log file.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Always returns 0 (non-blocking, errors are logged but don't fail)
+#
+# Error codes:
+#   0: Success - Gaps checked and logged (or no gaps found)
+#
+# Error conditions:
+#   0: Success - Gaps checked and logged successfully
+#   0: Success - No gaps found (valid scenario)
+#   0: Success - Query failed (logged but doesn't fail function)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - LOG_DIR: Log directory (optional, default: /tmp)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Creates/updates gap log file (processAPINotes_gaps.log)
+#
+# Side effects:
+#   - Queries database for unprocessed gaps (last 24 hours, limit 10)
+#   - Writes gap information to log file
+#   - Writes log messages to stderr
+#   - Database operations: SELECT from data_gaps table
+#   - File operations: Writes to gap log file
+#   - No network operations
+#
+# Notes:
+#   - Only queries gaps from last 24 hours (recent gaps)
+#   - Only queries unprocessed gaps (processed = FALSE)
+#   - Limits results to 10 most recent gaps
+#   - Non-blocking function (errors don't cause function failure)
+#   - Used for monitoring and troubleshooting data integrity issues
+#   - Part of processing workflow (called after processing API notes)
+#   - Gap log file: processAPINotes_gaps.log
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export LOG_DIR="/var/log/osm-notes"
+#   __check_and_log_gaps
+#   # Queries and logs gaps to /var/log/osm-notes/processAPINotes_gaps.log
+#
+# Related: __log_data_gap() (logs individual gaps to file and database)
+# Related: __recover_from_gaps() (detects and recovers from gaps)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __check_and_log_gaps() {
  __log_start
 
@@ -1146,6 +2599,65 @@ function __check_and_log_gaps() {
 }
 
 # Function that activates the error trap.
+##
+# Activates error and signal traps for error handling and cleanup
+# Sets up ERR trap to catch errors and SIGINT/SIGTERM traps to handle termination.
+# ERR trap logs error details, creates failed execution marker file, and exits with
+# error code. SIGINT/SIGTERM trap logs termination message, creates failed execution
+# marker, and exits with ERROR_GENERAL. Ensures lock file is removed on error/termination.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Always returns 0 (trap setup is always successful)
+#
+# Error codes:
+#   0: Success - Traps activated successfully
+#
+# Error conditions:
+#   0: Success - Traps activated successfully
+#
+# Context variables:
+#   Reads:
+#     - GENERATE_FAILED_FILE: If "true", creates failed execution marker (optional, default: true)
+#     - FAILED_EXECUTION_FILE: Path to failed execution marker file (optional)
+#     - TMP_DIR: Temporary directory (optional)
+#     - ONLY_EXECUTION: Execution status (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Sets ERR trap for error handling
+#     - Sets SIGINT/SIGTERM traps for termination handling
+#
+# Side effects:
+#   - Sets ERR trap to catch command failures
+#   - Sets SIGINT/SIGTERM traps to catch termination signals
+#   - Creates failed execution marker file on error/termination (if GENERATE_FAILED_FILE=true)
+#   - Writes log messages to stderr
+#   - Exits script with error code on ERR trap
+#   - Exits script with ERROR_GENERAL on SIGINT/SIGTERM
+#   - No database or network operations
+#
+# Notes:
+#   - ERR trap catches any command that returns non-zero exit code
+#   - Trap handlers execute in subshell context (cannot use 'local' variables)
+#   - Failed execution marker contains error details (timestamp, script, line, command, exit code)
+#   - Lock file removal is handled by trap handlers
+#   - Critical function: Ensures proper error handling and cleanup
+#   - Trap handlers use printf for output (more reliable than echo in traps)
+#   - Fallback failed execution file created if primary location fails
+#
+# Example:
+#   export GENERATE_FAILED_FILE="true"
+#   export FAILED_EXECUTION_FILE="/tmp/processAPINotes_failed_execution"
+#   __trapOn
+#   # Traps are now active, errors will be caught and logged
+#
+# Related: __setupLockFile() (creates lock file, removed by trap handlers)
+# Related: __checkPreviousFailedExecution() (checks for failed execution marker)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __trapOn() {
  __log_start
  # shellcheck disable=SC2154
@@ -1435,7 +2947,8 @@ function main() {
  __logw "Process finished."
  __log_finish
 }
-# Return value for several functions.
+# Return value for several functions (may be used externally or in future)
+# shellcheck disable=SC2034
 declare -i RET
 
 # Allows to other users read the directory.

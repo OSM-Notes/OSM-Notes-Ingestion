@@ -82,15 +82,66 @@ fi
 : "${OVERPASS_BACKOFF_SECONDS:=20}"
 
 # Retry file operations with exponential backoff and cleanup on failure.
+##
+# Executes a file operation command with retry logic, exponential backoff, and smart wait queue management
+# Provides robust retry mechanism for file operations (downloads, API calls) with exponential backoff,
+# output file verification, HTML error page detection, and optional smart wait queue integration for
+# Overpass API rate limiting. Verifies output files exist and have content, detects HTML error pages
+# returned as HTTP 200, and manages download slots for concurrent operations.
+#
 # Parameters:
-#  $1 - operation_command
-#  $2 - max_retries (defaults to OVERPASS_RETRIES_PER_ENDPOINT or 7)
-#  $3 - base_delay (defaults to OVERPASS_BACKOFF_SECONDS or 20)
-#  $4 - cleanup_command (optional)
-#  $5 - smart_wait flag (true/false)
-#  $6 - explicit Overpass endpoint for smart wait (optional)
+#   $1: Operation command - Shell command to execute (required, e.g., "curl -o file.txt URL")
+#   $2: Max retries - Maximum retry attempts (optional, default: OVERPASS_RETRIES_PER_ENDPOINT or 7)
+#   $3: Base delay - Base delay in seconds for exponential backoff (optional, default: OVERPASS_BACKOFF_SECONDS or 20)
+#   $4: Cleanup command - Command to execute on failure for cleanup (optional, e.g., "rm -f file.txt")
+#   $5: Smart wait - Enable smart wait queue for Overpass API (optional, default: false, use "true" to enable)
+#   $6: Smart wait endpoint - Explicit Overpass endpoint URL for smart wait (optional, auto-detected if command contains "/api/interpreter")
+#
 # Returns:
-#  0 on success, 1 on failure after retries.
+#   0: Success - Operation completed successfully and output file verified
+#   1: Failure - Operation failed after all retries or output file verification failed
+#
+# Error codes:
+#   0: Success - Command executed successfully, output file exists and has content, not HTML error page
+#   1: Failure - Command failed after max retries, output file missing/empty, or HTML error page detected
+#
+# Context variables:
+#   Reads:
+#     - OVERPASS_RETRIES_PER_ENDPOINT: Default max retries (optional, default: 7)
+#     - OVERPASS_BACKOFF_SECONDS: Default base delay (optional, default: 20)
+#     - OVERPASS_INTERPRETER: Overpass API endpoint URL (required if smart_wait enabled)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes operation command via eval (use with caution, ensure command is trusted)
+#   - Creates/verifies output files (extracted from -o or > redirection in command)
+#   - Manages download slots via __wait_for_download_slot() and __release_download_slot() if smart_wait enabled
+#   - Checks Overpass API status via __check_overpass_status() if smart_wait enabled
+#   - Executes cleanup command on failure if provided
+#   - Sets EXIT/INT/TERM traps for cleanup on smart wait operations
+#   - Logs all operations and retry attempts to standard logger
+#   - Sleeps between retries with exponential backoff (delay *= 1.5)
+#
+# Output file verification:
+#   - Extracts output file path from command (-o or > redirection)
+#   - Verifies file exists and is non-empty
+#   - Detects HTML error pages (checks for <html>, <body>, <head>, <!DOCTYPE>)
+#   - For aria2c commands, also checks -d directory option
+#
+# Example:
+#   if __retry_file_operation "curl -s -o /tmp/data.json https://api.example.com/data" 5 10 "rm -f /tmp/data.json" "true"; then
+#     echo "Download succeeded"
+#   else
+#     echo "Download failed"
+#   fi
+#
+# Related: __wait_for_download_slot() (manages download queue)
+# Related: __release_download_slot() (releases download slot)
+# Related: __check_overpass_status() (checks API availability)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __retry_file_operation() {
  __log_start
  local OPERATION_COMMAND="$1"
@@ -315,6 +366,60 @@ function __retry_file_operation() {
 # Returns:
 #  - echoes 0 when slots are available immediately.
 #  - echoes wait time in seconds when busy.
+##
+# Checks Overpass API status and returns wait time if busy
+# Queries Overpass API status endpoint to determine if slots are available.
+# Returns wait time in seconds if API is busy, or 0 if slots are available now.
+#
+# Parameters:
+#   None (uses OVERPASS_INTERPRETER environment variable)
+#
+# Returns:
+#   Exit code: 0 (always succeeds)
+#   Output: Wait time in seconds (0 if available now, >0 if busy)
+#
+# Error codes:
+#   0: Always succeeds (even if status check fails, assumes available)
+#   Output value: 0 = available now, >0 = wait time in seconds
+#
+# Error conditions:
+#   - Network failure: Returns 0 (assumes available) with warning log
+#   - Parse failure: Returns 0 (assumes available) with warning log
+#   - API busy: Returns wait time > 0
+#   - API available: Returns 0
+#
+# Context variables:
+#   Reads:
+#     - OVERPASS_INTERPRETER: Overpass API endpoint URL (required, e.g., https://overpass-api.de/api/interpreter)
+#     - DOWNLOAD_USER_AGENT: User-Agent header for HTTP requests (optional, default: OSM-Notes-Ingestion/1.0)
+#     - RATE_LIMIT: Maximum concurrent slots (for logging, optional, default: 4)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Queries Overpass API status endpoint via HTTP GET
+#   - Parses status page HTML to extract slot availability
+#   - Outputs wait time to stdout (use command substitution to capture)
+#   - Logs status check results to standard logger
+#   - No file or database operations
+#
+# Output format:
+#   - Single integer on stdout: wait time in seconds
+#   - 0: Slots available now
+#   - >0: Minimum wait time until next slot available
+#
+# Example:
+#   WAIT_TIME=$(__check_overpass_status)
+#   if [[ ${WAIT_TIME} -eq 0 ]]; then
+#     echo "API available now"
+#   else
+#     echo "Wait ${WAIT_TIME} seconds"
+#   fi
+#
+# Related: __wait_for_download_slot() (uses this to check status)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __check_overpass_status() {
  __log_start
  local BASE_URL="${OVERPASS_INTERPRETER%/api/interpreter}"
@@ -539,9 +644,70 @@ fi
 
 ### Note Location Backup Resolution
 
-# Resolves note location backup file, downloading from GitHub if not found locally.
-# Similar to __resolve_geojson_file but for noteLocation.csv.zip
-# Sets CSV_BACKUP_NOTE_LOCATION_COMPRESSED to the resolved file path.
+##
+# Resolves note location backup file, downloading from GitHub if not found locally
+# Locates or downloads note location backup CSV file (noteLocation.csv.zip). Checks
+# local file first, then downloads from GitHub if not found. Uses retry logic for
+# network operations. Similar to __resolve_geojson_file but for note location data.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Backup file found locally or downloaded successfully
+#   1: Failure - Download failed (network error, timeout, etc.)
+#
+# Error codes:
+#   0: Success - Backup file found locally or downloaded successfully
+#   1: Failure - Download failed (network error, timeout, file not found on GitHub)
+#
+# Error conditions:
+#   0: Success - Local file found and is non-empty
+#   0: Success - File downloaded successfully from GitHub
+#   1: Download failed - Network error, timeout, or file not found on GitHub
+#
+# Context variables:
+#   Reads:
+#     - CSV_BACKUP_NOTE_LOCATION_COMPRESSED: Expected path to compressed backup file (required)
+#     - TMP_DIR: Temporary directory for downloads (optional, default: /tmp)
+#     - NOTE_LOCATION_DATA_REPO_URL: GitHub repository URL (optional, uses DEFAULT_NOTE_LOCATION_DATA_REPO_URL)
+#     - DEFAULT_NOTE_LOCATION_DATA_REPO_URL: Default GitHub repository URL (required)
+#     - DOWNLOAD_USER_AGENT: User agent for HTTP requests (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Downloads file to CSV_BACKUP_NOTE_LOCATION_COMPRESSED if not found locally
+#
+# Side effects:
+#   - Checks local file existence and size
+#   - Downloads file from GitHub if not found locally
+#   - Creates directory structure if needed
+#   - Moves downloaded file to expected location
+#   - Writes log messages to stderr
+#   - Network operations: HTTP download from GitHub
+#   - File operations: File download, move, directory creation
+#   - No database operations
+#
+# Notes:
+#   - Checks local file first (faster, no network required)
+#   - Downloads from GitHub if local file not found
+#   - Uses __retry_network_operation if available (with retry logic)
+#   - Falls back to direct curl if retry function not available
+#   - Creates directory structure if needed (mkdir -p)
+#   - File name: noteLocation.csv.zip
+#   - Used by __getLocationNotes_impl() for fast country assignment
+#   - Critical function: Required for production mode country assignment
+#
+# Example:
+#   export CSV_BACKUP_NOTE_LOCATION_COMPRESSED="/path/to/noteLocation.csv.zip"
+#   export DEFAULT_NOTE_LOCATION_DATA_REPO_URL="https://raw.githubusercontent.com/OSM-Notes/OSM-Notes-Data/main/data"
+#   __resolve_note_location_backup
+#   # File found locally or downloaded from GitHub
+#
+# Related: __resolve_geojson_file() (similar function for GeoJSON files)
+# Related: __getLocationNotes_impl() (uses backup file for country assignment)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __resolve_note_location_backup() {
  __log_start
  # shellcheck disable=SC2034
@@ -628,6 +794,74 @@ function __validation {
 #   $1: Input XML file path
 # Returns:
 #   TOTAL_NOTES: Number of notes found (exported variable)
+##
+# Counts notes in XML file (API format)
+# Counts the number of <note> elements in an API-format XML file using lightweight grep.
+# Performs XML structure validation before counting (if enabled). Exports the count as
+# TOTAL_NOTES environment variable for use by calling scripts. Handles edge cases like
+# empty files, XML validation, grep exit codes, and invalid output.
+#
+# Parameters:
+#   $1: XML file path - Path to API-format XML file to count (required)
+#
+# Returns:
+#   0: Success - Note count completed (even if count is 0)
+#   1: Failure - File not found, invalid XML structure, or counting error
+#
+# Error codes:
+#   0: Success - Notes counted successfully (TOTAL_NOTES exported, 0 is valid)
+#   1: Failure - File not found or not readable
+#   1: Failure - File does not appear to be XML (missing <?xml declaration)
+#   1: Failure - Severe XML structural issue (missing closing tags)
+#   1: Failure - grep command failed (unexpected exit code)
+#   1: Failure - Invalid or non-numeric count returned by grep
+#
+# Error conditions:
+#   0: Success - Notes counted and TOTAL_NOTES exported (0 is valid count)
+#   1: File not found - XML file path does not exist
+#   1: Not XML - File does not contain XML declaration (<?xml)
+#   1: XML structure error - Severe structural issue (missing closing tags for <note> elements)
+#   1: Grep error - grep returned unexpected exit code (not 0 or 1)
+#   1: Invalid count - grep output is not a valid number
+#
+# Context variables:
+#   Reads:
+#     - SKIP_XML_VALIDATION: If "true", skips XML structure validation (optional, default: false)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - TOTAL_NOTES: Number of notes found (exported for calling scripts)
+#   Modifies: None
+#
+# Side effects:
+#   - Reads XML file using grep and xmllint (if validation enabled)
+#   - Executes xmllint for XML structure validation (if SKIP_XML_VALIDATION != true)
+#   - Exports TOTAL_NOTES environment variable
+#   - Writes log messages to stderr
+#   - No file modifications, database, or network operations
+#
+# Notes:
+#   - Performs XML structure validation before counting (if SKIP_XML_VALIDATION != true)
+#   - Uses grep -c for fast counting (suitable for large files)
+#   - Handles grep exit codes: 0 (matches found) and 1 (no matches) are both valid
+#   - 0 notes is a valid result (not an error)
+#   - Empty XML files (<osm></osm>) are valid and return 0 notes
+#   - Validates that count is numeric before exporting
+#   - Cleans whitespace from grep output to avoid parsing issues
+#   - TOTAL_NOTES is exported for use by calling scripts
+#   - API format: counts '<note ' pattern (matches <note ...> with attributes)
+#   - More robust than Planet version: includes XML validation
+#
+# Example:
+#   __countXmlNotesAPI "${API_NOTES_FILE}"
+#   echo "Found ${TOTAL_NOTES} notes"
+#
+#   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+#     echo "Processing ${TOTAL_NOTES} notes"
+#   fi
+#
+# Related: __countXmlNotesPlanet() (Planet format counting, no XML validation)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __countXmlNotesAPI() {
  local XML_FILE="${1}"
 
@@ -717,11 +951,64 @@ function __countXmlNotesAPI() {
  return 0
 }
 
+##
 # Counts notes in XML file (Planet format)
+# Counts the number of <note> elements in a Planet-format XML file using lightweight grep.
+# Exports the count as TOTAL_NOTES environment variable for use by calling scripts.
+# Handles edge cases like empty files, grep exit codes, and invalid output.
+#
 # Parameters:
-#   $1: Input XML file path
+#   $1: XML file path - Path to Planet-format XML file to count (required)
+#
 # Returns:
-#   TOTAL_NOTES: Number of notes found (exported variable)
+#   0: Success - Note count completed (even if count is 0)
+#   1: Failure - File not found or counting error
+#
+# Error codes:
+#   0: Success - Notes counted successfully (TOTAL_NOTES exported)
+#   1: Failure - File not found or not readable
+#   1: Failure - grep command failed (unexpected exit code)
+#   1: Failure - Invalid or non-numeric count returned by grep
+#
+# Error conditions:
+#   0: Success - Notes counted and TOTAL_NOTES exported (0 is valid count)
+#   1: File not found - XML file path does not exist
+#   1: Grep error - grep returned unexpected exit code (not 0 or 1)
+#   1: Invalid count - grep output is not a valid number
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - TOTAL_NOTES: Number of notes found (exported for calling scripts)
+#   Modifies: None
+#
+# Side effects:
+#   - Reads XML file using grep -c (counts <note pattern)
+#   - Exports TOTAL_NOTES environment variable
+#   - Writes log messages to stderr
+#   - No file modifications, database, or network operations
+#
+# Notes:
+#   - Uses grep -c for fast counting (suitable for large files)
+#   - Handles grep exit codes: 0 (matches found) and 1 (no matches) are both valid
+#   - 0 notes is a valid result (not an error)
+#   - Validates that count is numeric before exporting
+#   - Safe integer conversion (avoids base prefix issues with large numbers)
+#   - TOTAL_NOTES is exported for use by calling scripts
+#   - Planet format: counts '<note' pattern (matches <note> and <note ...>)
+#
+# Example:
+#   __countXmlNotesPlanet "${PLANET_NOTES_FILE}"
+#   echo "Found ${TOTAL_NOTES} notes"
+#
+#   if [[ "${TOTAL_NOTES}" -gt 0 ]]; then
+#     echo "Processing ${TOTAL_NOTES} notes"
+#   fi
+#
+# Related: __countXmlNotesAPI() (API format counting)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __countXmlNotesPlanet() {
  local XML_FILE="${1}"
 
@@ -801,6 +1088,79 @@ function __splitXmlForParallelPlanet() {
  return 1
 }
 
+##
+# Processes a single XML part for API notes using AWK extraction
+# Extracts notes, comments, and text comments from a single API XML part file into CSV files
+# using AWK. Extracts part number from filename, adjusts for PostgreSQL 1-based partitions,
+# adds part_id to CSV files, and loads data into database partition tables. Used during
+# parallel processing of API notes.
+#
+# Parameters:
+#   $1: XML_PART - Path to API XML part file (required, format: api_part_N.xml)
+#
+# Returns:
+#   0: Success - XML part processed and loaded successfully
+#   1: Failure - Invalid part number, CSV creation failed, or database load failed
+#
+# Error codes:
+#   0: Success - XML part processed and loaded successfully
+#   1: Failure - Invalid part number extracted from filename
+#   1: Failure - Notes CSV file creation failed
+#   1: Failure - Comments CSV file creation failed
+#   1: Failure - Database load failed (SQL execution error)
+#
+# Error conditions:
+#   0: Success - All CSV files created and loaded successfully
+#   1: Invalid filename - Part number cannot be extracted or is invalid
+#   1: AWK extraction failed - Notes or comments CSV not created
+#   1: Database load failed - SQL execution failed (check logs)
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for CSV files (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for AWK scripts (required)
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES: Path to SQL script template (required)
+#     - MAX_THREADS: Maximum threads for parallel operations (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Creates CSV files in TMP_DIR (notes, comments, text comments)
+#     - Loads data into database partition tables
+#
+# Side effects:
+#   - Extracts part number from filename (api_part_N.xml -> N)
+#   - Adjusts part number for PostgreSQL 1-based partitions (N+1)
+#   - Processes XML part with AWK (extract_notes.awk, extract_comments.awk, extract_comment_texts.awk)
+#   - Creates CSV files (output-notes-part-N.csv, output-comments-part-N.csv, output-text-part-N.csv)
+#   - Adds part_id column to CSV files
+#   - Loads CSV files into database partition tables (via SQL script)
+#   - Writes log messages to stderr
+#   - File operations: Creates CSV files, reads XML file
+#   - Database operations: Loads data into partition tables
+#   - No network operations
+#
+# Notes:
+#   - Part number extraction: api_part_N.xml -> N (0-based)
+#   - PostgreSQL partition adjustment: N+1 (1-based partitions)
+#   - Uses AWK for fast extraction (no external dependencies)
+#   - Adds part_id to CSV files for partition assignment
+#   - Loads data into partition tables (notes_sync_part_N, etc.)
+#   - Used during parallel processing (called by GNU parallel or sequentially)
+#   - Critical function: Part of parallel processing workflow
+#   - Handles empty text comments gracefully (creates empty file)
+#
+# Example:
+#   export TMP_DIR="/tmp"
+#   export DBNAME="osm_notes"
+#   __processApiXmlPart "/tmp/api_part_0.xml"
+#   # Processes part 0, creates CSVs, loads into partition 1
+#
+# Related: __splitXmlForParallelSafe() (splits XML into parts)
+# Related: __processPlanetXmlPart() (processes Planet XML parts)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Processes a single XML part for API notes using AWK extraction
 # Parameters:
 #   $1: XML part file path
@@ -986,6 +1346,165 @@ function __processApiXmlPart() {
 }
 
 # Processes a single XML part for Planet notes using AWK extraction
+##
+# Processes a single Planet XML part file using AWK extraction
+# Processes a single XML part file from Planet dump. Extracts notes, comments, and
+# text comments using AWK scripts, converts to CSV format, adds partition ID to each
+# CSV file, and loads data into database partition tables. Used by parallel processing
+# workers to process individual XML parts concurrently.
+#
+# Parameters:
+#   $1: XML_PART - Path to XML part file (e.g., planet_part_0.xml) (required)
+#
+# Returns:
+#   0: Success - Part processed and loaded successfully
+#   1: Failure - Invalid part number, CSV file creation failed, or database load failed
+#
+# Error codes:
+#   0: Success - Part processed and loaded successfully
+#   1: Failure - Invalid part number extracted from filename
+#   1: Failure - Notes CSV file was not created
+#   1: Failure - Comments CSV file was not created
+#   1: Failure - SQL file does not exist
+#   1: Failure - envsubst failed or produced empty SQL
+#   1: Failure - PostgreSQL session variable setting failed
+#   1: Failure - Database load failed (COPY command failed)
+#
+# Error conditions:
+#   0: Success - Part processed and loaded successfully
+#   1: Invalid part number - Cannot extract valid part number from filename
+#   1: Notes CSV creation failed - AWK script failed or file not created
+#   1: Comments CSV creation failed - AWK script failed or file not created
+#   1: SQL file missing - POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES does not exist
+#   1: envsubst failure - Variable substitution failed or produced empty SQL
+#   1: Database load failure - COPY command failed or psql returned error
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for CSV files (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for AWK scripts (required)
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - MAX_THREADS: Maximum number of threads (required)
+#     - POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES: Path to SQL script template (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - OUTPUT_NOTES_PART: Path to notes CSV file (exported)
+#     - OUTPUT_COMMENTS_PART: Path to comments CSV file (exported)
+#     - OUTPUT_TEXT_PART: Path to text comments CSV file (exported)
+#     - PART_ID: Partition ID (exported for envsubst)
+#     - MAX_THREADS: Exported for envsubst
+#   Modifies:
+#     - Creates CSV files in TMP_DIR
+#     - Loads data into database partition tables
+#
+# Side effects:
+#   - Extracts notes from XML using AWK (extract_notes.awk)
+#   - Extracts comments from XML using AWK (extract_comments.awk)
+#   - Extracts text comments from XML using AWK (extract_comment_texts.awk)
+#   - Adds partition ID to each CSV file (part_id column)
+#   - Sets PostgreSQL session variables (app.part_id, app.max_threads)
+#   - Executes COPY commands to load CSV data into partition tables
+#   - Writes log messages to stderr
+#   - Creates temporary CSV files in TMP_DIR
+#   - Database operations: COPY into partition tables
+#   - No network operations
+#
+# Notes:
+#   - Part number extraction: Extracts number from filename (planet_part_N.xml -> N)
+#   - PostgreSQL partitions are 1-based (part_1, part_2, ...), file names are 0-based (part_0, part_1, ...)
+#   - Adds 1 to part number to match PostgreSQL partition names
+#   - Uses AWK scripts for fast, dependency-free XML extraction
+#   - Adds part_id column to each CSV file for partition identification
+#   - Uses envsubst to substitute file paths and partition ID in SQL template
+#   - Critical function: Used by parallel processing workers
+#   - Performance: AWK extraction is fast and memory-efficient
+#   - Each worker processes one XML part independently
+#
+# Example:
+#   export TMP_DIR="/tmp"
+#   export DBNAME="osm_notes"
+#   export MAX_THREADS=8
+#   __processPlanetXmlPart "/tmp/parts/planet_part_0.xml"
+#   # Processes part 0, creates CSVs, loads into partition 1
+#
+# Related: __splitXmlForParallelSafe() (splits XML into parts)
+# Related: __processPlanetNotesWithParallel() (orchestrates parallel processing)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+# Processes a single XML part for Planet notes using AWK extraction
+# Extracts notes, comments, and text comments from a single Planet XML part file into CSV files
+# using AWK. Extracts part number from filename, adjusts for PostgreSQL 1-based partitions,
+# adds part_id to CSV files, and loads data into database partition tables. Used during
+# parallel processing of Planet notes.
+#
+# Parameters:
+#   $1: XML_PART - Path to Planet XML part file (required, format: planet_part_N.xml)
+#
+# Returns:
+#   0: Success - XML part processed and loaded successfully
+#   1: Failure - Invalid part number, CSV creation failed, or database load failed
+#
+# Error codes:
+#   0: Success - XML part processed and loaded successfully
+#   1: Failure - Invalid part number extracted from filename
+#   1: Failure - Notes CSV file creation failed
+#   1: Failure - Comments CSV file creation failed
+#   1: Failure - Database load failed (SQL execution error)
+#
+# Error conditions:
+#   0: Success - All CSV files created and loaded successfully
+#   1: Invalid filename - Part number cannot be extracted or is invalid
+#   1: AWK extraction failed - Notes or comments CSV not created
+#   1: Database load failed - SQL execution failed (check logs)
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for CSV files (required)
+#     - SCRIPT_BASE_DIRECTORY: Base directory for AWK scripts (required)
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_41_LOAD_PARTITIONED_SYNC_NOTES: Path to SQL script template (required)
+#     - MAX_THREADS: Maximum threads for parallel operations (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Creates CSV files in TMP_DIR (notes, comments, text comments)
+#     - Loads data into database partition tables
+#
+# Side effects:
+#   - Extracts part number from filename (planet_part_N.xml -> N)
+#   - Adjusts part number for PostgreSQL 1-based partitions (N+1)
+#   - Processes XML part with AWK (extract_notes.awk, extract_comments.awk, extract_comment_texts.awk)
+#   - Creates CSV files (output-notes-part-N.csv, output-comments-part-N.csv, output-text-part-N.csv)
+#   - Adds id_country (empty) and part_id columns to CSV files
+#   - Loads CSV files into database partition tables (via SQL script)
+#   - Writes log messages to stderr
+#   - File operations: Creates CSV files, reads XML file
+#   - Database operations: Loads data into partition tables
+#   - No network operations
+#
+# Notes:
+#   - Part number extraction: planet_part_N.xml -> N (0-based)
+#   - PostgreSQL partition adjustment: N+1 (1-based partitions)
+#   - Uses AWK for fast extraction (no external dependencies)
+#   - Adds id_country (empty) and part_id to CSV files for partition assignment
+#   - Loads data into partition tables (notes_sync_part_N, etc.)
+#   - Used during parallel processing (called by GNU parallel or sequentially)
+#   - Critical function: Part of parallel processing workflow
+#   - Handles empty text comments gracefully (creates empty file)
+#   - Similar to __processApiXmlPart() but for Planet format
+#
+# Example:
+#   export TMP_DIR="/tmp"
+#   export DBNAME="osm_notes"
+#   __processPlanetXmlPart "/tmp/planet_part_0.xml"
+#   # Processes part 0, creates CSVs, loads into partition 1
+#
+# Related: __splitXmlForParallelSafe() (splits XML into parts)
+# Related: __processApiXmlPart() (processes API XML parts)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Parameters:
 #   $1: XML part file path
 function __processPlanetXmlPart() {
@@ -1268,12 +1787,50 @@ function __processPlanetXmlPart() {
 # Returns:
 #   0 if valid, 1 if invalid
 
-# Validates JSON file structure and contains expected element
+##
+# Validates JSON file structure and verifies it contains expected element
+# Performs two-stage validation: first validates JSON syntax, then checks for required element.
+# Used to ensure downloaded Overpass API responses and GeoJSON files have correct structure.
+#
 # Parameters:
-#   $1: JSON file path
-#   $2: Expected element name (e.g., "elements" for OSM JSON, "features" for GeoJSON)
+#   $1: JSON file path - Path to JSON file to validate (required)
+#   $2: Expected element name - Name of required element (optional, e.g., "elements" for OSM JSON, "features" for GeoJSON)
+#
 # Returns:
-#   0 if valid and contains expected element, 1 if invalid or missing element
+#   0: Success - JSON is valid and contains expected element (if specified)
+#   1: Failure - JSON invalid, element missing, or element is empty
+#   2: Invalid argument - JSON file path is empty
+#   3: Missing dependency - jq command not found (required for element validation)
+#   7: File error - JSON file not found or cannot be read
+#
+# Error codes:
+#   0: Success - JSON syntax valid and element exists and is non-empty
+#   1: Failure - JSON syntax invalid, element missing, or element is null/empty
+#   2: Invalid argument - JSON file path parameter is empty
+#   3: Missing dependency - jq command not available (required when element specified)
+#   7: File error - JSON file does not exist or cannot be read
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Reads JSON file from filesystem
+#   - Executes jq command for element validation (if element specified)
+#   - Logs validation results to standard logger
+#   - No file modifications or network operations
+#
+# Example:
+#   if __validate_json_with_element "/tmp/data.json" "elements"; then
+#     echo "Valid OSM JSON with elements"
+#   else
+#     echo "Validation failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __validate_json_with_element {
  __log_start
  local JSON_FILE="${1}"
@@ -1958,6 +2515,142 @@ function __checkPrereqs_functions {
 # Checks the base tables if exist.
 # Returns: 0 if all base tables exist, non-zero if tables are missing or error occurs
 # Distinguishes between "tables missing" (should run --base) vs "connection/other errors"
+##
+# Checks if base tables exist in database
+# Verifies database connection and checks for existence of base tables (countries, notes,
+# note_comments, logs). Distinguishes between missing tables (safe to run --base) and
+# other errors (connection, permissions, etc.). Exports RET_FUNC for use by calling scripts.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Base tables exist
+#   1: Failure - Base tables are missing (safe to run --base)
+#   2: Failure - Database connection error or other system error (do NOT run --base)
+#
+# Error codes:
+#   0: Success - All base tables exist (countries, notes, note_comments, logs)
+#   1: Tables missing - Base tables are missing (expected on first run, safe to run --base)
+#   2: Connection error - Cannot connect to database (do NOT run --base)
+#   2: System error - Other error (permissions, SQL syntax, etc.) (do NOT run --base)
+#
+# Error conditions:
+#   0: Success - All required base tables exist
+#   1: Tables missing - One or more base tables missing (countries, notes, note_comments, logs)
+#   2: Connection failure - Cannot connect to database
+#   2: Unexpected error - psql failed but error is not about missing tables
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_11_CHECK_BASE_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - RET_FUNC: Return code exported for calling scripts (0, 1, or 2)
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to verify database connection
+#   - Executes psql to check table existence via SQL script
+#   - Exports RET_FUNC environment variable
+#   - Writes log messages to stderr
+#   - No file or network operations
+#   - Temporarily disables set -e (set +e) to handle errors gracefully
+#
+# Notes:
+#   - First verifies database connection before checking tables
+#   - Distinguishes between missing tables (code 1) and connection errors (code 2)
+#   - Code 1 indicates safe to run --base mode (tables need to be created)
+#   - Code 2 indicates system/database issue (do NOT run --base automatically)
+#   - Checks for tables: countries, notes, note_comments, logs
+#   - Uses SQL script to check table existence (more reliable than individual queries)
+#   - Exports RET_FUNC for use by calling scripts
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_11_CHECK_BASE_TABLES="/path/to/check_base_tables.sql"
+#   __checkBaseTables
+#   if [[ "${RET_FUNC}" -eq 1 ]]; then
+#     echo "Tables missing, running --base mode"
+#   elif [[ "${RET_FUNC}" -eq 2 ]]; then
+#     echo "Database connection error, manual investigation required"
+#   fi
+#
+# Related: __createBaseTables() (creates base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Checks if base database tables exist and verifies database connectivity
+# Verifies database connection and checks for existence of base tables (countries, notes,
+# note_comments, logs). Uses SQL script to perform comprehensive table existence check.
+# Distinguishes between "tables missing" (safe to run --base) and other errors (connection,
+# permissions, SQL syntax) which require manual investigation.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Base tables exist
+#   1: Tables missing - Base tables do not exist (safe to run --base)
+#   2: Connection error - Cannot connect to database (do NOT run --base automatically)
+#   Non-zero: Other error - SQL execution failed (do NOT run --base automatically)
+#
+# Error codes:
+#   0: Success - Base tables exist and are accessible
+#   1: Tables missing - Base tables do not exist (expected on first run, safe to run --base)
+#   2: Connection error - Cannot connect to database (system issue, NOT missing tables)
+#   Non-zero: Other error - SQL execution failed (permissions, syntax, etc., NOT missing tables)
+#
+# Error conditions:
+#   0: Success - Base tables exist
+#   1: Tables missing - SQL script detected missing tables (safe to run --base)
+#   2: Connection error - psql connection failed (database down, wrong credentials, etc.)
+#   Non-zero: Other error - SQL script failed for reasons other than missing tables
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_11_CHECK_BASE_TABLES: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - RET_FUNC: Return code (exported, used by calling script)
+#   Modifies: None
+#
+# Side effects:
+#   - Verifies database connection (SELECT 1 query)
+#   - Executes psql to check base table existence (via SQL script)
+#   - Writes log messages to stderr
+#   - Exports RET_FUNC for calling script to check
+#   - Uses set +e temporarily to handle errors gracefully
+#   - No file or network operations
+#
+# Notes:
+#   - Distinguishes between "tables missing" and other errors (critical for auto-initialization)
+#   - Returns code 1 for missing tables (safe to run --base)
+#   - Returns code 2 for connection errors (do NOT run --base automatically)
+#   - Returns non-zero for other errors (do NOT run --base automatically)
+#   - Used by scripts to determine if --base mode should be triggered automatically
+#   - Critical function: Prevents incorrect auto-initialization on connection/permission errors
+#   - SQL script checks for: countries, notes, note_comments, logs tables
+#   - Uses ON_ERROR_STOP=1 in SQL script to detect missing tables
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_11_CHECK_BASE_TABLES="/path/to/check_base_tables.sql"
+#   __checkBaseTables
+#   RET_CODE=$?
+#   if [[ ${RET_CODE} -eq 1 ]]; then
+#     echo "Tables missing, running --base mode"
+#   elif [[ ${RET_CODE} -eq 2 ]]; then
+#     echo "Connection error, manual investigation required"
+#   fi
+#
+# Related: __createBaseTables() (creates base tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __checkBaseTables {
  __log_start
  set +e
@@ -2041,6 +2734,66 @@ function __checkBaseTables {
 # Verifies if the base tables contain historical data.
 # This is critical for processAPI to ensure it doesn't run without historical context.
 # Returns: 0 if historical data exists, non-zero if validation fails
+##
+# Validates that historical data exists in base tables
+# Checks if base tables contain sufficient historical data (at least 30 days) by executing
+# SQL validation script. Ensures ProcessAPI can continue safely with incremental updates.
+# Returns error code via RET_FUNC export. Handles set -e gracefully to prevent script exit.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Historical data validation passed
+#   1: Failure - Historical data validation failed (insufficient or missing data)
+#
+# Error codes:
+#   0: Success - Historical data validation passed
+#   1: Failure - Historical data validation failed (SQL script returned error or ERROR: in output)
+#
+# Error conditions:
+#   0: Success - Historical data exists and is sufficient (at least 30 days)
+#   1: Failure - Historical data is missing or insufficient (less than 30 days)
+#   1: Failure - SQL script execution failed
+#   1: Failure - SQL output contains ERROR: (treated as failure even if exit code is 0)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - TMP_DIR: Temporary directory for output file (optional, default: /tmp)
+#     - POSTGRES_11_CHECK_HISTORICAL_DATA: Path to SQL validation script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - RET_FUNC: Return code (0 = success, 1 = failure, exported)
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to run historical data validation SQL script
+#   - Creates temporary output file for SQL results
+#   - Writes log messages to stderr
+#   - Exports RET_FUNC with return code
+#   - Handles set -e gracefully (temporarily disables if enabled)
+#   - No file, database, or network modifications
+#
+# Notes:
+#   - Validates that base tables contain at least 30 days of historical data
+#   - Required before ProcessAPI can process incremental updates
+#   - Handles set -e gracefully to prevent script exit on validation failure
+#   - Checks SQL output for ERROR: messages (treats as failure even if exit code is 0)
+#   - Critical function: Prevents ProcessAPI from running without historical context
+#   - Used by __validateHistoricalDataAndRecover() to ensure data integrity
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_11_CHECK_HISTORICAL_DATA="/path/to/check_historical_data.sql"
+#   __checkHistoricalData
+#   # RET_FUNC=0 if validation passed, RET_FUNC=1 if failed
+#
+# Related: __validateHistoricalDataAndRecover() (validates and recovers from gaps)
+# Related: processPlanetNotes.sh (loads historical data)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __checkHistoricalData {
  __log_start
  __logi "Validating historical data in base tables..."
@@ -2097,6 +2850,58 @@ function __checkHistoricalData {
 }
 
 # Drop generic objects.
+##
+# Drops generic database objects (functions, procedures, types, etc.)
+# Executes SQL script to drop generic database objects that are not tables.
+# Includes functions, procedures, types, sequences, and other database objects.
+# Used during cleanup or database reset operations.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Generic objects dropped successfully
+#   Non-zero: Failure - psql command failed
+#
+# Error codes:
+#   0: Success - Generic objects dropped successfully
+#   Non-zero: psql command failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - SQL script executed successfully
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - POSTGRES_12_DROP_GENERIC_OBJECTS: Path to SQL script (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to drop generic database objects
+#   - Drops functions, procedures, types, sequences, etc.
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Drops non-table objects (functions, procedures, types, sequences)
+#   - Used during cleanup or database reset operations
+#   - Part of database cleanup workflow
+#   - Does not drop tables (tables are dropped separately)
+#   - May fail silently if objects don't exist (depends on SQL script)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_12_DROP_GENERIC_OBJECTS="/path/to/drop_generic_objects.sql"
+#   __dropGenericObjects
+#
+# Related: __dropBaseTables() (drops base tables)
+# Related: __dropSyncTables() (drops sync tables)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __dropGenericObjects {
  __log_start
  __logi "Dropping generic objects."
@@ -2113,12 +2918,62 @@ function __dropGenericObjects {
 #   $2 - required_space_gb: Required space in GB (can be decimal)
 #   $3 - operation_name: Name of operation for logging (optional)
 #
+##
+# Checks available disk space in a directory
+# Validates that sufficient disk space is available for an operation. Compares
+# required space (in GB) with available space in the specified directory.
+# Handles decimal values and provides detailed logging. Returns 0 if enough
+# space is available, 1 if insufficient space. If disk space cannot be determined,
+# logs warning and returns 0 (proceeds anyway).
+#
+# Parameters:
+#   $1: DIRECTORY - Directory path to check disk space (required)
+#   $2: REQUIRED_GB - Required disk space in GB (decimal supported, e.g., "15.5") (required)
+#   $3: OPERATION_NAME - Name of operation for logging (optional, default: "file operation")
+#
 # Returns:
-#   0 if enough space is available
-#   1 if insufficient space
+#   0: Success - Enough space available (or cannot determine, proceeds anyway)
+#   1: Failure - Insufficient space or invalid parameters
+#
+# Error codes:
+#   0: Success - Enough space available
+#   1: Failure - Insufficient space, invalid directory, or missing required space parameter
+#
+# Error conditions:
+#   0: Success - Enough space available
+#   0: Warning - Cannot determine disk space (proceeds anyway)
+#   1: Invalid directory - Directory parameter is empty or directory does not exist
+#   1: Invalid required space - Required space parameter is empty
+#   1: Insufficient space - Available space is less than required space
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes df command to check disk space
+#   - Executes bc or awk for decimal calculations (if available)
+#   - Writes log messages to stderr
+#   - No file, database, or network operations
+#
+# Notes:
+#   - Supports decimal values for required space (e.g., "15.5" GB)
+#   - Uses df -BM to get available space in MB
+#   - Converts GB to MB for comparison (1 GB = 1024 MB)
+#   - Falls back to awk if bc is not available
+#   - If disk space cannot be determined, logs warning and returns 0 (proceeds anyway)
+#   - Provides detailed logging with directory, required, available, and shortfall
+#   - Used before large file operations (downloads, extractions, etc.)
+#   - Critical function: Prevents disk space issues during operations
 #
 # Example:
 #   __check_disk_space "/tmp" "15.5" "Planet download"
+#   # Checks if /tmp has at least 15.5 GB available
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __check_disk_space {
  __log_start
  local DIRECTORY="${1}"
@@ -2218,7 +3073,171 @@ function __check_disk_space {
  return 0
 }
 
-# Downloads the notes from the planet.
+##
+# Downloads Planet notes file from OSM Planet server
+# Downloads compressed Planet notes file (.bz2) and MD5 checksum file from OSM Planet server.
+# Validates disk space (requires ~20 GB), checks network connectivity, downloads file with
+# retry logic, and verifies MD5 checksum. Uses aria2c for multi-connection download.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - File downloaded and MD5 verified successfully
+#   Non-zero: Failure - Disk space, network, download, or MD5 verification failed
+#   Exits with error code on critical failures
+#
+# Error codes:
+#   0: Success - Planet notes file downloaded and MD5 verified
+#   ERROR_GENERAL: Insufficient disk space (exits script)
+#   ERROR_INTERNET_ISSUE: Network connectivity check failed (exits script)
+#   ERROR_DOWNLOADING_NOTES: Download failed after retries (exits script)
+#   Non-zero: MD5 verification failed (exits script)
+#
+# Error conditions:
+#   0: Success - File downloaded, moved to expected location, and MD5 verified
+#   ERROR_GENERAL: Insufficient disk space (<20 GB available)
+#   ERROR_INTERNET_ISSUE: Network connectivity check failed
+#   ERROR_DOWNLOADING_NOTES: aria2c download failed after 3 retries
+#   ERROR_DOWNLOADING_NOTES: Downloaded file not found at expected location
+#   Non-zero: MD5 checksum verification failed
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for download (required)
+#     - PLANET: OSM Planet server base URL (required)
+#     - PLANET_NOTES_NAME: Planet notes filename without extension (required, default: planet-notes-latest.osn)
+#     - PLANET_NOTES_FILE: Expected location for downloaded file (required)
+#     - DOWNLOAD_USER_AGENT: User agent string for HTTP requests (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_GENERAL: Error code for general failures (defined in commonFunctions.sh)
+#     - ERROR_INTERNET_ISSUE: Error code for network issues (defined in commonFunctions.sh)
+#     - ERROR_DOWNLOADING_NOTES: Error code for download failures (defined in commonFunctions.sh)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes disk space check (~20 GB required)
+#   - Executes network connectivity check
+#   - Downloads compressed file (.bz2) using aria2c (multi-connection, 8 connections)
+#   - Downloads MD5 checksum file (.bz2.md5)
+#   - Moves downloaded file to expected location (PLANET_NOTES_FILE.bz2)
+#   - Verifies MD5 checksum of downloaded file
+#   - Creates temporary files during download
+#   - Writes log messages to stderr
+#   - Exits script on critical failures (does not return)
+#
+# Notes:
+#   - Requires ~20 GB disk space (compressed: ~2 GB, decompressed: ~10 GB, CSV: ~5 GB, margin: ~3 GB)
+#   - Uses aria2c for multi-connection download (8 connections, faster than curl)
+#   - Downloads to TMP_DIR first, then moves to PLANET_NOTES_FILE.bz2
+#   - Verifies MD5 checksum to ensure file integrity
+#   - Uses retry logic (3 retries, 10 second backoff) for download
+#   - Network connectivity check uses 15 second timeout
+#   - File size: compressed ~2 GB, decompressed ~10 GB
+#   - Critical function: exits script on failure (does not return)
+#
+# Example:
+#   export TMP_DIR="/tmp"
+#   export PLANET="https://planet.openstreetmap.org"
+#   export PLANET_NOTES_NAME="planet-notes-latest.osn"
+#   export PLANET_NOTES_FILE="/tmp/planet_notes.xml"
+#   __downloadPlanetNotes
+#
+# Related: __check_disk_space() (disk space validation)
+# Related: __check_network_connectivity() (network connectivity check)
+# Related: __retry_file_operation() (download retry logic)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Downloads Planet notes file from OSM Planet server
+# Downloads compressed Planet notes file (.bz2) from OSM Planet server using aria2c with
+# retry logic. Validates disk space (20 GB required), checks network connectivity,
+# downloads MD5 checksum file, and validates file integrity. Moves downloaded file to
+# expected location. Part of Planet processing workflow.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Planet notes downloaded and validated successfully
+#   ERROR_GENERAL: Failure - Insufficient disk space
+#   ERROR_INTERNET_ISSUE: Failure - Network connectivity check failed
+#   ERROR_DOWNLOADING_NOTES: Failure - Download failed after retries or integrity check failed
+#
+# Error codes:
+#   0: Success - Planet notes downloaded and validated successfully
+#   ERROR_GENERAL: Insufficient disk space - Less than 20 GB available
+#   ERROR_INTERNET_ISSUE: Network connectivity failed - Cannot reach Planet server
+#   ERROR_DOWNLOADING_NOTES: Download failed - aria2c failed after 3 retries
+#   ERROR_DOWNLOADING_NOTES: MD5 download failed - curl failed after 3 retries
+#   ERROR_DOWNLOADING_NOTES: Integrity check failed - MD5 checksum mismatch
+#   ERROR_DOWNLOADING_NOTES: File not readable - Downloaded file exists but is not readable
+#
+# Error conditions:
+#   0: Success - File downloaded, MD5 validated, and file is readable
+#   ERROR_GENERAL: Insufficient disk space - __check_disk_space returned error
+#   ERROR_INTERNET_ISSUE: Network check failed - __check_network_connectivity returned error
+#   ERROR_DOWNLOADING_NOTES: Download failed - aria2c failed after 3 retries (10 second delay)
+#   ERROR_DOWNLOADING_NOTES: File not found - Downloaded file not at expected location
+#   ERROR_DOWNLOADING_NOTES: MD5 download failed - curl failed after 3 retries (5 second delay)
+#   ERROR_DOWNLOADING_NOTES: Integrity check failed - MD5 checksum mismatch
+#   ERROR_DOWNLOADING_NOTES: File not readable - File exists but cannot be read
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for downloads (required)
+#     - PLANET: OSM Planet server base URL (required)
+#     - PLANET_NOTES_NAME: Planet notes filename without extension (required)
+#     - PLANET_NOTES_FILE: Expected path for Planet notes file (required)
+#     - DOWNLOAD_USER_AGENT: User agent for HTTP requests (optional)
+#     - ERROR_GENERAL: Error code for general errors (defined in calling script)
+#     - ERROR_INTERNET_ISSUE: Error code for network issues (defined in calling script)
+#     - ERROR_DOWNLOADING_NOTES: Error code for download failures (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Downloads Planet notes file (.bz2) to TMP_DIR
+#     - Moves downloaded file to PLANET_NOTES_FILE.bz2
+#     - Downloads MD5 checksum file (removed after validation)
+#
+# Side effects:
+#   - Validates disk space (20 GB required)
+#   - Checks network connectivity (15 second timeout)
+#   - Downloads Planet notes file using aria2c (8 connections, retry logic)
+#   - Downloads MD5 checksum file using curl (retry logic)
+#   - Validates file integrity using MD5 checksum
+#   - Moves downloaded file to expected location
+#   - Removes MD5 file after validation
+#   - Creates failed execution marker on error
+#   - Writes log messages to stderr
+#   - File operations: Downloads, moves, validates files
+#   - Network operations: HTTP downloads from Planet server
+#   - No database operations
+#
+# Notes:
+#   - Disk space requirement: ~20 GB (compressed: 2 GB, decompressed: 10 GB, CSV: 5 GB, margin: 3.4 GB)
+#   - Uses aria2c for fast download (8 connections, retry logic: 3 attempts, 10 second delay)
+#   - Downloads MD5 checksum file for integrity validation
+#   - Validates file integrity before proceeding (prevents corrupted downloads)
+#   - Moves downloaded file to expected location (PLANET_NOTES_FILE.bz2)
+#   - Critical function: Required for Planet processing workflow
+#   - Used in base mode (--base) when loading Planet data from scratch
+#   - File size: ~2 GB compressed, ~10 GB decompressed
+#
+# Example:
+#   export TMP_DIR="/tmp"
+#   export PLANET="https://planet.openstreetmap.org"
+#   export PLANET_NOTES_NAME="planet-notes-latest.osn"
+#   export PLANET_NOTES_FILE="/tmp/OSM-notes-planet.xml"
+#   __downloadPlanetNotes
+#   # Downloads Planet notes, validates integrity, moves to expected location
+#
+# Related: __check_disk_space() (validates disk space)
+# Related: __check_network_connectivity() (validates network)
+# Related: __validate_file_checksum_from_file() (validates file integrity)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __downloadPlanetNotes {
  __log_start
 
@@ -2392,6 +3411,63 @@ function __downloadPlanetNotes {
 # * -30 - 25: West Europe and West Africa.
 # * 25 - 65: Middle East, East Africa and Russia.
 # * 65 - 180: Southeast Asia and Oceania.
+##
+# Creates or replaces the get_country PostgreSQL function
+# Creates the get_country function used for country lookup by coordinates.
+# If countries table exists, creates full function; otherwise creates stub function.
+# The stub function returns NULL when countries table doesn't exist, allowing
+# procedures to work without country assignment until countries table is loaded.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Function created successfully (full or stub)
+#   1: Failure - SQL file not found or psql execution failed
+#
+# Error codes:
+#   0: Success - get_country function created or replaced successfully
+#   1: Failure - Required SQL file not found or psql command failed
+#
+# Error conditions:
+#   0: Success - Function created successfully (checks countries table existence)
+#   1: SQL file missing - POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB not found (when table missing)
+#   1: SQL file missing - POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY not found (when table exists)
+#   1: Database error - psql command failed (connection error, SQL syntax error, etc.)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name for connection identification (optional)
+#     - POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB: Path to stub function SQL file (required if countries table missing)
+#     - POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY: Path to full function SQL file (required if countries table exists)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql queries to check countries table existence
+#   - Executes psql to create or replace get_country function in database
+#   - Creates stub function (returns NULL) if countries table doesn't exist
+#   - Creates full function (looks up country by coordinates) if countries table exists
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Checks countries table existence before deciding which function to create
+#   - Stub function allows procedures to work without country assignment
+#   - Full function requires countries table to be populated
+#   - To create full function after stub, run updateCountries.sh --base first
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB="/path/to/stub.sql"
+#   export POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="/path/to/full.sql"
+#   __createFunctionToGetCountry
+#
+# Related: __organizeAreas() (organizes countries into geographic areas)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __createFunctionToGetCountry {
  __log_start
  # Check if countries table exists before creating get_country function
@@ -2417,7 +3493,66 @@ function __createFunctionToGetCountry {
  __log_finish
 }
 
-# Creates procedures to insert notes and comments.
+##
+# Creates PostgreSQL procedures for inserting notes and comments
+# Creates two stored procedures: one for inserting OSM notes and one for inserting note comments.
+# These procedures are used by the ingestion process to insert data into the database.
+# Validates that required SQL files exist before execution.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exits with ERROR_MISSING_LIBRARY if required variables/files are missing
+#   Returns 0 if procedures created successfully
+#   Exits with psql exit code if SQL execution fails
+#
+# Error codes:
+#   0: Success - Both procedures created successfully
+#   ERROR_MISSING_LIBRARY: Required environment variable or SQL file missing
+#   Non-zero: psql command failed (SQL syntax error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - Both insert_note and insert_note_comment procedures created
+#   ERROR_MISSING_LIBRARY: POSTGRES_22_CREATE_PROC_INSERT_NOTE variable not defined
+#   ERROR_MISSING_LIBRARY: POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT variable not defined
+#   ERROR_MISSING_LIBRARY: POSTGRES_22_CREATE_PROC_INSERT_NOTE SQL file not found
+#   ERROR_MISSING_LIBRARY: POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT SQL file not found
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name for connection identification (optional)
+#     - POSTGRES_22_CREATE_PROC_INSERT_NOTE: Path to insert_note procedure SQL file (required)
+#     - POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT: Path to insert_note_comment procedure SQL file (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_MISSING_LIBRARY: Error code for missing library/file (defined in commonFunctions.sh)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql to create insert_note procedure in database
+#   - Executes psql to create insert_note_comment procedure in database
+#   - Exits script if required variables/files are missing (does not return)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Uses ON_ERROR_STOP=1 to ensure SQL errors cause immediate failure
+#   - Procedures are created in the public schema
+#   - Procedures are used by note ingestion scripts
+#   - Must be called after database schema is initialized
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_22_CREATE_PROC_INSERT_NOTE="/path/to/insert_note.sql"
+#   export POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="/path/to/insert_comment.sql"
+#   __createProcedures
+#
+# Related: __createFunctionToGetCountry() (creates get_country function)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __createProcedures {
  __log_start
  __logd "Creating procedures."
@@ -2463,9 +3598,65 @@ function __createProcedures {
  __log_finish
 }
 
-# Assigns a value to each area to find it easily.
-# This function organizes countries into geographic areas for efficient
-# country lookup. It requires the countries table to exist and have data.
+##
+# Organizes countries into geographic areas for efficient country lookup
+# Assigns representative country values to each geographic area to optimize
+# country lookup operations. Requires countries table to exist and have data.
+# This function is used to improve performance of get_country function calls.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Areas organized successfully, or skipped if prerequisites not met
+#   Exits with ERROR_MISSING_LIBRARY if required variable/file is missing
+#   Returns psql exit code if SQL execution fails
+#
+# Error codes:
+#   0: Success - Areas organized successfully or skipped (table missing/empty)
+#   ERROR_MISSING_LIBRARY: Required environment variable or SQL file missing
+#   Non-zero: psql command failed (SQL syntax error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - Areas organized successfully
+#   0: Skipped - Countries table does not exist (logged as warning, returns 0)
+#   0: Skipped - Countries table is empty (logged as warning, returns 0)
+#   ERROR_MISSING_LIBRARY: POSTGRES_31_ORGANIZE_AREAS variable not defined
+#   ERROR_MISSING_LIBRARY: POSTGRES_31_ORGANIZE_AREAS SQL file not found
+#   Non-zero: psql execution failed (check psql error message)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name for connection identification (optional)
+#     - POSTGRES_31_ORGANIZE_AREAS: Path to organize_areas SQL file (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#     - ERROR_MISSING_LIBRARY: Error code for missing library/file (defined in commonFunctions.sh)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Executes psql queries to check countries table existence and data count
+#   - Executes psql to run organize_areas SQL script (inserts representative countries)
+#   - Exits script if required variable/file is missing (does not return)
+#   - Writes log messages to stderr
+#   - No file or network operations
+#
+# Notes:
+#   - Gracefully skips if countries table doesn't exist or is empty
+#   - Uses ON_ERROR_STOP=1 to ensure SQL errors cause immediate failure
+#   - Must be called after countries table is populated
+#   - Improves performance of get_country function by organizing countries into areas
+#   - Run updateCountries.sh --base to create and populate countries table first
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export POSTGRES_31_ORGANIZE_AREAS="/path/to/organize_areas.sql"
+#   __organizeAreas
+#
+# Related: __createFunctionToGetCountry() (creates get_country function)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __organizeAreas {
  __log_start
  __logd "Organizing areas."
@@ -2528,13 +3719,66 @@ function __processBoundary {
  __processBoundary_impl "$@"
 }
 
-# Download using Overpass with fallback across multiple endpoints and validate JSON
+##
+# Downloads boundary data from Overpass API with fallback across multiple endpoints
+# Attempts download from each configured endpoint until one succeeds and validates JSON.
+# Uses retry logic with exponential backoff and validates downloaded JSON structure.
+#
 # Parameters:
-#   $1: Query file path
-#   $2: Output JSON file path
-#   $3: Output capture/stderr file for Overpass tool (used by retry function)
-#   $4: Max retries used by underlying retry function
-#   $5: Base delay used by underlying retry function
+#   $1: Query file path - Path to Overpass query file (required)
+#   $2: Output JSON file path - Path where downloaded JSON will be saved (required)
+#   $3: Output capture/stderr file - Path for Overpass tool stderr output (required)
+#   $4: Max retries - Maximum retry attempts per endpoint (optional, default: from OVERPASS_RETRIES_PER_ENDPOINT)
+#   $5: Base delay - Base delay in seconds for exponential backoff (optional, default: from OVERPASS_BACKOFF_SECONDS)
+#
+# Returns:
+#   0: Success - JSON downloaded and validated from at least one endpoint
+#   1: Failure - All endpoints failed or downloaded JSON is invalid
+#   2: Invalid argument - Missing required parameters (query file or output file)
+#   3: Missing dependency - curl command not found
+#   6: Network error - All endpoints unavailable or timeout
+#   7: File error - Cannot create output file or write permissions denied
+#   8: Validation error - Downloaded JSON is invalid or missing 'elements' key
+#
+# Error codes:
+#   0: Success - Valid JSON downloaded from at least one endpoint
+#   1: Failure - All endpoints exhausted or JSON validation failed
+#   2: Invalid argument - Query file path is empty or output file path is empty
+#   3: Missing dependency - curl command not available
+#   6: Network error - All Overpass endpoints unavailable or connection timeout
+#   7: File error - Cannot write to output file (disk full, permissions)
+#   8: Validation error - JSON structure invalid or missing required 'elements' array
+#
+# Context variables:
+#   Reads:
+#     - OVERPASS_ENDPOINTS: Comma-separated list of Overpass API endpoints (optional, falls back to OVERPASS_INTERPRETER)
+#     - OVERPASS_INTERPRETER: Default Overpass API endpoint URL (required if OVERPASS_ENDPOINTS not set)
+#     - OVERPASS_RETRIES_PER_ENDPOINT: Max retries per endpoint (default: 7)
+#     - OVERPASS_BACKOFF_SECONDS: Base delay for retries (default: 20)
+#     - DOWNLOAD_USER_AGENT: User-Agent header for HTTP requests (optional, default: OSM-Notes-Ingestion/1.0)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - CURRENT_OVERPASS_ENDPOINT: Currently active endpoint URL (exported)
+#     - OVERPASS_ACTIVE_ENDPOINT: Currently active endpoint URL (exported)
+#   Modifies: None
+#
+# Side effects:
+#   - Downloads JSON file from Overpass API using curl
+#   - Creates output JSON file and stderr capture file
+#   - Validates JSON structure using __validate_json_with_element
+#   - Exports CURRENT_OVERPASS_ENDPOINT and OVERPASS_ACTIVE_ENDPOINT environment variables
+#   - Logs all operations to standard logger
+#   - Cleans up output files before each endpoint attempt
+#
+# Example:
+#   if __overpass_download_with_endpoints "/tmp/query.op" "/tmp/output.json" "/tmp/stderr.log" 5 10; then
+#     echo "Download succeeded"
+#   else
+#     echo "Download failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __overpass_download_with_endpoints() {
  __log_start
  local LOCAL_QUERY_FILE="$1"
@@ -2706,6 +3950,51 @@ function __processMaritimes {
 }
 
 # Gets the area of each note.
+##
+# Assigns countries to notes using location data (wrapper function)
+# Wrapper function that delegates to __getLocationNotes_impl() for country assignment.
+# Supports two modes: production mode (loads backup CSV for speed) and hybrid/test mode
+# (calculates countries directly). In production mode, loads note location backup CSV,
+# imports to database, and verifies integrity using parallel processing. In hybrid/test
+# mode, calculates countries only for notes without country assignment using get_country()
+# function.
+#
+# Parameters:
+#   $@: Optional arguments passed to implementation function (optional)
+#
+# Returns:
+#   0: Success - Countries assigned successfully (or no notes to process)
+#   1: Failure - Database error, file operation error, or verification failure
+#
+# Error codes:
+#   0: Success - Countries assigned successfully
+#   1: Failure - Database error, file operation error, or verification failure
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - HYBRID_MOCK_MODE: If set, uses test mode (optional)
+#     - TEST_MODE: If set, uses test mode (optional)
+#     - CSV_BACKUP_NOTE_LOCATION_COMPRESSED: Path to compressed backup CSV (optional)
+#     - POSTGRES_32_UPLOAD_NOTE_LOCATION: SQL script path (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Updates id_country column in notes table
+#
+# Side effects:
+#   - Delegates to __getLocationNotes_impl() for actual processing
+#   - See __getLocationNotes_impl() for detailed side effects
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   __getLocationNotes
+#   # Assigns countries to notes using location data
+#
+# Related: __getLocationNotes_impl() (implementation function)
+# Related: __createFunctionToGetCountry() (creates get_country function)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __getLocationNotes {
  __getLocationNotes_impl "$@"
 }

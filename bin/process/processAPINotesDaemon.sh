@@ -498,6 +498,71 @@ function __trapOn() {
 }
 
 # Daemon initialization (runs once at startup)
+##
+# Initializes daemon for API notes processing
+# Performs one-time initialization tasks for daemon mode. Checks prerequisites, sets up
+# error traps, checks base tables, validates historical data, and ensures ENUMs exist.
+# Handles missing base tables gracefully (allows daemon to continue and auto-initialize
+# on first cycle). Called once at daemon startup.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Daemon initialized successfully
+#   Non-zero: Failure - Prerequisites check failed or initialization error
+#
+# Error codes:
+#   0: Success - Daemon initialized successfully
+#   Non-zero: Failure - Prerequisites check failed or initialization error
+#
+# Error conditions:
+#   0: Success - Daemon initialized successfully
+#   Non-zero: Prerequisites check failed - __checkPrereqs returned error
+#   Non-zero: Initialization error - Error during ENUM creation or other initialization
+#
+# Context variables:
+#   Reads:
+#     - SCRIPT_BASE_DIRECTORY: Base directory for scripts (required)
+#     - DBNAME: PostgreSQL database name (required)
+#     - RET_FUNC: Return code from __checkBaseTables (set by function)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - RET_FUNC: Return code from __checkBaseTables (exported)
+#   Modifies:
+#     - Creates ENUMs if needed (for API tables)
+#
+# Side effects:
+#   - Checks prerequisites (__checkPrereqs)
+#   - Sets up error traps (__trapOn)
+#   - Checks for running Planet processes (__checkNoProcessPlanet)
+#   - Checks base tables (__checkBaseTables)
+#   - Validates historical data if base tables exist (__validateHistoricalDataAndRecover)
+#   - Creates ENUMs if needed (for API tables)
+#   - Writes log messages to stderr
+#   - Temporarily disables set -e during base table check
+#   - Database operations: Queries base tables, creates ENUMs
+#   - No file or network operations
+#
+# Notes:
+#   - One-time initialization (called once at daemon startup)
+#   - Handles missing base tables gracefully (allows daemon to continue)
+#   - Daemon will auto-initialize database on first cycle if base tables missing
+#   - Creates ENUMs independently (needed for API tables even if base tables don't exist)
+#   - Critical function: Initializes daemon for continuous operation
+#   - Used by daemon main loop before starting processing cycles
+#
+# Example:
+#   export SCRIPT_BASE_DIRECTORY="/path/to/scripts"
+#   export DBNAME="osm_notes"
+#   __daemon_init
+#   # Initializes daemon, checks prerequisites, validates data
+#
+# Related: __process_api_data() (processes API data in daemon loop)
+# Related: __checkBaseTables() (checks if base tables exist)
+# Related: __validateHistoricalDataAndRecover() (validates historical data)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __daemon_init {
  __log_start
  __logi "=== DAEMON INITIALIZATION ==="
@@ -607,6 +672,61 @@ function __daemon_init {
  __log_finish
 }
 
+##
+# Prepares API tables for processing (truncates if exist, creates if not)
+# Checks if API tables exist and either truncates them (if exist) or creates them (if not).
+# Truncation is faster than dropping and recreating tables. Used at start of each daemon
+# cycle to ensure tables are clean before loading new API data.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - API tables prepared successfully (truncated or created)
+#   Non-zero: Failure - Table truncation or creation failed
+#
+# Error codes:
+#   0: Success - API tables prepared successfully
+#   Non-zero: psql execution failed (SQL error, connection error, etc.)
+#
+# Error conditions:
+#   0: Success - Tables truncated or created successfully
+#   Non-zero: psql execution failed (ON_ERROR_STOP=1 causes immediate failure)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Truncates API tables if they exist (notes_api, note_comments_api, note_comments_text_api)
+#     - Creates API tables if they don't exist (via __createApiTables)
+#
+# Side effects:
+#   - Queries database to check if API tables exist
+#   - Truncates API tables if they exist (faster than drop/create)
+#   - Creates API tables if they don't exist (via __createApiTables)
+#   - Writes log messages to stderr
+#   - Database operations: Queries information_schema, TRUNCATE or CREATE TABLE
+#   - No file or network operations
+#
+# Notes:
+#   - Truncation is faster than dropping and recreating tables
+#   - Used at start of each daemon cycle to ensure clean tables
+#   - Prevents data accumulation across cycles
+#   - Critical function: Required before processing API data in daemon mode
+#   - Tables are truncated with CASCADE to handle foreign key constraints
+#   - Equivalent to __createApiTables but with truncation optimization
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   __prepareApiTables
+#   # Truncates existing tables or creates them if missing
+#
+# Related: __createApiTables() (creates API tables)
+# Related: __process_api_data() (calls this function before processing)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Prepare API tables (truncate if exist, create if not)
 function __prepareApiTables {
  __log_start
@@ -639,6 +759,76 @@ EOF
  __log_finish
 }
 
+##
+# Checks API for updates (lightweight check)
+# Performs a lightweight check to determine if the OSM Notes API has updates since the last
+# processed timestamp. Uses limit=1 query to minimize bandwidth and processing time.
+# Returns true if updates are available, false otherwise. Used by daemon to skip processing
+# cycles when no updates are available.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Updates available (or no timestamp, triggers full download)
+#   1: Failure - No updates available or API check failed
+#
+# Error codes:
+#   0: Success - Updates detected (or no timestamp, will trigger full download)
+#   1: Failure - No updates detected
+#   1: Failure - API check failed (network error, timeout, etc.)
+#
+# Error conditions:
+#   0: Success - Updates detected (note count > 0)
+#   0: Success - No timestamp (triggers full download)
+#   1: No updates - Note count = 0 (no updates available)
+#   1: API check failed - curl failed (network error, timeout, etc.)
+#
+# Context variables:
+#   Reads:
+#     - LAST_PROCESSED_TIMESTAMP: Last processed timestamp (optional)
+#     - OSM_API: OSM Notes API base URL (required)
+#     - TMP_DIR: Temporary directory (required)
+#     - DOWNLOAD_USER_AGENT: User agent for API requests (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Creates temporary file for API check (removed after use)
+#
+# Side effects:
+#   - Queries OSM Notes API with limit=1 to check for updates
+#   - Creates temporary file for API response
+#   - Parses XML to count notes
+#   - Removes temporary file after use
+#   - Writes log messages to stderr
+#   - Network operations: HTTP GET request to OSM Notes API
+#   - File operations: Creates and removes temporary file
+#   - No database operations
+#
+# Notes:
+#   - Lightweight check using limit=1 to minimize bandwidth
+#   - Returns true if no timestamp (triggers full download)
+#   - Returns true if updates detected (note count > 0)
+#   - Returns false if no updates (note count = 0)
+#   - Returns false if API check failed (allows retry on next cycle)
+#   - Used by daemon to skip processing cycles when no updates available
+#   - Critical function: Optimizes daemon performance by skipping unnecessary cycles
+#   - Uses 10 second timeout for API check
+#
+# Example:
+#   export LAST_PROCESSED_TIMESTAMP="2025-01-20T10:00:00Z"
+#   export OSM_API="https://api.openstreetmap.org/api/0.6"
+#   export TMP_DIR="/tmp"
+#   if __check_api_for_updates; then
+#     echo "Updates available, processing..."
+#   else
+#     echo "No updates, skipping cycle"
+#   fi
+#
+# Related: __process_api_data() (processes API data if updates available)
+# Related: __getNewNotesFromApi() (downloads full dataset)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Check API for updates (lightweight check)
 function __check_api_for_updates {
  __log_start
@@ -682,6 +872,86 @@ function __check_api_for_updates {
 # Process API data
 # Returns: 0 on success, 1 on error
 # Sets global variable PROCESSING_DURATION with processing time in seconds
+##
+# Processes API data in daemon mode
+# Main processing function for daemon mode. Handles empty database detection and automatic
+# initialization via processPlanetNotes.sh --base. Downloads, validates, and processes API
+# notes. Handles both empty database scenario (auto-initialization) and normal processing
+# scenario. Called once per daemon cycle.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - API data processed successfully
+#   1: Failure - Planet base load failed or API download/processing failed
+#
+# Error codes:
+#   0: Success - API data processed successfully
+#   1: Failure - Planet base load failed (exits function)
+#   1: Failure - API download failed (exits function)
+#   1: Failure - API processing failed (exits function)
+#
+# Error conditions:
+#   0: Success - API data processed successfully
+#   1: Planet base load failed - processPlanetNotes.sh --base returned non-zero exit code
+#   1: API download failed - __getNewNotesFromApi returned non-zero exit code
+#   1: API processing failed - Validation or processing steps failed
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - NOTES_SYNC_SCRIPT: Path to processPlanetNotes.sh script (required)
+#     - LOCK_DIR: Lock directory (required)
+#     - BASENAME: Script basename (required)
+#     - LAST_PROCESSED_TIMESTAMP: Last processed timestamp (optional)
+#     - SKIP_XML_VALIDATION: If "true", skips XML validation (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - LAST_PROCESSED_TIMESTAMP: Updated after successful processing
+#     - PROCESSING_DURATION: Cycle duration in seconds
+#   Modifies:
+#     - Unsets lock-related variables before Planet base load (LOCK, LOCK_DIR, TMP_DIR, LOG_DIR, LOG_FILENAME)
+#     - Reinitializes directories after Planet base load
+#     - Updates DAEMON_SHUTDOWN_FLAG path after reinitialization
+#
+# Side effects:
+#   - Checks if database is empty (max_note_timestamp table, notes table)
+#   - Executes processPlanetNotes.sh --base if database is empty (auto-initialization)
+#   - Reinitializes directories after Planet base load
+#   - Creates API tables and procedures before processing
+#   - Downloads API notes (__getNewNotesFromApi)
+#   - Validates API notes file (__validateApiNotesFile)
+#   - Validates and processes API XML (__validateApiNotesXMLFileComplete, __processXMLorPlanet)
+#   - Inserts new notes and comments (__insertNewNotesAndComments)
+#   - Loads API text comments (__loadApiTextComments)
+#   - Updates last processed timestamp (__updateLastValue)
+#   - Writes log messages to stderr
+#   - Database operations: Queries tables, inserts notes/comments, updates timestamp
+#   - File operations: Downloads API notes, manages lock files
+#   - Network operations: Downloads API notes
+#
+# Notes:
+#   - Handles empty database scenario (auto-initialization via processPlanetNotes.sh --base)
+#   - Releases lock-related variables before Planet base load to prevent conflicts
+#   - Reinitializes directories after Planet base load
+#   - Ensures API tables and procedures exist before processing
+#   - Equivalent to processAPINotes.sh main processing flow
+#   - Called once per daemon cycle
+#   - Critical function: Main processing logic for daemon mode
+#   - Takes approximately 1-2 hours for Planet base load (first cycle only)
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   export NOTES_SYNC_SCRIPT="/path/to/processPlanetNotes.sh"
+#   __process_api_data
+#   # Processes API data, auto-initializes database if empty
+#
+# Related: __daemon_init() (initializes daemon)
+# Related: __daemon_loop() (main daemon loop)
+# Related: __check_api_for_updates() (checks if API has updates)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __process_api_data {
  __log_start
  __logi "=== PROCESSING API DATA ==="
@@ -1001,6 +1271,76 @@ EOF
 }
 
 # Main daemon loop
+##
+# Main daemon loop for continuous API processing
+# Runs continuous processing cycles checking for API updates and processing them. Handles
+# shutdown flag detection, consecutive error tracking, and adaptive sleep timing based on
+# processing duration. Prepares API tables at start of each cycle and processes updates
+# when available. Exits gracefully on shutdown flag or after maximum consecutive errors.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Always returns 0 (loop exits via break, not return)
+#
+# Error codes:
+#   0: Success - Loop exited gracefully (shutdown flag or max errors)
+#
+# Error conditions:
+#   0: Success - Loop exited gracefully
+#   N/A: Loop runs indefinitely until shutdown flag or max consecutive errors
+#
+# Context variables:
+#   Reads:
+#     - DAEMON_SLEEP_INTERVAL: Sleep interval between cycles in seconds (required)
+#     - DAEMON_SHUTDOWN_FLAG: Path to shutdown flag file (required)
+#     - BASE_TABLES_EXIST: Whether base tables exist (0=exist, 1=missing) (required)
+#     - PROCESSING_DURATION: Processing duration in seconds (set by __process_api_data)
+#     - ERROR_GENERAL: Error code for general errors (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - PROCESSING_DURATION: Updated after each processing cycle
+#   Modifies:
+#     - Removes shutdown flag file when detected
+#     - Creates failed execution marker on max consecutive errors
+#
+# Side effects:
+#   - Checks for shutdown flag at start of each cycle
+#   - Prepares API tables at start of each cycle (if base tables exist)
+#   - Checks API for updates (lightweight check)
+#   - Processes API data if updates available (via __process_api_data)
+#   - Tracks consecutive errors (exits after MAX_CONSECUTIVE_ERRORS)
+#   - Calculates adaptive sleep time based on processing duration
+#   - Sleeps between cycles (adaptive timing)
+#   - Creates failed execution marker on max consecutive errors
+#   - Writes log messages to stderr
+#   - Database operations: Via __process_api_data
+#   - File operations: Shutdown flag removal, failed marker creation
+#   - Network operations: Via __check_api_for_updates and __process_api_data
+#
+# Notes:
+#   - Runs indefinitely until shutdown flag or max consecutive errors
+#   - Adaptive sleep timing: sleeps remaining interval after processing
+#   - If processing takes >= DAEMON_SLEEP_INTERVAL, continues immediately (sleep=0)
+#   - Tracks consecutive errors (exits after 5 consecutive errors)
+#   - Prepares API tables at start of each cycle (ensures clean tables)
+#   - Skips API table preparation if base tables don't exist (will be created by Planet --base)
+#   - Critical function: Main execution loop for daemon mode
+#   - Used by daemon main function after initialization
+#
+# Example:
+#   export DAEMON_SLEEP_INTERVAL=60
+#   export DAEMON_SHUTDOWN_FLAG="/tmp/daemon_shutdown"
+#   export BASE_TABLES_EXIST=0
+#   __daemon_loop
+#   # Runs continuous processing cycles until shutdown flag or max errors
+#
+# Related: __daemon_init() (initializes daemon before loop)
+# Related: __process_api_data() (processes API data in each cycle)
+# Related: __check_api_for_updates() (checks if API has updates)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __daemon_loop {
  __log_start
  __logi "=== STARTING DAEMON LOOP ==="

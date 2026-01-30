@@ -311,6 +311,66 @@ function __adjust_process_delay() {
  printf "%d\n" "${ADJUSTED_DELAY}"
 }
 
+##
+# Configures system limits to prevent process killing during parallel processing
+# Increases system resource limits (file descriptors, processes, memory) to prevent
+# process killing during parallel processing. Uses ulimit for file descriptors and
+# processes, and prlimit for memory limits. Logs current limits for debugging.
+# Handles missing commands gracefully (warnings, not failures).
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - System limits configured successfully (or partially configured)
+#   1: Failure - File descriptor limit could not be increased (critical failure)
+#
+# Error codes:
+#   0: Success - System limits configured successfully
+#   0: Partial success - Some limits configured, others failed (non-critical)
+#   1: Failure - File descriptor limit could not be increased (critical)
+#
+# Error conditions:
+#   0: Success - All limits configured successfully
+#   0: Partial success - Memory/process limits failed but file descriptors configured
+#   1: Critical failure - File descriptor limit could not be increased
+#
+# Context variables:
+#   Reads:
+#     - BASH_VERSION: Bash version (optional, checks if Bash is available)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Increases file descriptor limit (ulimit -n 65536)
+#     - Increases process limit (ulimit -u 32768)
+#     - Increases memory limit (prlimit --as=2GB:4GB)
+#
+# Side effects:
+#   - Increases file descriptor limit to 65536 (ulimit -n)
+#   - Increases process limit to 32768 (ulimit -u)
+#   - Increases memory limit to 2GB soft, 4GB hard (prlimit)
+#   - Logs current limits for debugging
+#   - Writes log messages to stderr
+#   - No file, database, or network operations
+#
+# Notes:
+#   - File descriptor limit: 65536 (prevents "too many open files" errors)
+#   - Process limit: 32768 (allows more parallel processes)
+#   - Memory limit: 2GB soft, 4GB hard (prevents OOM kills)
+#   - Handles missing commands gracefully (ulimit, prlimit)
+#   - File descriptor limit failure is critical (returns 1)
+#   - Memory/process limit failures are non-critical (warnings only)
+#   - Used before parallel processing to prevent resource exhaustion
+#   - Critical function: Prevents process killing during parallel processing
+#   - May require elevated privileges (depends on system configuration)
+#
+# Example:
+#   __configure_system_limits
+#   # Configures system limits for parallel processing
+#
+# Related: __processXmlPartsParallel() (uses this function before processing)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Configure system limits to prevent process killing
 # Returns: 0 on success, 1 on failure
 function __configure_system_limits() {
@@ -1282,6 +1342,72 @@ function __consolidate_part_logs() {
 #   $3: Output directory (optional, default: TMP_DIR)
 #   $4: Format type (optional, default: API)
 # Returns: 0 on success, 1 on failure
+##
+# Splits XML file into multiple parts for parallel processing (safe version)
+# Splits XML file at note boundaries to ensure each part is valid XML. Uses
+# optimized single-pass AWK algorithm (~2x faster than awk+sed approach).
+# Creates multiple XML files with proper structure (XML declaration, osm-notes tags).
+# Each part contains approximately equal number of notes. Verifies parts were created.
+#
+# Parameters:
+#   $1: XML_FILE - Path to XML file to split (required)
+#   $2: NUM_PARTS - Number of parts to create (optional, default: MAX_THREADS or 4)
+#   $3: OUTPUT_DIR - Directory to write part files (optional, default: TMP_DIR)
+#   $4: FORMAT_TYPE - Format type for part file names ("API" or "Planet", default: "API")
+#
+# Returns:
+#   0: Success - Parts created successfully (or no notes found)
+#   ERROR_MISSING_LIBRARY: Failure - XML file not found
+#   1: Failure - No parts were created after splitting
+#
+# Error codes:
+#   0: Success - Parts created successfully
+#   0: Success - No notes found (valid scenario, returns 0)
+#   ERROR_MISSING_LIBRARY: XML file not found
+#   1: Failure - No parts were created (split operation failed)
+#
+# Error conditions:
+#   0: Success - Parts created successfully
+#   0: Success - No notes found in XML file (valid scenario)
+#   ERROR_MISSING_LIBRARY: XML file does not exist or is not readable
+#   1: Failure - Split operation completed but no part files were created
+#
+# Context variables:
+#   Reads:
+#     - MAX_THREADS: Maximum number of threads (used as default NUM_PARTS if not provided)
+#     - TMP_DIR: Temporary directory (used as default OUTPUT_DIR if not provided)
+#     - ERROR_MISSING_LIBRARY: Error code for missing files (defined in calling script)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Counts notes in XML file (using grep -c)
+#   - Creates output directory if it doesn't exist
+#   - Creates multiple XML part files (format_type_part_N.xml)
+#   - Each part file contains XML declaration and osm-notes tags
+#   - Writes log messages to stderr
+#   - No database or network operations
+#
+# Notes:
+#   - Splits at note boundaries (doesn't split mid-element, ensures valid XML)
+#   - Uses optimized single-pass AWK algorithm (reads file only once, ~2x faster)
+#   - Calculates notes per part (rounds up if remainder exists)
+#   - Part files are named: {format_type}_part_{N}.xml (e.g., planet_part_0.xml)
+#   - Each part is a complete, valid XML file (can be processed independently)
+#   - Verifies parts were created after splitting
+#   - Critical function: Used for parallel processing of large XML files
+#   - Performance: Single-pass AWK is much faster than multi-pass approaches
+#   - Safe: Ensures XML validity by splitting at note boundaries only
+#
+# Example:
+#   __splitXmlForParallelSafe "/tmp/planet_notes.xml" 8 "/tmp/parts" "planet"
+#   # Creates 8 part files: planet_part_0.xml through planet_part_7.xml
+#
+# Related: __processPlanetNotesWithParallel() (uses this function to split XML)
+# Related: __processApiXmlPart() (processes individual part files)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __splitXmlForParallelSafe() {
  __log_start
  __logd "Splitting XML for parallel processing (consolidated safe version)."

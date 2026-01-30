@@ -55,8 +55,37 @@ fi
 # Table name helper for safe updates
 # ---------------------------------------------------------------------------
 
-# Returns the name of the countries table to use (countries or countries_new)
-# Based on USE_COUNTRIES_NEW environment variable
+##
+# Returns the name of the countries table to use based on configuration
+# Determines which countries table to use (countries or countries_new) based on environment variable.
+# Used to support safe table updates by writing to a new table before swapping.
+#
+# Parameters:
+#   None (uses USE_COUNTRIES_NEW environment variable)
+#
+# Returns:
+#   Table name on stdout: "countries" or "countries_new"
+#   Always succeeds (never fails)
+#
+# Error codes:
+#   None - Function always succeeds, outputs table name via echo
+#
+# Context variables:
+#   Reads:
+#     - USE_COUNTRIES_NEW: If "true", returns "countries_new", otherwise "countries" (optional, default: false)
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Outputs table name to stdout (use command substitution to capture)
+#   - No file, database, or network operations
+#
+# Example:
+#   TABLE_NAME=$(__get_countries_table_name)
+#   psql -c "SELECT * FROM ${TABLE_NAME}"
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __get_countries_table_name {
  if [[ "${USE_COUNTRIES_NEW:-false}" == "true" ]]; then
   echo "countries_new"
@@ -69,29 +98,161 @@ function __get_countries_table_name {
 # Boundary logging helpers (previously inline in __processBoundary)
 # ---------------------------------------------------------------------------
 
+##
+# Logs the start of download attempts for a boundary
+# Helper function to log when boundary download process begins.
+#
+# Parameters:
+#   $1: Boundary ID - The ID of the boundary being processed (required)
+#   $2: Total retries - Maximum number of retry attempts (required)
+#
+# Returns:
+#   Always returns 0 (success) - logging function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs logging
+#
+# Context variables:
+#   Reads:
+#     - CONTINUE_ON_OVERPASS_ERROR: Whether to continue on errors (optional, default: false)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Writes log message to stderr via __logi()
+#   - No file, database, or network operations
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __log_download_start() {
  local BOUNDARY_ID="${1}"
  local TOTAL="${2}"
  __logi "Starting download attempts for boundary ${BOUNDARY_ID} (max retries: ${TOTAL}, CONTINUE_ON_OVERPASS_ERROR: ${CONTINUE_ON_OVERPASS_ERROR:-false})"
 }
 
+##
+# Logs JSON validation failure for a boundary
+# Helper function to log when JSON validation fails during boundary download.
+# Used to indicate that a retry will be attempted.
+#
+# Parameters:
+#   $1: Boundary ID - The ID of the boundary that failed validation (required)
+#
+# Returns:
+#   Always returns 0 (success) - logging function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs logging
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Writes error log message to stderr via __loge()
+#   - No file, database, or network operations
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __log_json_validation_failure() {
  local BOUNDARY_ID="${1}"
  __loge "JSON validation failed for boundary ${BOUNDARY_ID} - will retry download"
 }
 
+##
+# Logs successful download and validation completion for a boundary
+# Helper function to log when boundary download and validation completes successfully.
+#
+# Parameters:
+#   $1: Boundary ID - The ID of the boundary that completed successfully (required)
+#   $2: Total time - Total time taken in seconds (required)
+#
+# Returns:
+#   Always returns 0 (success) - logging function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs logging
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Writes log message to stderr via __logi()
+#   - No file, database, or network operations
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __log_download_success() {
  local BOUNDARY_ID="${1}"
  local TOTAL_TIME="${2}"
  __logi "Download and validation completed successfully for boundary ${BOUNDARY_ID} (total time: ${TOTAL_TIME}s)"
 }
 
+##
+# Logs the start of GeoJSON conversion for a boundary
+# Helper function to log when GeoJSON conversion process begins with retry logic.
+#
+# Parameters:
+#   $1: Boundary ID - The ID of the boundary being converted (required)
+#   $2: Max retries - Maximum number of retry attempts for conversion (required)
+#
+# Returns:
+#   Always returns 0 (success) - logging function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs logging
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Writes log message to stderr via __logi()
+#   - No file, database, or network operations
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __log_geojson_conversion_start() {
  local BOUNDARY_ID="${1}"
  local MAX_RETRIES="${2}"
  __logi "Converting into GeoJSON for boundary ${BOUNDARY_ID} with validation and retry logic (max retries: ${MAX_RETRIES})..."
 }
 
+##
+# Logs retry delay before GeoJSON conversion retry attempt
+# Helper function to log when waiting before retrying GeoJSON conversion.
+#
+# Parameters:
+#   $1: Boundary ID - The ID of the boundary being retried (required)
+#   $2: Delay - Number of seconds to wait before retry (required)
+#   $3: Attempt - Current attempt number (required)
+#
+# Returns:
+#   Always returns 0 (success) - logging function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs logging
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Writes warning log message to stderr via __logw()
+#   - No file, database, or network operations
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __log_geojson_retry_delay() {
  local BOUNDARY_ID="${1}"
  local DELAY="${2}"
@@ -99,6 +260,31 @@ function __log_geojson_retry_delay() {
  __logw "Waiting ${DELAY}s before GeoJSON retry attempt ${ATTEMPT} for boundary ${BOUNDARY_ID}..."
 }
 
+##
+# Logs the start of database import for a boundary
+# Helper function to log when boundary import into PostgreSQL begins.
+#
+# Parameters:
+#   $1: Boundary ID - The ID of the boundary being imported (required)
+#
+# Returns:
+#   Always returns 0 (success) - logging function never fails
+#
+# Error codes:
+#   None - Function always succeeds, only performs logging
+#
+# Context variables:
+#   Reads:
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Writes log message to stderr via __logi()
+#   - No file, database, or network operations
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __log_import_start() {
  local BOUNDARY_ID="${1}"
  __logi "Importing into Postgres for boundary ${BOUNDARY_ID}."
@@ -1821,11 +2007,66 @@ EOF
  return 0
 }
 
-# Imports a GeoJSON file to database with simplified validations
+##
+# Imports a GeoJSON boundary file to PostgreSQL database with simplified validations
+# Extracts boundary metadata, imports geometry using ogr2ogr, and inserts into countries table.
+# Uses simplified validation (no area checks) and handles special cases (e.g., Austria).
+#
 # Parameters:
-#   $1: Boundary ID
-#   $2: GeoJSON file path
-# Returns: 0 on success, 1 on failure
+#   $1: Boundary ID - OSM relation ID for the country boundary (required)
+#   $2: GeoJSON file path - Path to GeoJSON file containing boundary geometry (required)
+#
+# Returns:
+#   0: Success - Boundary imported successfully to database
+#   1: Failure - Import failed at any stage
+#   2: Invalid argument - Missing or invalid boundary ID or GeoJSON file path
+#   3: Missing dependency - Required commands (ogr2ogr, psql, jq) not found
+#   5: Database error - Connection failed, query error, or constraint violation
+#   7: File error - GeoJSON file not found or cannot be read
+#   8: Validation error - No polygon geometries found after import
+#
+# Error codes:
+#   0: Success - Boundary imported and verified in database
+#   1: Failure - Import operation failed (check logs for specific error)
+#   2: Invalid argument - Boundary ID is empty or GeoJSON file path is empty
+#   3: Missing dependency - ogr2ogr, psql, or jq command not found
+#   5: Database error - Cannot connect to database, TRUNCATE failed, INSERT failed, or verification query failed
+#   7: File error - GeoJSON file does not exist or cannot be read
+#   8: Validation error - Import table has no polygon geometries after ogr2ogr import
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - TMP_DIR: Temporary directory for error logs (required)
+#     - IS_MARITIME: Whether boundary is maritime (optional, default: false)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Database: Truncates 'import' table, inserts into countries table
+#
+# Side effects:
+#   - Truncates 'import' table in database
+#   - Imports GeoJSON geometry to 'import' table using ogr2ogr
+#   - Extracts boundary names (name, name:es, name:en) from GeoJSON
+#   - Inserts or updates record in countries table
+#   - Creates temporary error log file in TMP_DIR
+#   - Logs all operations to standard logger
+#   - Cleans up temporary error log file
+#
+# Special cases:
+#   - Austria (ID 16239): Uses ST_Buffer instead of ST_MakeValid for geometry processing
+#   - Maritime boundaries: Sets is_maritime flag based on IS_MARITIME variable
+#
+# Example:
+#   if __importBoundary_simplified 12345 "/tmp/boundary.geojson"; then
+#     echo "Import succeeded"
+#   else
+#     echo "Import failed with code: $?"
+#   fi
+#
+# Related: __get_countries_table_name() (determines target table)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __importBoundary_simplified() {
  __log_start
  local BOUNDARY_ID="${1}"
@@ -1957,10 +2198,61 @@ function __importBoundary_simplified() {
  return 0
 }
 
-# Downloads a single maritime boundary (JSON + GeoJSON only, no DB import)
+##
+# Downloads maritime boundary data from Overpass API and converts to GeoJSON
+# Downloads maritime boundary as JSON from Overpass, validates it, and converts to GeoJSON format.
+# Does not import into database - only downloads and converts files. Similar to __downloadBoundary_json_geojson_only
+# but specifically for maritime boundaries.
+#
 # Parameters:
-#   $1: Maritime boundary ID
-# Returns: 0 on success, 1 on failure
+#   $1: Maritime boundary ID - OSM relation ID for the maritime boundary (required)
+#
+# Returns:
+#   0: Success - Maritime boundary downloaded, validated, and converted to GeoJSON
+#   1: Failure - Download, validation, or conversion failed
+#   2: Invalid argument - Maritime boundary ID is empty or invalid format
+#   3: Missing dependency - Required commands (osmtogeojson, jq) not found
+#   6: Network error - Overpass API unavailable or timeout
+#   7: File error - Cannot create/write output files
+#   8: Validation error - Downloaded JSON or GeoJSON is invalid
+#
+# Error codes:
+#   0: Success - All operations completed successfully
+#   1: Failure - General error (check logs for specific cause)
+#   2: Invalid argument - Maritime boundary ID missing or not a valid integer
+#   3: Missing dependency - osmtogeojson or jq command not found
+#   6: Network error - Overpass API request failed or timed out
+#   7: File error - Cannot create query file or write output files
+#   8: Validation error - JSON missing 'elements' or GeoJSON invalid format or empty features
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for downloaded files (required)
+#     - OVERPASS_RETRIES_PER_ENDPOINT: Max retries for Overpass API (default: 7)
+#     - OVERPASS_BACKOFF_SECONDS: Base delay for retries (default: 20)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None (output written to files, not variables)
+#
+# Side effects:
+#   - Creates Overpass query file in TMP_DIR
+#   - Downloads JSON file from Overpass API
+#   - Creates JSON and GeoJSON files in TMP_DIR
+#   - Validates JSON structure (requires 'elements' array)
+#   - Validates GeoJSON format (requires 'features' array)
+#   - Logs all operations to standard logger
+#   - Cleans up temporary files on failure
+#
+# Example:
+#   if __downloadMaritime_json_geojson_only 148838; then
+#     echo "Maritime boundary downloaded successfully"
+#   else
+#     echo "Download failed with code: $?"
+#   fi
+#
+# Related: __downloadBoundary_json_geojson_only() (similar function for country boundaries)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __downloadMaritime_json_geojson_only() {
  __log_start
  local BOUNDARY_ID="${1}"
@@ -2031,11 +2323,67 @@ EOF
  return 0
 }
 
-# Imports a maritime boundary GeoJSON file to database with simplified validations
+##
+# Imports a maritime boundary GeoJSON file to PostgreSQL database with simplified validations
+# Extracts maritime boundary metadata, imports geometry using ogr2ogr, and inserts into countries table.
+# Similar to __importBoundary_simplified but always sets is_maritime=true for maritime boundaries.
+#
 # Parameters:
-#   $1: Maritime boundary ID
-#   $2: GeoJSON file path
-# Returns: 0 on success, 1 on failure
+#   $1: Maritime boundary ID - OSM relation ID for the maritime boundary (required)
+#   $2: GeoJSON file path - Path to GeoJSON file containing maritime boundary geometry (required)
+#
+# Returns:
+#   0: Success - Maritime boundary imported successfully to database
+#   1: Failure - Import failed at any stage
+#   2: Invalid argument - Missing or invalid maritime boundary ID or GeoJSON file path
+#   3: Missing dependency - Required commands (ogr2ogr, psql, jq) not found
+#   5: Database error - Connection failed, query error, or constraint violation
+#   7: File error - GeoJSON file not found or cannot be read
+#   8: Validation error - No polygon geometries found after import
+#
+# Error codes:
+#   0: Success - Maritime boundary imported and verified in database with is_maritime=true
+#   1: Failure - Import operation failed (check logs for specific error)
+#   2: Invalid argument - Maritime boundary ID is empty or GeoJSON file path is empty
+#   3: Missing dependency - ogr2ogr, psql, or jq command not found
+#   5: Database error - Cannot connect to database, TRUNCATE failed, INSERT failed, or verification query failed
+#   7: File error - GeoJSON file does not exist or cannot be read
+#   8: Validation error - Import table has no polygon geometries after ogr2ogr import
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - TMP_DIR: Temporary directory for error logs (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Database: Truncates 'import' table, inserts into countries table with is_maritime=true
+#
+# Side effects:
+#   - Truncates 'import' table in database
+#   - Imports GeoJSON geometry to 'import' table using ogr2ogr
+#   - Extracts boundary names (name, name:es, name:en) from GeoJSON
+#   - Inserts or updates record in countries table with is_maritime=true
+#   - Creates temporary error log file in TMP_DIR
+#   - Logs all operations to standard logger
+#   - Cleans up temporary error log file
+#
+# Maritime boundary specifics:
+#   - Always sets is_maritime=true (unlike regular boundaries which use IS_MARITIME variable)
+#   - Uses ST_MakeValid for geometry processing (no special cases like Austria)
+#   - ON CONFLICT always sets is_maritime=TRUE (preserves maritime status)
+#
+# Example:
+#   if __importMaritime_simplified 148838 "/tmp/maritime.geojson"; then
+#     echo "Import succeeded"
+#   else
+#     echo "Import failed with code: $?"
+#   fi
+#
+# Related: __importBoundary_simplified() (similar function for country boundaries)
+# Related: __get_countries_table_name() (determines target table)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __importMaritime_simplified() {
  __log_start
  local BOUNDARY_ID="${1}"

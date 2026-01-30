@@ -386,6 +386,53 @@ function __processList() {
  fi
 }
 
+##
+# Downloads and processes country boundary data from Overpass API or cached files
+# Handles downloading country boundaries (admin_level=2, boundary=administrative) from Overpass API,
+# converts OSM JSON to GeoJSON, and imports into the database. Uses cached files from /tmp or
+# repository backup files when available to avoid unnecessary downloads.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Countries boundary data processed and imported successfully
+#   1: Failure - Download failed, conversion failed, or import failed
+#
+# Error codes:
+#   0: Success - Countries boundary processed and imported
+#   1: Failure - Download failed, OSM-to-GeoJSON conversion failed, GeoJSON file missing/empty, or database import failed
+#
+# Context variables:
+#   Reads:
+#     - SCRIPT_BASE_DIRECTORY: Base directory for repository files (optional)
+#     - COUNTRIES_FILE: Path prefix for countries files (e.g., /tmp/countries) (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Downloads countries boundary from Overpass API if cache/backup not available
+#   - Creates/uses cached GeoJSON file at /tmp/countries.geojson
+#   - Creates OSM JSON file at ${COUNTRIES_FILE}.json (temporary)
+#   - Creates GeoJSON file at ${COUNTRIES_FILE}.geojson (temporary)
+#   - Imports countries boundary into database via __processBoundary()
+#   - Calls osmtogeojson command for OSM-to-GeoJSON conversion
+#   - Logs all operations to standard logger
+#
+# Example:
+#   export COUNTRIES_FILE="/tmp/countries"
+#   if __processCountries; then
+#     echo "Countries processed successfully"
+#   else
+#     echo "Failed to process countries"
+#   fi
+#
+# Related: __processBoundary() (imports GeoJSON to database)
+# Related: __retry_overpass_api() (downloads from Overpass API)
+# Related: __resolve_geojson_file() (resolves backup GeoJSON files)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Process countries
 function __processCountries() {
  __log_start
@@ -461,6 +508,54 @@ function __processCountries() {
  fi
 }
 
+##
+# Downloads and processes maritime boundary data from Overpass API or cached files
+# Handles downloading maritime boundaries (boundary=maritime) from Overpass API,
+# converts OSM JSON to GeoJSON, and imports into the countries database table.
+# Uses cached files from /tmp or repository backup files when available to avoid unnecessary downloads.
+# Maritime boundaries are stored in the same 'countries' table as country boundaries.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Maritime boundaries processed and imported successfully
+#   1: Failure - Download failed, conversion failed, or import failed
+#
+# Error codes:
+#   0: Success - Maritime boundaries processed and imported
+#   1: Failure - Download failed, OSM-to-GeoJSON conversion failed, GeoJSON file missing/empty, or database import failed
+#
+# Context variables:
+#   Reads:
+#     - SCRIPT_BASE_DIRECTORY: Base directory for repository files (optional)
+#     - MARITIMES_FILE: Path prefix for maritimes files (e.g., /tmp/maritimes) (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Downloads maritime boundaries from Overpass API if cache/backup not available
+#   - Creates/uses cached GeoJSON file at /tmp/maritimes.geojson
+#   - Creates OSM JSON file at ${MARITIMES_FILE}.json (temporary)
+#   - Creates GeoJSON file at ${MARITIMES_FILE}.geojson (temporary)
+#   - Imports maritime boundaries into 'countries' database table via __processBoundary()
+#   - Calls osmtogeojson command for OSM-to-GeoJSON conversion
+#   - Logs all operations to standard logger
+#
+# Example:
+#   export MARITIMES_FILE="/tmp/maritimes"
+#   if __processMaritimes; then
+#     echo "Maritime boundaries processed successfully"
+#   else
+#     echo "Failed to process maritime boundaries"
+#   fi
+#
+# Related: __processBoundary() (imports GeoJSON to database)
+# Related: __retry_overpass_api() (downloads from Overpass API)
+# Related: __resolve_geojson_file() (resolves backup GeoJSON files)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Process maritimes
 function __processMaritimes() {
  __log_start

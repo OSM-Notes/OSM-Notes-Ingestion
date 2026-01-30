@@ -3,6 +3,7 @@
 # Note Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
 # Version: 2025-12-20
+# shellcheck disable=SC2034
 VERSION="2025-12-20"
 
 # shellcheck disable=SC2317,SC2155,SC2034
@@ -23,6 +24,93 @@ if ! declare -f __handle_error_with_cleanup > /dev/null 2>&1; then
  fi
 fi
 
+##
+# Assigns countries to notes using location data (implementation)
+# Main function for country assignment to notes. Supports two modes: production mode
+# (loads backup CSV for speed) and hybrid/test mode (calculates countries directly).
+# In production mode, loads note location backup CSV, imports to database, and
+# verifies integrity using parallel processing. In hybrid/test mode, calculates
+# countries only for notes without country assignment using get_country() function.
+# Performs integrity verification to ensure country assignments are correct.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   0: Success - Countries assigned successfully (or no notes to process)
+#   1: Failure - Database error, file operation error, or verification failure
+#
+# Error codes:
+#   0: Success - Countries assigned successfully
+#   1: Failure - Database error, file operation error, or verification failure
+#
+# Error conditions:
+#   0: Success - Countries assigned successfully (or no notes to process)
+#   1: Database error - Failed to query or update database
+#   1: File operation error - Failed to create temporary files or directories
+#   1: Verification failure - Integrity verification failed
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - HYBRID_MOCK_MODE: If set, enables hybrid/test mode (optional)
+#     - TEST_MODE: If set, enables test mode (optional)
+#     - CSV_BACKUP_NOTE_LOCATION: Path to uncompressed backup CSV (required in production mode)
+#     - CSV_BACKUP_NOTE_LOCATION_COMPRESSED: Path to compressed backup CSV (required in production mode)
+#     - MAX_THREADS: Maximum number of threads for parallel processing (required)
+#     - VERIFY_THREADS: Override for verification thread count (optional)
+#     - VERIFY_CHUNK_SIZE: Chunk size for verification (optional, default: 100000)
+#     - VERIFY_SQL_BATCH_SIZE: SQL batch size for verification (optional, default: 20000)
+#     - POSTGRES_32_UPLOAD_NOTE_LOCATION: Path to SQL script for loading backup CSV (required in production mode)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets:
+#     - MAX_NOTE_ID: Maximum note ID in database (exported)
+#     - MAX_NOTE_ID_NOT_NULL: Maximum note ID with country assigned (exported)
+#     - TOTAL_NOTES_TO_INVALIDATE: Total notes invalidated during verification (exported)
+#   Modifies:
+#     - MAX_THREADS: Reduced by 1 if > 1 (to prevent CPU monopolization)
+#
+# Side effects:
+#   - Queries database to count notes without country assignment
+#   - In production mode: Downloads backup CSV, extracts, imports to database
+#   - In production mode: Verifies integrity using parallel processing (time-consuming)
+#   - In hybrid/test mode: Updates notes table directly using get_country() function
+#   - Creates temporary files and directories for verification
+#   - Updates notes.id_country column in database
+#   - Invalidates notes with incorrect country assignments
+#   - Writes log messages to stderr
+#   - Sets EXIT trap for cleanup of temporary files
+#
+# Notes:
+#   - Production mode: Loads backup CSV (~4.8M notes) for speed, then verifies integrity
+#   - Hybrid/test mode: Calculates countries directly (faster for testing, slower for full dataset)
+#   - Integrity verification recalculates countries using spatial queries and compares with assignments
+#   - Verification uses parallel processing (30min→5min for 4.8M notes)
+#   - Verification can be time-consuming for large datasets (~5 minutes for 4.8M notes)
+#   - Uses get_country() PostgreSQL function for country assignment
+#   - Only processes notes without country assignment (NULL, -1, or -2)
+#   - Critical function: Used in main processing workflow
+#   - Performance: Production mode is faster for full dataset, hybrid/test mode is faster for testing
+#
+# Example:
+#   # Production mode
+#   export DBNAME="osm_notes"
+#   export CSV_BACKUP_NOTE_LOCATION_COMPRESSED="/path/to/noteLocation.csv.zip"
+#   export MAX_THREADS=8
+#   __getLocationNotes_impl
+#
+#   # Hybrid/test mode
+#   export DBNAME="osm_notes"
+#   export TEST_MODE="true"
+#   export MAX_THREADS=4
+#   __getLocationNotes_impl
+#
+# Related: __resolve_note_location_backup() (resolves backup CSV file)
+# Related: __verifyNoteIntegrity() (verifies note location integrity)
+# Related: __reassignAffectedNotes() (reassigns countries after boundary updates)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __getLocationNotes_impl {
  __log_start
  __logd "Assigning countries to notes."
@@ -833,6 +921,66 @@ function __check_network_connectivity() {
 #   $2 - error_message: Error description
 #   $@ - cleanup_commands: Commands to execute before exit/return
 #
+##
+# Handles errors with cleanup commands and failed execution marker creation
+# Centralized error handler that logs errors, executes cleanup commands, and creates
+# failed execution marker file (for non-network errors). Distinguishes between network
+# errors (temporary, allow retry) and other errors (permanent, block execution). Uses
+# exit in production, return in test environment.
+#
+# Parameters:
+#   $1: ERROR_CODE - Error code to return/exit with (required)
+#   $2: ERROR_MESSAGE - Error message to log (required)
+#   $3+: CLEANUP_COMMANDS - Array of cleanup commands to execute (optional, variable number)
+#
+# Returns:
+#   In production: Exits with ERROR_CODE
+#   In test environment: Returns with ERROR_CODE
+#
+# Error codes:
+#   ERROR_CODE: Returns/exits with provided error code
+#
+# Error conditions:
+#   ERROR_CODE: Always returns/exits with provided error code
+#
+# Context variables:
+#   Reads:
+#     - ERROR_INTERNET_ISSUE: Error code for network issues (optional, default: 251)
+#     - FAILED_EXECUTION_FILE: Path to failed execution marker file (optional)
+#     - TMP_DIR: Temporary directory (optional)
+#     - CLEAN: If "true", executes cleanup commands (optional, default: true)
+#     - TEST_MODE: If "true", uses return instead of exit (optional)
+#     - BATS_TEST_NAME: If set, uses return instead of exit (optional, BATS testing)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Creates failed execution marker file (for non-network errors)
+#
+# Side effects:
+#   - Logs error details (code, message, stack trace)
+#   - Creates failed execution marker file (for non-network errors)
+#   - Executes cleanup commands (if CLEAN=true)
+#   - Writes log messages to stderr
+#   - Exits script with ERROR_CODE (production) or returns ERROR_CODE (test)
+#   - No database or network operations
+#
+# Notes:
+#   - Distinguishes network errors (temporary) from other errors (permanent)
+#   - Network errors don't create failed execution marker (allows retry)
+#   - Other errors create failed execution marker (prevents repeated failures)
+#   - Cleanup commands are executed only if CLEAN=true
+#   - Uses eval to execute cleanup commands (be careful with command injection)
+#   - Critical function: Centralized error handling for all error scenarios
+#   - Test environment detection: TEST_MODE or BATS_TEST_NAME
+#
+# Example:
+#   __handle_error_with_cleanup 1 "Processing failed" "rm -f /tmp/temp_file"
+#   # Logs error, executes cleanup, creates marker, exits with code 1
+#
+# Related: __create_failed_marker() (creates failed execution marker)
+# Related: __trapOn() (sets up error traps)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Environment Variables:
 #   TEST_MODE: If "true", uses return instead of exit
 #   BATS_TEST_NAME: If set, uses return instead of exit (BATS testing)
@@ -931,10 +1079,61 @@ function __handle_error_with_cleanup() {
 # Simple Semaphore System (Recommended)
 # =============================================================================
 
-# Acquire a download slot (simple FIFO - minimal wait, max 8 concurrent)
-# Overpass has 2 servers × 4 slots = 8 total slots
-# Returns: 0 on success, 1 on timeout/error
-# Side effect: Creates a lock directory in active/ directory (atomic mkdir)
+##
+# Acquires a download slot for Overpass API rate limiting
+# Uses atomic directory creation (mkdir) to acquire a slot in the download queue.
+# Implements semaphore-based rate limiting to prevent overwhelming Overpass API.
+#
+# Parameters:
+#   None (uses process ID and environment variables)
+#
+# Returns:
+#   0: Success - Download slot acquired
+#   1: Failure - Timeout waiting for slot or error acquiring slot
+#
+# Error codes:
+#   0: Success - Slot acquired and lock directory created
+#   1: Failure - Timeout waiting for available slot or error during acquisition
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - RATE_LIMIT: Maximum concurrent download slots (optional, default: 8)
+#     - BASHPID: Process ID (used for lock directory naming)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Creates lock directory in TMP_DIR/download_queue/active/
+#
+# Side effects:
+#   - Creates lock directory atomically using mkdir (prevents race conditions)
+#   - Writes PID to lock directory for reference
+#   - Cleans up stale locks before attempting acquisition
+#   - Blocks until slot becomes available (may wait up to timeout period)
+#   - Uses file locking (flock) for atomic operations
+#   - Logs slot acquisition to standard logger
+#   - No network or database operations
+#
+# Implementation details:
+#   - Uses mkdir for atomic lock creation (mkdir is atomic in Linux)
+#   - Uses flock for coordinating between processes
+#   - Cleans stale locks (from dead processes) before acquisition
+#   - Retries with exponential backoff if slot not immediately available
+#
+# Example:
+#   if __acquire_download_slot; then
+#     # Perform download operation
+#     curl ...
+#     __release_download_slot
+#   else
+#     echo "Failed to acquire slot"
+#   fi
+#
+# Related: __release_download_slot() (releases acquired slot)
+# Related: __wait_for_download_slot() (wrapper that calls this)
+# Related: __cleanup_stale_slots() (cleans up dead process locks)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __acquire_download_slot() {
  __log_start
  local QUEUE_DIR="${TMP_DIR}/download_queue"
@@ -1023,8 +1222,49 @@ function __acquire_download_slot() {
  return 1
 }
 
-# Release a download slot
-# Returns: 0 on success, 1 on error
+##
+# Releases a previously acquired download slot
+# Removes the process lock file/directory to free up a slot for other processes.
+# Should be called after download operation completes to allow other processes to proceed.
+#
+# Parameters:
+#   None (uses process ID to identify lock)
+#
+# Returns:
+#   0: Success - Slot released successfully
+#   1: Failure - Error releasing slot (rare, usually succeeds)
+#
+# Error codes:
+#   0: Success - Lock file/directory removed, slot released
+#   1: Failure - Error removing lock file/directory (should not normally occur)
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - BASHPID: Process ID (used to identify lock file)
+#     - RATE_LIMIT: Maximum concurrent download slots (for logging)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Removes lock file/directory from TMP_DIR/download_queue/active/
+#
+# Side effects:
+#   - Removes lock file or directory (based on PID) from active directory
+#   - Counts remaining active slots for logging
+#   - Logs slot release to standard logger
+#   - No network or database operations
+#
+# Example:
+#   if __wait_for_download_slot; then
+#     # Perform download
+#     curl ...
+#     # Always release slot when done
+#     __release_download_slot
+#   fi
+#
+# Related: __wait_for_download_slot() (acquires slot)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __release_download_slot() {
  __log_start
  local QUEUE_DIR="${TMP_DIR}/download_queue"
@@ -1054,8 +1294,43 @@ function __release_download_slot() {
  return 0
 }
 
-# Clean up stale lock files (processes that are no longer running)
-# Returns: 0 on success
+##
+# Cleans up stale download slot locks from dead processes
+# Removes lock files/directories from processes that are no longer running.
+# Prevents queue system from being blocked by locks from crashed or terminated processes.
+#
+# Parameters:
+#   None (uses process ID detection from lock file names)
+#
+# Returns:
+#   0: Success - Cleanup completed (may have cleaned 0 or more stale locks)
+#
+# Error codes:
+#   0: Always succeeds (cleanup is best-effort, failures are logged but don't stop execution)
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Removes stale lock files/directories from TMP_DIR/download_queue/active/
+#
+# Side effects:
+#   - Scans active directory for lock files/directories
+#   - Checks if process ID from lock name is still running
+#   - Removes locks from dead processes
+#   - Logs cleanup operations to standard logger
+#   - No network or database operations
+#
+# Example:
+#   # Usually called automatically before acquiring slots
+#   __cleanup_stale_slots
+#   __acquire_download_slot
+#
+# Related: __acquire_download_slot() (calls this before acquisition)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __cleanup_stale_slots() {
  __log_start
  local QUEUE_DIR="${TMP_DIR}/download_queue"
@@ -1096,8 +1371,51 @@ function __cleanup_stale_slots() {
  return 0
 }
 
-# Wait for a download slot (wrapper that combines acquire)
-# Returns: 0 on success, 1 on timeout/error
+##
+# Waits for and acquires a download slot for Overpass API rate limiting
+# Wrapper function that calls __acquire_download_slot to obtain a slot in the download queue.
+# Used to prevent overwhelming Overpass API with concurrent requests.
+#
+# Parameters:
+#   None (uses process ID and environment variables)
+#
+# Returns:
+#   0: Success - Download slot acquired
+#   1: Failure - Timeout waiting for slot or error acquiring slot
+#
+# Error codes:
+#   0: Success - Slot acquired and ready for download
+#   1: Failure - Timeout waiting for available slot or error during acquisition
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - RATE_LIMIT: Maximum concurrent download slots (optional, default: 4)
+#     - BASHPID: Process ID (used for lock file naming)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Creates lock file/directory in TMP_DIR/download_queue/active/
+#
+# Side effects:
+#   - Creates lock file/directory in download queue active directory
+#   - Blocks until slot becomes available (may wait up to timeout period)
+#   - Logs slot acquisition to standard logger
+#   - No network or database operations
+#
+# Example:
+#   if __wait_for_download_slot; then
+#     # Perform download operation
+#     curl ...
+#     __release_download_slot
+#   else
+#     echo "Failed to acquire download slot"
+#   fi
+#
+# Related: __release_download_slot() (releases acquired slot)
+# Related: __acquire_download_slot() (internal acquisition logic)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __wait_for_download_slot() {
  __acquire_download_slot
  return $?
@@ -1107,9 +1425,55 @@ function __wait_for_download_slot() {
 # Ticket-Based Queue System
 # =============================================================================
 
-# Get the next ticket number in the queue
-# Returns: ticket number (integer)
-# Side effect: increments the ticket counter atomically
+##
+# Gets the next ticket number in the download queue (FIFO system)
+# Atomically increments and returns the ticket counter for FIFO queue ordering.
+# Used with ticket-based queue system to ensure fair ordering of download requests.
+#
+# Parameters:
+#   None (uses environment variables)
+#
+# Returns:
+#   Exit code: 0 (always succeeds)
+#   Output: Ticket number (integer) on stdout
+#
+# Error codes:
+#   0: Always succeeds (ticket number output to stdout)
+#   Output value: Sequential ticket number (1, 2, 3, ...)
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Increments ticket counter file in TMP_DIR/download_queue/
+#
+# Side effects:
+#   - Creates queue directory if it doesn't exist
+#   - Atomically increments ticket counter using flock
+#   - Outputs ticket number to stdout (use command substitution to capture)
+#   - Logs ticket acquisition to standard logger
+#   - No network or database operations
+#
+# Implementation details:
+#   - Uses flock for atomic file operations (prevents race conditions)
+#   - Ticket counter stored in file: TMP_DIR/download_queue/ticket_counter
+#   - Lock file: TMP_DIR/download_queue/ticket_lock
+#
+# Output format:
+#   - Single integer on stdout: next ticket number
+#   - Starts at 1, increments sequentially
+#
+# Example:
+#   TICKET=$(__get_download_ticket)
+#   echo "Got ticket: ${TICKET}"
+#   __wait_for_download_turn "${TICKET}"
+#
+# Related: __wait_for_download_turn() (waits for ticket to be served)
+# Related: __release_download_ticket() (releases ticket and advances queue)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __get_download_ticket() {
  __log_start
  local QUEUE_DIR="${TMP_DIR}/download_queue"
@@ -1135,9 +1499,48 @@ function __get_download_ticket() {
  return 0
 }
 
-# Prunes stale lock files in the active queue directory.
-# Any lock file named as <pid>.<ticket>.lock whose PID is not running
-# will be removed to prevent deadlocks.
+##
+# Prunes stale lock files from FIFO queue active directory
+# Removes lock files from dead processes to prevent queue deadlocks.
+# Checks if process ID from lock filename is still running, removes lock if process is dead.
+#
+# Parameters:
+#   None (scans active directory for lock files)
+#
+# Returns:
+#   0: Success - Cleanup completed (may have cleaned 0 or more stale locks)
+#
+# Error codes:
+#   0: Always succeeds (cleanup is best-effort, failures are logged but don't stop execution)
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Removes stale lock files from TMP_DIR/download_queue/active/
+#
+# Side effects:
+#   - Scans active directory for lock files matching pattern: <pid>.<ticket>.lock
+#   - Checks if process ID from lock filename is still running (ps -p)
+#   - Removes locks from dead processes
+#   - Logs cleanup operations to standard logger
+#   - No network or database operations
+#
+# Lock file format:
+#   - Pattern: <pid>.<ticket>.lock
+#   - Example: 12345.42.lock (PID 12345, ticket 42)
+#   - Extracts PID part before first dot
+#
+# Example:
+#   # Usually called automatically by __wait_for_download_turn
+#   __queue_prune_stale_locks
+#
+# Related: __wait_for_download_turn() (calls this periodically)
+# Related: __cleanup_stale_slots() (similar function for semaphore system)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __queue_prune_stale_locks() {
  __log_start
  local QUEUE_DIR="${TMP_DIR}/download_queue"
@@ -1170,6 +1573,65 @@ function __queue_prune_stale_locks() {
 # Wait for download turn based on ticket number
 # Parameters: ticket_number
 # Returns: 0 when it's the turn, 1 on error
+##
+# Waits for download turn in FIFO queue system using ticket number
+# Blocks until the ticket number is served and a download slot becomes available.
+# Implements FIFO ordering with rate limiting and Overpass API status checking.
+#
+# Parameters:
+#   $1: Ticket number - Ticket number obtained from __get_download_ticket (required)
+#
+# Returns:
+#   0: Success - Ticket served and download slot acquired
+#   1: Failure - Timeout waiting for turn or invalid ticket
+#   2: Invalid argument - Ticket number is empty
+#
+# Error codes:
+#   0: Success - Ticket served, slot acquired, and lock file created
+#   1: Failure - Timeout waiting for turn (exceeded MAX_WAIT_TIME) or error acquiring slot
+#   2: Invalid argument - Ticket number parameter is empty
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - RATE_LIMIT: Maximum concurrent download slots (optional, default: 4)
+#     - CONTINUE_ON_OVERPASS_ERROR: Reduces wait time if true (optional, default: false)
+#     - BASHPID: Process ID (used for lock file naming)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Creates lock file in TMP_DIR/download_queue/active/
+#     - Filesystem: Updates current_serving counter in queue directory
+#
+# Side effects:
+#   - Blocks until ticket is served (may wait up to MAX_WAIT_TIME seconds)
+#   - Creates lock file when slot is acquired
+#   - Checks Overpass API status before acquiring slot
+#   - Updates current serving counter atomically
+#   - Logs wait progress periodically
+#   - Auto-heals queue if no activity detected
+#   - No network or database operations (except Overpass status check)
+#
+# Wait time configuration:
+#   - Default MAX_WAIT_TIME: 3600 seconds (1 hour)
+#   - Reduced to 600 seconds if CONTINUE_ON_OVERPASS_ERROR=true
+#   - Auto-heal after 300 seconds of inactivity
+#
+# Example:
+#   TICKET=$(__get_download_ticket)
+#   if __wait_for_download_turn "${TICKET}"; then
+#     # Perform download
+#     curl ...
+#     __release_download_ticket "${TICKET}"
+#   else
+#     echo "Timeout waiting for turn"
+#   fi
+#
+# Related: __get_download_ticket() (obtains ticket number)
+# Related: __release_download_ticket() (releases ticket and advances queue)
+# Related: __check_overpass_status() (checks API availability)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __wait_for_download_turn() {
  __log_start
  local MY_TICKET="${1}"
@@ -1376,9 +1838,58 @@ function __wait_for_download_turn() {
  return 1
 }
 
-# Release download slot and advance queue
-# Parameters: ticket_number
-# Returns: 0 on success, 1 on error
+##
+# Releases download ticket and advances FIFO queue
+# Removes lock file for the ticket and advances the current serving counter.
+# Allows the next ticket in line to be served.
+#
+# Parameters:
+#   $1: Ticket number - Ticket number to release (required)
+#
+# Returns:
+#   0: Success - Ticket released and queue advanced
+#   1: Failure - Error releasing ticket or advancing queue
+#   2: Invalid argument - Ticket number is empty
+#
+# Error codes:
+#   0: Success - Lock file removed and queue counter advanced
+#   1: Failure - Error removing lock file or updating queue counter (should not normally occur)
+#   2: Invalid argument - Ticket number parameter is empty
+#
+# Context variables:
+#   Reads:
+#     - TMP_DIR: Temporary directory for queue files (required)
+#     - BASHPID: Process ID (used to identify lock file)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Filesystem: Removes lock file from TMP_DIR/download_queue/active/
+#     - Filesystem: Updates current_serving counter in queue directory
+#
+# Side effects:
+#   - Removes lock file for the ticket (based on PID and ticket number)
+#   - Atomically advances current serving counter to next ticket
+#   - Uses flock for atomic queue counter updates
+#   - Logs ticket release and queue advancement to standard logger
+#   - No network or database operations
+#
+# Queue advancement logic:
+#   - Advances to ticket + 1 when releasing
+#   - Only advances if ticket + 1 > current serving (prevents going backwards)
+#   - Uses file locking (flock) for atomic updates
+#
+# Example:
+#   TICKET=$(__get_download_ticket)
+#   __wait_for_download_turn "${TICKET}"
+#   # Perform download
+#   curl ...
+#   # Always release ticket when done
+#   __release_download_ticket "${TICKET}"
+#
+# Related: __get_download_ticket() (obtains ticket number)
+# Related: __wait_for_download_turn() (waits for ticket to be served)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __release_download_ticket() {
  __log_start
  local MY_TICKET="${1}"
@@ -1419,9 +1930,62 @@ function __release_download_ticket() {
 }
 
 if ! declare -f __retry_file_operation > /dev/null 2>&1; then
- # Retry file operations with exponential backoff and cleanup on failure
- # Parameters: operation_command max_retries base_delay [cleanup_command] [smart_wait]
- # Returns: 0 if successful, 1 if failed after all retries
+ ##
+ # Retries file operations with exponential backoff and optional smart wait
+ # Executes arbitrary shell commands with retry logic, cleanup on failure, and optional
+ # Overpass API rate limiting integration. Supports smart wait for Overpass operations.
+ #
+ # Parameters:
+ #   $1: Operation command - Shell command to execute (required)
+ #   $2: Max retries - Maximum retry attempts (optional, default: 3)
+ #   $3: Base delay - Base delay in seconds for exponential backoff (optional, default: 2)
+ #   $4: Cleanup command - Command to execute on failure (optional)
+ #   $5: Smart wait - Enable Overpass API rate limiting (optional, default: false)
+ #   $6: Smart wait endpoint - Overpass endpoint for smart wait (optional, auto-detected)
+ #
+ # Returns:
+ #   0: Success - Operation succeeded
+ #   1: Failure - Operation failed after all retries
+ #   2: Invalid argument - Missing operation command
+ #   6: Network error - Smart wait slot acquisition failed
+ #
+ # Error codes:
+ #   0: Success - Operation executed successfully
+ #   1: Failure - Operation failed after max retries
+ #   2: Invalid argument - Operation command is empty
+ #   6: Network error - Failed to acquire download slot when smart wait enabled
+ #
+ # Context variables:
+ #   Reads:
+ #     - TMP_DIR: Temporary directory for queue files (if smart wait enabled)
+ #     - OVERPASS_INTERPRETER: Overpass API endpoint (for smart wait detection)
+ #     - OVERPASS_RETRIES_PER_ENDPOINT: Max retries (optional, default: 7)
+ #     - OVERPASS_BACKOFF_SECONDS: Base delay (optional, default: 20)
+ #     - RATE_LIMIT: Maximum concurrent slots (optional, default: 8)
+ #     - LOG_LEVEL: Controls logging verbosity
+ #   Sets: None
+ #   Modifies: None (operation may modify filesystem, but function itself doesn't)
+ #
+ # Side effects:
+ #   - Executes operation command via eval (security consideration)
+ #   - Executes cleanup command on failure (if provided)
+ #   - Acquires/releases download slot if smart wait enabled
+ #   - Sleeps between retries (exponential backoff)
+ #   - Logs all operations to standard logger
+ #
+ # Security notes:
+ #   - Uses eval to execute operation command (ensure command is trusted)
+ #   - Operation command should be sanitized before passing to this function
+ #
+ # Example:
+ #   if __retry_file_operation "curl -o file.txt https://example.com" 5 3 "rm -f file.txt" "true"; then
+ #     echo "Download succeeded"
+ #   fi
+ #
+ # Related: __wait_for_download_slot() (used for smart wait)
+ # Related: __release_download_slot() (used for smart wait)
+ # Related: STANDARD_ERROR_CODES.md (error code definitions)
+ ##
  function __retry_file_operation() {
   __log_start
   local OPERATION_COMMAND="$1"
@@ -1598,9 +2162,57 @@ if ! declare -f __check_overpass_status > /dev/null 2>&1; then
  }
 fi
 
-# Retry network operations with exponential backoff and HTTP error handling
-# Parameters: url output_file max_retries base_delay [timeout]
-# Returns: 0 if successful, 1 if failed after all retries
+##
+# Retries network operations (HTTP downloads) with exponential backoff
+# Downloads file from URL with retry logic, HTTP error handling, and timeout management.
+# Validates HTTP status codes and ensures downloaded file is non-empty.
+#
+# Parameters:
+#   $1: URL - HTTP/HTTPS URL to download from (required)
+#   $2: Output file - Path where downloaded file will be saved (required)
+#   $3: Max retries - Maximum retry attempts (optional, default: 5)
+#   $4: Base delay - Base delay in seconds for exponential backoff (optional, default: 2)
+#   $5: Timeout - Connection and operation timeout in seconds (optional, default: 30)
+#
+# Returns:
+#   0: Success - File downloaded successfully and is non-empty
+#   1: Failure - All retry attempts failed or downloaded file is empty
+#   2: Invalid argument - Missing required parameters (URL or output file)
+#   3: Missing dependency - curl command not found
+#   6: Network error - Connection timeout, DNS failure, or HTTP error (4xx, 5xx)
+#   7: File error - Cannot write output file
+#
+# Error codes:
+#   0: Success - File downloaded and saved successfully
+#   1: Failure - All retries exhausted or file is empty after download
+#   2: Invalid argument - URL or output file path is empty
+#   3: Missing dependency - curl command not available
+#   6: Network error - HTTP 4xx/5xx errors, connection timeout, or DNS failure
+#   7: File error - Cannot create or write to output file (disk full, permissions)
+#
+# Context variables:
+#   Reads:
+#     - DOWNLOAD_USER_AGENT: User-Agent header for HTTP requests (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Downloads file from URL using curl
+#   - Creates output file with downloaded content
+#   - Validates HTTP status codes (retries on 5xx, fails on 4xx)
+#   - Logs all operations to standard logger
+#   - Sleeps between retries (exponential backoff)
+#
+# Example:
+#   if __retry_network_operation "https://example.com/data.json" "/tmp/data.json" 3 5 60; then
+#     echo "Download succeeded"
+#   else
+#     echo "Download failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __retry_network_operation() {
  __log_start
  local URL="$1"
@@ -1652,6 +2264,58 @@ function __retry_network_operation() {
 # Retry Overpass API calls with specific configuration
 # Parameters: query output_file max_retries base_delay timeout
 # Returns: 0 if successful, 1 if failed after all retries
+##
+# Retries Overpass API calls with exponential backoff and HTTP optimization
+# Executes Overpass API query with retry logic, HTTP/2 support, and connection optimization.
+# Uses exponential backoff between retries and validates response file is non-empty.
+#
+# Parameters:
+#   $1: Query - Overpass API query string (URL-encoded, required)
+#   $2: Output file - Path where API response will be saved (required)
+#   $3: Max retries - Maximum retry attempts (optional, default: 3)
+#   $4: Base delay - Base delay in seconds for exponential backoff (optional, default: 5)
+#   $5: Timeout - Connection and operation timeout in seconds (optional, default: 300)
+#
+# Returns:
+#   0: Success - API call succeeded and output file is non-empty
+#   1: Failure - All retry attempts failed or output file is empty
+#   2: Invalid argument - Missing required parameters (query or output file)
+#   3: Missing dependency - curl command not found
+#   6: Network error - Connection timeout or HTTP error
+#   7: File error - Cannot write output file
+#
+# Error codes:
+#   0: Success - Valid response received and saved to output file
+#   1: Failure - All retries exhausted or output file is empty after successful HTTP response
+#   2: Invalid argument - Query string or output file path is empty
+#   3: Missing dependency - curl command not available
+#   6: Network error - Connection timeout, DNS failure, or HTTP error
+#   7: File error - Cannot create or write to output file
+#
+# Context variables:
+#   Reads:
+#     - DOWNLOAD_USER_AGENT: User-Agent header for HTTP requests (optional, default: OSM-Notes-Ingestion/1.0)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Downloads data from Overpass API using curl
+#   - Creates output file with API response
+#   - Uses HTTP/2 if available, falls back to HTTP/1.1 with keep-alive
+#   - Enables compression (gzip, deflate, br)
+#   - Logs all operations to standard logger
+#   - Sleeps between retries (exponential backoff)
+#
+# Example:
+#   if __retry_overpass_api "[out:json];node(123);out;" "/tmp/response.json" 5 10 60; then
+#     echo "API call succeeded"
+#   else
+#     echo "API call failed with code: $?"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __retry_overpass_api() {
  __log_start
  local QUERY="$1"
@@ -1723,9 +2387,120 @@ function __retry_overpass_api() {
  return 1
 }
 
-# Retry OSM API calls with specific configuration
-# Parameters: url output_file max_retries base_delay timeout
-# Returns: 0 if successful, 1 if failed after all retries
+##
+# Retries OSM API calls with exponential backoff and HTTP optimization
+# Downloads data from OSM API with retry logic, HTTP/2 support, and conditional caching.
+# Uses If-Modified-Since header when cached file exists to reduce bandwidth usage.
+#
+# Parameters:
+#   $1: URL - OSM API endpoint URL (required)
+#   $2: Output file - Path where API response will be saved (required)
+#   $3: Max retries - Maximum retry attempts (optional, default: 5)
+#   $4: Base delay - Base delay in seconds for exponential backoff (optional, default: 2)
+#   $5: Timeout - Connection and operation timeout in seconds (optional, default: 30)
+#
+# Returns:
+#   0: Success - API call succeeded and output file is non-empty
+#   1: Failure - All retry attempts failed or output file is empty
+#   2: Invalid argument - Missing required parameters (URL or output file)
+#   3: Missing dependency - curl command not found
+#   6: Network error - Connection timeout or HTTP error
+#   7: File error - Cannot write output file
+#
+# Error codes:
+#   0: Success - Valid response received and saved to output file
+#   1: Failure - All retries exhausted or output file is empty after successful HTTP response
+#   2: Invalid argument - URL or output file path is empty
+#   3: Missing dependency - curl command not available
+#   6: Network error - Connection timeout, DNS failure, or HTTP error
+#   7: File error - Cannot create or write to output file
+#
+# Context variables:
+#   Reads:
+#     - DOWNLOAD_USER_AGENT: User-Agent header for HTTP requests (optional, default: OSM-Notes-Ingestion/1.0)
+#     - ENABLE_HTTP_CACHE: Enable conditional caching with If-Modified-Since (optional, default: true)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None (output written to file, not variables)
+#
+# Side effects:
+#   - Downloads data from OSM API using curl
+#   - Creates output file with API response
+#   - Uses HTTP/2 if available, falls back to HTTP/1.1 with keep-alive
+#   - Enables compression (gzip, deflate, br)
+#   - Uses If-Modified-Since header if cached file exists (reduces bandwidth)
+#   - Logs all operations to standard logger
+#   - Sleeps between retries (exponential backoff)
+#
+# Caching behavior:
+#   - If output file exists and ENABLE_HTTP_CACHE=true, sends If-Modified-Since header
+#   - Server returns 304 Not Modified if file hasn't changed (saves bandwidth)
+#   - If 304 received, keeps existing file unchanged
+#
+# Example:
+#   if __retry_osm_api "https://api.openstreetmap.org/api/0.6/notes/123" "/tmp/note.xml" 3 5 60; then
+#     echo "API call succeeded"
+#   else
+#     echo "API call failed with code: $?"
+#   fi
+#
+# Related: __retry_overpass_api() (for Overpass API calls)
+# Related: __retry_network_operation() (for general HTTP downloads)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
+##
+# Downloads data from OSM API with retry logic, HTTP optimization, and conditional caching
+# Executes HTTP GET request to OSM Notes API with exponential backoff retry, HTTP/2 support,
+# keep-alive connections, compression, and conditional requests (If-Modified-Since) for caching.
+# Handles HTTP 304 Not Modified responses to use cached files and validates successful downloads.
+#
+# Parameters:
+#   $1: URL - OSM API URL to download (required)
+#   $2: Output file - Path where downloaded data will be saved (required)
+#   $3: Max retries - Maximum retry attempts (optional, default: 5)
+#   $4: Base delay - Base delay in seconds for exponential backoff (optional, default: 2)
+#   $5: Timeout - Connection and transfer timeout in seconds (optional, default: 30)
+#
+# Returns:
+#   0: Success - Data downloaded successfully or HTTP 304 (cached file valid)
+#   1: Failure - All retries exhausted or HTTP error code received
+#
+# Error codes:
+#   0: Success - HTTP 200-299 received and file saved, or HTTP 304 (cached file valid)
+#   1: Failure - HTTP error code (non-2xx, non-304), network failure, or empty response after all retries
+#
+# Context variables:
+#   Reads:
+#     - DOWNLOAD_USER_AGENT: User-Agent header for HTTP requests (optional)
+#     - ENABLE_HTTP_CACHE: Enable conditional requests with If-Modified-Since (optional, default: true)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies: None
+#
+# Side effects:
+#   - Downloads file from OSM API using curl
+#   - Creates temporary file during download (mktemp)
+#   - Moves temporary file to output file on success
+#   - Uses existing output file for HTTP 304 Not Modified responses
+#   - Logs all HTTP operations and retry attempts to standard logger
+#   - Sleeps between retries with exponential backoff (delay *= 2)
+#   - No database or other file operations
+#
+# HTTP optimizations:
+#   - HTTP/2 support with fallback to HTTP/1.1
+#   - Keep-alive connections
+#   - Compression (gzip, deflate, br)
+#   - Conditional requests (If-Modified-Since) when ENABLE_HTTP_CACHE=true
+#
+# Example:
+#   if __retry_osm_api "https://api.openstreetmap.org/api/0.6/notes.json" "/tmp/notes.json" 3 5 60; then
+#     echo "Download succeeded"
+#   else
+#     echo "Download failed"
+#   fi
+#
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 function __retry_osm_api() {
  __log_start
  local URL="$1"
@@ -2014,6 +2789,65 @@ function __retry_database_operation() {
  return 1
 }
 
+##
+# Logs data gap to file and database
+# Records a data gap event to both a log file and the database data_gaps table. Calculates
+# gap percentage automatically. Used for tracking data integrity issues. Database insert
+# failures are non-blocking (logged but don't cause function failure).
+#
+# Parameters:
+#   $1: GAP_TYPE - Type of gap detected (e.g., "missing_comments", "missing_notes") (required)
+#   $2: GAP_COUNT - Number of items with gaps (required, must be numeric)
+#   $3: TOTAL_COUNT - Total number of items checked (required, must be numeric)
+#   $4: ERROR_DETAILS - Details about the gap/error (optional)
+#
+# Returns:
+#   Always returns 0 (non-blocking, database insert failures don't cause function failure)
+#
+# Error codes:
+#   0: Success - Gap logged to file and database (or file only if database insert fails)
+#
+# Error conditions:
+#   0: Success - Gap logged successfully
+#   0: Success - Database insert failed (logged to file only, doesn't fail function)
+#
+# Context variables:
+#   Reads:
+#     - DBNAME: PostgreSQL database name (required)
+#     - PGAPPNAME: PostgreSQL application name (optional)
+#     - LOG_LEVEL: Controls logging verbosity
+#   Sets: None
+#   Modifies:
+#     - Appends gap information to log file (/tmp/processAPINotes_gaps.log)
+#     - Inserts gap record into data_gaps table
+#
+# Side effects:
+#   - Calculates gap percentage (GAP_COUNT * 100 / TOTAL_COUNT)
+#   - Appends gap information to log file with timestamp
+#   - Inserts gap record into database (non-blocking, errors ignored)
+#   - Writes log messages to stderr
+#   - Database operations: INSERT into data_gaps table
+#   - File operations: Append to gap log file
+#   - No network operations
+#
+# Notes:
+#   - Calculates gap percentage automatically
+#   - Logs to file: /tmp/processAPINotes_gaps.log
+#   - Database insert is non-blocking (failures don't cause function failure)
+#   - Gap record marked as unprocessed (processed = FALSE)
+#   - Used for tracking and monitoring data integrity issues
+#   - Part of data quality monitoring workflow
+#   - Database insert uses 2>/dev/null || true to prevent failures
+#
+# Example:
+#   export DBNAME="osm_notes"
+#   __log_data_gap "missing_comments" 5 50 "Notes without comments detected"
+#   # Logs gap: 5/50 (10%) to file and database
+#
+# Related: __check_and_log_gaps() (checks and logs gaps from database)
+# Related: __recover_from_gaps() (detects and recovers from gaps)
+# Related: STANDARD_ERROR_CODES.md (error code definitions)
+##
 # Function to log data gaps to file and database
 # Parameters: gap_type gap_count total_count error_details
 function __log_data_gap() {
