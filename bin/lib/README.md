@@ -81,7 +81,7 @@ __retry_file_operation \
 
 - **`__createApiTables()`**: Create API-specific database tables
   - Usage: Creates `notes_api`, `note_comments_api`, `note_comments_text_api` tables
-  - Related SQL: `sql/process/processAPINotes_21_createApiTables.sql`
+  - Related SQL: `sql/process/processAPINotes_20_createApiTables.sql`
 
 - **`__createPartitions()`**: Create partition tables for parallel processing
   - Parameters: `num_partitions` (based on `MAX_THREADS`)
@@ -93,7 +93,7 @@ __retry_file_operation \
 
 - **`__insertNewNotesAndComments()`**: Insert new notes and comments from API tables to main tables
   - Usage: Uses stored procedures and cursors for efficient insertion
-  - Related SQL: `sql/process/processAPINotes_32_insertNewNotesAndComments.sql`
+  - Related SQL: `sql/process/processAPINotes_31_insertNewNotesAndComments.sql`
 
 - **`__consolidatePartitions()`**: Consolidate partition data into main API tables
   - Usage: Merges partition tables into `notes_api`, `note_comments_api`
@@ -145,7 +145,7 @@ __consolidatePartitions
 
 - **`__consolidatePartitions()`**: Consolidate partition data into sync tables
   - Usage: Merges partition tables into `notes_sync`, `note_comments_sync`
-  - Related SQL: `sql/process/processPlanetNotes_42_consolidatePartitions.sql`
+  - Related SQL: `sql/process/processPlanetNotes_31_consolidatePartitions.sql`
 
 **Usage Example**:
 
@@ -173,8 +173,8 @@ __consolidatePartitions
 - **`__getLocationNotes_impl()`**: Assign countries to notes using location data
   - Usage: Main function for country assignment, uses backup CSV for speed
   - Supports hybrid/test mode for faster testing
-  - Related SQL: `sql/functionsProcess_32_loadsBackupNoteLocation.sql`,
-    `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
+  - Related SQL: `sql/functionsProcess_31_loadsBackupNoteLocation.sql`,
+    `sql/functionsProcess_32_assignCountryToNotesChunk.sql`
 
 - **`__verifyNoteIntegrity()`**: Verify note location integrity
   - Usage: Validates that note coordinates match assigned country

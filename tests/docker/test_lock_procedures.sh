@@ -22,8 +22,8 @@ psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "CREATE DATABASE ${DBNAME};"
 
 # Create base tables and lock procedures
 echo "📋 Creating base tables and lock procedures..."
-psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processPlanetNotes_21_createBaseTables_enum.sql 2> /dev/null || true
-psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processPlanetNotes_22_createBaseTables_tables.sql 2> /dev/null || true
+psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processPlanetNotes_20_createBaseTables_enum.sql 2> /dev/null || true
+psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processPlanetNotes_21_createBaseTables_tables.sql 2> /dev/null || true
 
 # Test if lock procedures exist
 echo "📋 Testing lock procedures..."

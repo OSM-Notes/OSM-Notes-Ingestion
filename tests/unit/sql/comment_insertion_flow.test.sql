@@ -80,7 +80,7 @@ BEGIN
 END $$;
 
 -- Test 3: Test complete flow from note_comments_api to note_comments
--- This simulates the actual processAPINotes_32_insertNewNotesAndComments.sql flow
+-- This simulates the actual processAPINotes_31_insertNewNotesAndComments.sql flow
 -- Updated to use bulk INSERT operations (as of 2025-12-19)
 DO $$
 DECLARE
@@ -117,7 +117,7 @@ BEGIN
     RAISE EXCEPTION 'Test setup failed: Comment not in API table. Count: %', comments_in_api;
   END IF;
   
-  -- Simulate the actual bulk insertion process (like processAPINotes_32_insertNewNotesAndComments.sql)
+  -- Simulate the actual bulk insertion process (like processAPINotes_31_insertNewNotesAndComments.sql)
   -- This uses bulk INSERT operations (updated 2025-12-19)
   
   -- Bulk INSERT users first
@@ -251,7 +251,7 @@ END $$;
 
 -- Test 6: Validate ANALYZE conditional optimization logic
 -- This test validates that the conditional ANALYZE logic works correctly
--- (as implemented in processAPINotes_32_insertNewNotesAndComments.sql)
+-- (as implemented in processAPINotes_31_insertNewNotesAndComments.sql)
 DO $$
 DECLARE
   small_count INTEGER := 5;

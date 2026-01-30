@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added `ST_Intersects` fallback for points on country boundaries
     - Normalized SRID to 4326 for all geometries
   - **Implementation**:
-    - Updated `sql/functionsProcess_21_createFunctionToGetCountry.sql` to use `-2` for unknown countries
+    - Updated `sql/functionsProcess_20_createFunctionToGetCountry.sql` to use `-2` for unknown countries
     - Updated all code references from `id_country = -1` to `id_country < 0` to handle both `-1` and `-2`
     - Enhanced function to use `ST_Intersects` as fallback when `ST_Contains` fails (handles points on edges)
   - **Impact**:
@@ -30,11 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Better handling of points on country boundaries
     - Improved geometry validation with explicit SRID normalization
   - **Files changed**:
-    - `sql/functionsProcess_21_createFunctionToGetCountry.sql` (core function fix)
+    - `sql/functionsProcess_20_createFunctionToGetCountry.sql` (core function fix)
     - `bin/lib/noteProcessingFunctions.sh` (6 occurrences updated)
-    - `sql/functionsProcess_32_loadsBackupNoteLocation.sql`
+    - `sql/functionsProcess_31_loadsBackupNoteLocation.sql`
     - `sql/functionsProcess_35_assignCountryToNotesChunk.sql`
-    - `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
+    - `sql/functionsProcess_32_assignCountryToNotesChunk.sql`
     - `docs/Country_Assignment_2D_Grid.md` (documentation update)
   - **New tests added**:
     - `tests/unit/sql/get_country_return_values.test.sql` (validates return value semantics)

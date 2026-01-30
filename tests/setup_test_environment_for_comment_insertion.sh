@@ -106,7 +106,7 @@ setup_base_schema() {
   # Step 1: Create ENUMs
   log_info "  Creating ENUM types..."
   psql -d "${TEST_DBNAME}" \
-    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" \
+    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql" \
     > /dev/null 2>&1 || {
     log_warning "  ENUM creation had warnings (may already exist)"
   }
@@ -114,7 +114,7 @@ setup_base_schema() {
   # Step 2: Create tables (includes put_lock, remove_lock procedures)
   log_info "  Creating tables and procedures..."
   psql -d "${TEST_DBNAME}" \
-    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" \
+    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql" \
     > /dev/null 2>&1 || {
     log_error "  Failed to create tables"
     exit 1
@@ -123,7 +123,7 @@ setup_base_schema() {
   # Step 3: Create constraints
   log_info "  Creating constraints..."
   psql -d "${TEST_DBNAME}" \
-    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql" \
+    -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql" \
     > /dev/null 2>&1 || {
     log_error "  Failed to create constraints"
     exit 1
@@ -139,7 +139,7 @@ setup_functions() {
   # Create get_country function
   log_info "  Creating get_country function..."
   psql -d "${TEST_DBNAME}" \
-    -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" \
+    -f "${PROJECT_ROOT}/sql/functionsProcess_20_createFunctionToGetCountry.sql" \
     > /dev/null 2>&1 || {
     log_warning "  get_country function creation had warnings"
   }

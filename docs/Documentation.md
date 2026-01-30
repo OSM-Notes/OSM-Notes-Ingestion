@@ -2239,7 +2239,7 @@ __processXmlPartsParallel \
 # For Planet: __splitXmlForParallelPlanet() then __processPlanetXmlPart()
 
 # Note: Consolidation is done in SQL, not via a separate function
-# See sql/process/processPlanetNotes_42_consolidatePartitions.sql
+# See sql/process/processPlanetNotes_31_consolidatePartitions.sql
 ```
 
 **Using Validation Functions:**

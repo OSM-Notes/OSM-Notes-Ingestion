@@ -85,15 +85,15 @@ PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d 
 
 # Create enums
 log_info "Creating enums..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" > /dev/null 2>&1 || log_warning "Enum creation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql" > /dev/null 2>&1 || log_warning "Enum creation failed"
 
 # Create base tables
 log_info "Creating base tables..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" > /dev/null 2>&1 || log_warning "Base tables creation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql" > /dev/null 2>&1 || log_warning "Base tables creation failed"
 
 # Create API tables
 log_info "Creating API tables..."
-PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processAPINotes_21_createApiTables.sql" > /dev/null 2>&1 || log_warning "API tables creation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processAPINotes_20_createApiTables.sql" > /dev/null 2>&1 || log_warning "API tables creation failed"
 
 # Create constraints and indexes (using Docker-specific script)
 log_info "Creating constraints and indexes (Docker version)..."

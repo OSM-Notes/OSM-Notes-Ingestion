@@ -395,11 +395,11 @@ processAPINotes.sh
     │   └─▶ Validates CSV structure
     │
     ├─▶ processAPIFunctions.sh::__processApiXmlSequential() [continued]
-    │   └─▶ Executes: sql/process/processAPINotes_31_loadApiNotes.sql
+    │   └─▶ Executes: sql/process/processAPINotes_30_loadApiNotes.sql
     │       └─▶ COPY CSV → PostgreSQL
     │
     ├─▶ processAPIFunctions.sh::__insertNewNotesAndComments()
-    │   └─▶ Executes: sql/process/processAPINotes_32_insertNewNotesAndComments.sql
+    │   └─▶ Executes: sql/process/processAPINotes_31_insertNewNotesAndComments.sql
     │       └─▶ Uses: sql/functionsProcess_22_createProcedure_insertNote.sql
     │       └─▶ Uses: sql/functionsProcess_23_createProcedure_insertNoteComment.sql
     │           └─▶ Inserts into base tables (notes, note_comments)
@@ -435,22 +435,22 @@ processPlanetNotes.sh
     │   └─▶ XML → CSV (parallel processing)
     │
     ├─▶ processPlanetFunctions.sh::__loadPartitionedSyncNotes()
-    │   └─▶ Executes: sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql
+    │   └─▶ Executes: sql/process/processPlanetNotes_30_loadPartitionedSyncNotes.sql
     │       └─▶ COPY CSV → PostgreSQL (sync partition tables)
     │
     ├─▶ processPlanetFunctions.sh::__consolidatePartitions()
-    │   └─▶ Executes: sql/process/processPlanetNotes_42_consolidatePartitions.sql
+    │   └─▶ Executes: sql/process/processPlanetNotes_31_consolidatePartitions.sql
     │       └─▶ Merges partitions → sync tables
     │
     ├─▶ processPlanetFunctions.sh::__moveSyncToMain()
-    │   └─▶ Executes: sql/process/processPlanetNotes_43_moveSyncToMain.sql
+    │   └─▶ Executes: sql/process/processPlanetNotes_33_moveSyncToMain.sql
     │       └─▶ Moves sync tables → base tables
     │
     ├─▶ noteProcessingFunctions.sh::__getLocationNotes_impl()
-    │   ├─▶ Executes: sql/functionsProcess_32_loadsBackupNoteLocation.sql
+    │   ├─▶ Executes: sql/functionsProcess_31_loadsBackupNoteLocation.sql
     │   │   └─▶ Loads backup CSV (if available)
-    │   └─▶ Executes: sql/functionsProcess_37_assignCountryToNotesChunk.sql
-    │       └─▶ Uses: sql/functionsProcess_21_createFunctionToGetCountry.sql
+    │   └─▶ Executes: sql/functionsProcess_32_assignCountryToNotesChunk.sql
+    │       └─▶ Uses: sql/functionsProcess_20_createFunctionToGetCountry.sql
     │           └─▶ Assigns countries to notes
     │
     └─▶ PostgreSQL Database
@@ -567,75 +567,75 @@ External Services (Optional)
 
 processAPINotes.sh SQL Execution Order:
     │
-    ├─▶ 1. processAPINotes_12_dropApiTables.sql
+    ├─▶ 1. processAPINotes_10_dropApiTables.sql
     │   └─▶ Drops temporary API tables
     │
-    ├─▶ 2. processAPINotes_21_createApiTables.sql
+    ├─▶ 2. processAPINotes_20_createApiTables.sql
     │   └─▶ Creates API tables
     │
-    ├─▶ 3. processAPINotes_23_createPropertiesTables.sql
+    ├─▶ 3. processAPINotes_21_createPropertiesTables.sql
     │   └─▶ Creates properties table
     │
-    ├─▶ 4. processAPINotes_31_loadApiNotes.sql
+    ├─▶ 4. processAPINotes_30_loadApiNotes.sql
     │   └─▶ Loads CSV into API tables (COPY command)
     │
-    ├─▶ 5. processAPINotes_32_insertNewNotesAndComments.sql
+    ├─▶ 5. processAPINotes_31_insertNewNotesAndComments.sql
     │   ├─▶ Bulk INSERT into notes table with country lookup
     │   │   └─▶ Uses: get_country() function (only for new notes)
-    │   │       └─▶ Defined in: functionsProcess_21_createFunctionToGetCountry.sql
+    │   │       └─▶ Defined in: functionsProcess_20_createFunctionToGetCountry.sql
     │   └─▶ Bulk INSERT into note_comments table
     │       └─▶ Note: Uses bulk operations instead of individual procedure calls for performance
     │
-    ├─▶ 6. processAPINotes_33_loadNewTextComments.sql
+    ├─▶ 6. processAPINotes_32_loadNewTextComments.sql
     │   └─▶ Loads comment texts into API tables
     │
-    └─▶ 7. processAPINotes_34_updateLastValues.sql
+    └─▶ 7. processAPINotes_33_updateLastValues.sql
         └─▶ Updates last processed timestamp
-        └─▶ Note: Executed within processAPINotes_32_insertNewNotesAndComments.sql
+        └─▶ Note: Executed within processAPINotes_31_insertNewNotesAndComments.sql
             in the same database connection to preserve integrity_check_passed variable
 
 processPlanetNotes.sh SQL Execution Order:
     │
-    ├─▶ 1. processPlanetNotes_11_dropSyncTables.sql
+    ├─▶ 1. processPlanetNotes_10_dropSyncTables.sql
     │   └─▶ Drops sync tables
     │
     ├─▶ 2. processPlanetNotes_11_dropAllPartitions.sql
     │   └─▶ Drops partition tables
     │
-    ├─▶ 3. processPlanetNotes_13_dropBaseTables.sql [--base mode only]
+    ├─▶ 3. processPlanetNotes_12_dropBaseTables.sql [--base mode only]
     │   └─▶ Drops base tables
     │
-    ├─▶ 4. processPlanetNotes_21_createBaseTables_enum.sql
+    ├─▶ 4. processPlanetNotes_20_createBaseTables_enum.sql
     │   └─▶ Creates ENUM types
     │
-    ├─▶ 5. processPlanetNotes_22_createBaseTables_tables.sql
+    ├─▶ 5. processPlanetNotes_21_createBaseTables_tables.sql
     │   └─▶ Creates base tables
     │
-    ├─▶ 6. processPlanetNotes_23_createBaseTables_constraints.sql
+    ├─▶ 6. processPlanetNotes_22_createBaseTables_constraints.sql
     │   └─▶ Adds constraints
     │
-    ├─▶ 7. processPlanetNotes_24_createSyncTables.sql
+    ├─▶ 7. processPlanetNotes_23_createSyncTables.sql
     │   └─▶ Creates sync tables
     │
-    ├─▶ 8. processPlanetNotes_25_createPartitions.sql
+    ├─▶ 8. processPlanetNotes_24_createPartitions.sql
     │   └─▶ Creates partition tables
     │
-    ├─▶ 9. processPlanetNotes_41_loadPartitionedSyncNotes.sql
+    ├─▶ 9. processPlanetNotes_30_loadPartitionedSyncNotes.sql
     │   └─▶ Loads CSV into partitions (COPY command)
     │
-    ├─▶ 10. processPlanetNotes_42_consolidatePartitions.sql
+    ├─▶ 10. processPlanetNotes_31_consolidatePartitions.sql
     │   └─▶ Consolidates partitions
     │
-    ├─▶ 11. processPlanetNotes_43_moveSyncToMain.sql
+    ├─▶ 11. processPlanetNotes_33_moveSyncToMain.sql
     │   └─▶ Moves sync → base tables
     │
-    ├─▶ 12. functionsProcess_31_organizeAreas_2DGrid.sql
+    ├─▶ 12. functionsProcess_30_organizeAreas_2DGrid.sql
     │   └─▶ Sets up 2D grid for country assignment
     │
-    ├─▶ 13. functionsProcess_32_loadsBackupNoteLocation.sql
+    ├─▶ 13. functionsProcess_31_loadsBackupNoteLocation.sql
     │   └─▶ Loads backup CSV (if available)
     │
-    ├─▶ 14. functionsProcess_37_assignCountryToNotesChunk.sql
+    ├─▶ 14. functionsProcess_32_assignCountryToNotesChunk.sql
     │   └─▶ Uses: get_country() function
     │       └─▶ Assigns countries to notes
     │
@@ -652,7 +652,7 @@ processPlanetNotes.sh SQL Execution Order:
 
 get_country(lon, lat, note_id)
     │
-    ├─▶ Defined in: functionsProcess_21_createFunctionToGetCountry.sql
+    ├─▶ Defined in: functionsProcess_20_createFunctionToGetCountry.sql
     │
     ├─▶ Depends on:
     │   ├─▶ countries table (PostGIS geometry)
@@ -678,7 +678,7 @@ insert_note(note_id, lat, lon, created_at, process_id)
     │   └─▶ logs table (for logging)
     │
     └─▶ Used by:
-        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql
+        └─▶ Other SQL scripts (note: processAPINotes_31_insertNewNotesAndComments.sql
             now uses bulk INSERTs instead of this procedure for performance)
 
 insert_note_comment(...)
@@ -691,7 +691,7 @@ insert_note_comment(...)
     │   └─▶ note_comments_text table
     │
     └─▶ Used by:
-        └─▶ Other SQL scripts (note: processAPINotes_32_insertNewNotesAndComments.sql
+        └─▶ Other SQL scripts (note: processAPINotes_31_insertNewNotesAndComments.sql
             now uses bulk INSERTs instead of this procedure for performance)
 ```
 
@@ -723,11 +723,11 @@ insert_note_comment(...)
 
 | SQL Script                                           | Depends On                                                              | Creates/Modifies                                                        |
 | ---------------------------------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `processAPINotes_21_createApiTables.sql`             | PostgreSQL, PostGIS                                                     | `notes_api`, `note_comments_api`, `note_comments_text_api`              |
-| `processAPINotes_32_insertNewNotesAndComments.sql`   | `get_country()` function, `notes`, `note_comments`, `properties` tables | `notes`, `note_comments`, `note_comments_text` (bulk INSERT operations) |
-| `functionsProcess_21_createFunctionToGetCountry.sql` | `countries`, `maritimes`, `notes` tables, PostGIS                       | `get_country()` function                                                |
+| `processAPINotes_20_createApiTables.sql`             | PostgreSQL, PostGIS                                                     | `notes_api`, `note_comments_api`, `note_comments_text_api`              |
+| `processAPINotes_31_insertNewNotesAndComments.sql`   | `get_country()` function, `notes`, `note_comments`, `properties` tables | `notes`, `note_comments`, `note_comments_text` (bulk INSERT operations) |
+| `functionsProcess_20_createFunctionToGetCountry.sql` | `countries`, `maritimes`, `notes` tables, PostGIS                       | `get_country()` function                                                |
 | `functionsProcess_22_createProcedure_insertNote.sql` | `get_country()` function, `notes`, `properties` tables                  | `insert_note()` procedure                                               |
-| `functionsProcess_37_assignCountryToNotesChunk.sql`  | `get_country()` function, `notes` table                                 | Updates `notes.id_country`                                              |
+| `functionsProcess_32_assignCountryToNotesChunk.sql`  | `get_country()` function, `notes` table                                 | Updates `notes.id_country`                                              |
 
 ---
 

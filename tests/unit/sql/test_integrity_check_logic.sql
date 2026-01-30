@@ -52,7 +52,7 @@ END $$;
 -- Verify the optimization pattern exists in the actual SQL file
 DO $$
 DECLARE
-  file_path TEXT := 'sql/process/processAPINotes_32_insertNewNotesAndComments.sql';
+  file_path TEXT := 'sql/process/processAPINotes_31_insertNewNotesAndComments.sql';
 BEGIN
   -- This test validates the optimization by checking that:
   -- 1. The code uses INNER JOIN notes_api (not time-based WHERE)
@@ -61,7 +61,7 @@ BEGIN
   
   RAISE NOTICE '';
   RAISE NOTICE '✅ Manual validation required:';
-  RAISE NOTICE '   1. Check that sql/process/processAPINotes_32_insertNewNotesAndComments.sql';
+  RAISE NOTICE '   1. Check that sql/process/processAPINotes_31_insertNewNotesAndComments.sql';
   RAISE NOTICE '      uses: INNER JOIN notes_api na ON na.note_id = n.note_id';
   RAISE NOTICE '   2. Check that it uses: SELECT COUNT(*) FROM notes_api';
   RAISE NOTICE '   3. Verify it returns early if notes_api is empty';

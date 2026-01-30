@@ -141,13 +141,13 @@ setup_test_database() {
 
  # Create base tables
  log_info "Creating base tables..."
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_23_createBaseTables_constraints.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_tables.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/process/processPlanetNotes_22_createBaseTables_constraints.sql" 2> /dev/null || true
 
  # Create functions and procedures
  log_info "Creating functions and procedures..."
- psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || true
+ psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_20_createFunctionToGetCountry.sql" 2> /dev/null || true
  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || true
  psql -d "${TEST_DBNAME}" -f "${PROJECT_ROOT}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || true
 

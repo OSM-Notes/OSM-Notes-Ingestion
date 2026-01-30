@@ -3069,28 +3069,45 @@ function __processPlanetSyncMode {
 function __processGeographicDataBaseMode {
  __log_start
  __logi "Processing geographic data in base mode..."
- __processGeographicData
+ if ! __processGeographicData; then
+  __loge "ERROR: Failed to process geographic data"
+  __log_finish
+  return 1
+ fi
 
  __logi "Creating get_country() function..."
- __createFunctionToGetCountry
+ if ! __createFunctionToGetCountry; then
+  __loge "ERROR: Failed to create get_country() function"
+  __log_finish
+  return 1
+ fi
 
  local COUNTRIES_COUNT
  # Extract only numeric value from psql output (may include connection messages)
  COUNTRIES_COUNT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -Atq -c "SELECT COUNT(*) FROM countries;" 2> /dev/null | grep -E '^[0-9]+$' | tail -1 || echo "0")
  if [[ "${COUNTRIES_COUNT:-0}" -gt 0 ]]; then
   __logi "Processing location notes with get_country() function..."
-  __getLocationNotes "$@"
+  if ! __getLocationNotes "$@"; then
+   __loge "ERROR: Failed to process location notes"
+   __log_finish
+   return 1
+  fi
  fi
 
  __logi "Organizing areas after geographic data is loaded..."
- set +E
+ set +e
  export RET_FUNC=0
- __organizeAreas
- set -E
+ if ! __organizeAreas; then
+  local ORGANIZE_AREAS_EXIT_CODE=$?
+  export RET_FUNC="${ORGANIZE_AREAS_EXIT_CODE}"
+  __logw "Areas organization failed (exit code: ${ORGANIZE_AREAS_EXIT_CODE}), but continuing with process..."
+ fi
+ set -e
  if [[ "${RET_FUNC}" -ne 0 ]]; then
   __logw "Areas organization failed, but continuing with process..."
  fi
  __log_finish
+ return 0
 }
 
 ##
@@ -3164,14 +3181,19 @@ function __processGeographicDataSyncMode {
  __processGeographicData
 
  __logi "Organizing areas after geographic data is loaded..."
- set +E
+ set +e
  export RET_FUNC=0
- __organizeAreas
- set -E
+ if ! __organizeAreas; then
+  local ORGANIZE_AREAS_EXIT_CODE=$?
+  export RET_FUNC="${ORGANIZE_AREAS_EXIT_CODE}"
+  __logw "Areas organization failed (exit code: ${ORGANIZE_AREAS_EXIT_CODE}), but continuing with process..."
+ fi
+ set -e
  if [[ "${RET_FUNC}" -ne 0 ]]; then
   __logw "Areas organization failed, but continuing with process..."
  fi
  __log_finish
+ return 0
 }
 
 ######
@@ -3220,9 +3242,15 @@ function main() {
  fi
 
  if [[ "${PROCESS_TYPE}" == "--base" ]]; then
-  __processGeographicDataBaseMode
+  if ! __processGeographicDataBaseMode; then
+   __loge "ERROR: Failed to process geographic data in base mode"
+   exit 1
+  fi
  elif [[ "${PROCESS_TYPE}" == "" ]]; then
-  __processGeographicDataSyncMode
+  if ! __processGeographicDataSyncMode; then
+   __loge "ERROR: Failed to process geographic data in sync mode"
+   exit 1
+  fi
  fi
 
  # Create procedures (required for all modes - base & sync)

@@ -24,7 +24,7 @@ psql -h "${DB_HOST}" -U "${DB_USER}" -d postgres -c "CREATE DATABASE ${DBNAME};"
 
 # Create ENUM types
 echo "📋 Creating ENUM types..."
-psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processPlanetNotes_21_createBaseTables_enum.sql
+psql -h "${DB_HOST}" -U "${DB_USER}" -d "${DBNAME}" -f /app/sql/process/processPlanetNotes_20_createBaseTables_enum.sql
 
 # Verify ENUM types exist
 echo "📋 Verifying ENUM types..."

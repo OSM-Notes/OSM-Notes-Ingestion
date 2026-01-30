@@ -571,9 +571,9 @@ function __cleanup_base() {
 
  local BASE_SCRIPTS=(
   "${SCRIPT_BASE_DIRECTORY}/sql/monitor/processCheckPlanetNotes_11_dropCheckTables.sql:Check Tables"
-  "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_11_dropSyncTables.sql:Sync Tables"
+  "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_10_dropSyncTables.sql:Sync Tables"
   "${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql:Generic Objects"
-  "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_13_dropBaseTables.sql:Base Tables"
+  "${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_12_dropBaseTables.sql:Base Tables"
  )
 
  for SCRIPT_INFO in "${BASE_SCRIPTS[@]}"; do

@@ -85,7 +85,7 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_partition_loading_performance.sql
 - 1000 row UPDATE: < 50ms
 
 **Related Operations:**
-- `sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql`
+- `sql/process/processPlanetNotes_30_loadPartitionedSyncNotes.sql`
 
 ---
 
@@ -115,7 +115,7 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_partition_consolidation_performance.
 - 1000 row INSERT with EXISTS: < 300ms
 
 **Related Operations:**
-- `sql/process/processPlanetNotes_42_consolidatePartitions.sql`
+- `sql/process/processPlanetNotes_31_consolidatePartitions.sql`
 
 ---
 
@@ -145,7 +145,7 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_api_insertion_performance.sql
 - 100 row batch INSERT: < 100ms
 
 **Related Operations:**
-- `sql/process/processAPINotes_32_insertNewNotesAndComments.sql`
+- `sql/process/processAPINotes_31_insertNewNotesAndComments.sql`
 
 ---
 
@@ -176,7 +176,7 @@ psql -d "${DBNAME}" -f sql/analysis/analyze_country_assignment_performance.sql
 - 100 row UPDATE: < 500ms
 
 **Related Operations:**
-- `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
+- `sql/functionsProcess_32_assignCountryToNotesChunk.sql`
 
 ---
 
@@ -444,13 +444,13 @@ This is the main process for loading historical notes from the complete Planet d
 **Related analysis scripts:**
 
 1. **`analyze_partition_loading_performance.sql`**
-   - **Related SQL**: `sql/process/processPlanetNotes_41_loadPartitionedSyncNotes.sql`
+   - **Related SQL**: `sql/process/processPlanetNotes_30_loadPartitionedSyncNotes.sql`
    - **Bash function**: `__loadPartitionedSyncNotes()` in `bin/lib/functionsProcess.sh`
    - **What it analyzes**: Performance of massive COPY operations to load partitions
    - **When it runs**: During initial loading of Planet notes in parallel partitions
 
 2. **`analyze_partition_consolidation_performance.sql`**
-   - **Related SQL**: `sql/process/processPlanetNotes_42_consolidatePartitions.sql`
+   - **Related SQL**: `sql/process/processPlanetNotes_31_consolidatePartitions.sql`
    - **Bash function**: `__consolidatePartitions()` in `bin/lib/functionsProcess.sh`
    - **What it analyzes**: Performance of massive INSERT operations to consolidate partitions
    - **When it runs**: After loading all partitions, when consolidating into sync tables
@@ -463,7 +463,7 @@ This is the main process for loading historical notes from the complete Planet d
    - **Called from**: `processPlanetNotes.sh` after assigning countries
 
 4. **`analyze_country_assignment_performance.sql`**
-   - **Related SQL**: `sql/functionsProcess_37_assignCountryToNotesChunk.sql`
+   - **Related SQL**: `sql/functionsProcess_32_assignCountryToNotesChunk.sql`
    - **Bash function**: `__getLocationNotes()` → `__getLocationNotes_impl()` in `bin/lib/noteProcessingFunctions.sh`
    - **What it analyzes**: Performance of country assignment to notes (massive UPDATE with get_country())
    - **When it runs**: During initial country assignment to Planet notes
@@ -476,13 +476,13 @@ This is the main process for synchronizing recent notes from the OSM API.
 **Related analysis scripts:**
 
 1. **`analyze_partition_loading_performance.sql`**
-   - **Related SQL**: `sql/process/processAPINotes_31_loadApiNotes.sql`
+   - **Related SQL**: `sql/process/processAPINotes_30_loadApiNotes.sql`
    - **Bash function**: `__loadApiNotes()` in `bin/lib/processAPIFunctions.sh`
    - **What it analyzes**: Performance of massive COPY operations to load API data into partitions
    - **When it runs**: During loading of notes from API in parallel partitions
 
 2. **`analyze_api_insertion_performance.sql`**
-   - **Related SQL**: `sql/process/processAPINotes_32_insertNewNotesAndComments.sql`
+   - **Related SQL**: `sql/process/processAPINotes_31_insertNewNotesAndComments.sql`
    - **Bash function**: `__insertNewNotesAndComments()` in `bin/process/processAPINotes.sh`
    - **What it analyzes**: Performance of note insertion using cursors and stored procedures
    - **When it runs**: When inserting new notes and comments from API tables to main tables
@@ -509,13 +509,13 @@ This process updates country boundaries when they change in OSM.
 
 | Analysis Script | Main Process | Related SQL | Bash Function |
 |----------------|--------------|-------------|---------------|
-| `analyze_partition_loading_performance.sql` | `processPlanetNotes.sh` | `processPlanetNotes_41_loadPartitionedSyncNotes.sql` | `__loadPartitionedSyncNotes()` |
-| `analyze_partition_loading_performance.sql` | `processAPINotes.sh` | `processAPINotes_31_loadApiNotes.sql` | `__loadApiNotes()` |
-| `analyze_partition_consolidation_performance.sql` | `processPlanetNotes.sh` | `processPlanetNotes_42_consolidatePartitions.sql` | `__consolidatePartitions()` |
+| `analyze_partition_loading_performance.sql` | `processPlanetNotes.sh` | `processPlanetNotes_30_loadPartitionedSyncNotes.sql` | `__loadPartitionedSyncNotes()` |
+| `analyze_partition_loading_performance.sql` | `processAPINotes.sh` | `processAPINotes_30_loadApiNotes.sql` | `__loadApiNotes()` |
+| `analyze_partition_consolidation_performance.sql` | `processPlanetNotes.sh` | `processPlanetNotes_31_consolidatePartitions.sql` | `__consolidatePartitions()` |
 | `analyze_partition_consolidation_performance.sql` | `processAPINotes.sh` | `processAPINotes_35_consolidatePartitions.sql` | `__consolidatePartitions()` |
-| `analyze_api_insertion_performance.sql` | `processAPINotes.sh` | `processAPINotes_32_insertNewNotesAndComments.sql` | `__insertNewNotesAndComments()` |
+| `analyze_api_insertion_performance.sql` | `processAPINotes.sh` | `processAPINotes_31_insertNewNotesAndComments.sql` | `__insertNewNotesAndComments()` |
 | `analyze_integrity_verification_performance.sql` | `processPlanetNotes.sh` | `functionsProcess_33_verifyNoteIntegrity.sql` | `__getLocationNotes()` |
-| `analyze_country_assignment_performance.sql` | `processPlanetNotes.sh` | `functionsProcess_37_assignCountryToNotesChunk.sql` | `__getLocationNotes()` |
+| `analyze_country_assignment_performance.sql` | `processPlanetNotes.sh` | `functionsProcess_32_assignCountryToNotesChunk.sql` | `__getLocationNotes()` |
 | `analyze_country_reassignment_performance.sql` | `updateCountries.sh` | `functionsProcess_36_reassignAffectedNotes.sql` | `__reassignAffectedNotes()` |
 
 ### When to Run the Analyses

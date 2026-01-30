@@ -6,7 +6,7 @@
 BEGIN;
 
 -- Test: Validate ANALYZE conditional logic
--- This test validates the same logic used in processAPINotes_32_insertNewNotesAndComments.sql
+-- This test validates the same logic used in processAPINotes_31_insertNewNotesAndComments.sql
 DO $$
 DECLARE
   small_count INTEGER := 5;
@@ -18,7 +18,7 @@ BEGIN
   DELETE FROM logs WHERE message LIKE '%ANALYZE%test%';
   
   -- Test 1: Verify logic skips ANALYZE for small counts (<100)
-  -- This simulates what happens in processAPINotes_32_insertNewNotesAndComments.sql
+  -- This simulates what happens in processAPINotes_31_insertNewNotesAndComments.sql
   -- when m_notes_count_before or m_comments_count_before <= 100
   IF small_count > 100 THEN
     INSERT INTO logs (message) VALUES ('Running ANALYZE (threshold: >100) - test');

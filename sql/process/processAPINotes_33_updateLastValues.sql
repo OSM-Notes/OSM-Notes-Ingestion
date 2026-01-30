@@ -21,7 +21,7 @@ $$
  BEGIN
   -- Check if integrity check passed
   -- Handle case where variable doesn't exist (returns empty string or NULL)
-  -- The variable is set by processAPINotes_32_insertNewNotesAndComments.sql
+  -- The variable is set by processAPINotes_31_insertNewNotesAndComments.sql
   -- with set_config('app.integrity_check_passed', ..., true) which makes it session-level
   -- IMPORTANT: The variable should persist across DO blocks in the same psql session
   -- If it doesn't, we'll re-check the integrity condition here

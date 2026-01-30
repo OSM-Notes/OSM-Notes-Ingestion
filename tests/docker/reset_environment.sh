@@ -71,11 +71,11 @@ load_base_structure() {
  DBPORT="5432"
 
  # Load base structure
- psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/process/processPlanetNotes_21_createBaseTables_enum.sql" 2> /dev/null || true
- psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/process/processPlanetNotes_22_createBaseTables_tables.sql" 2> /dev/null || true
- psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_21_createFunctionToGetCountry.sql" 2> /dev/null || true
- psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_22_createProcedure_insertNote.sql" 2> /dev/null || true
- psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_23_createProcedure_insertNoteComment.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/process/processPlanetNotes_20_createBaseTables_enum.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/process/processPlanetNotes_21_createBaseTables_tables.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_20_createFunctionToGetCountry.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_21_createProcedure_insertNote.sql" 2> /dev/null || true
+ psql -h "${DBHOST}" -U "${DBUSER}" -d "${DBNAME}" -f "/app/sql/functionsProcess_22_createProcedure_insertNoteComment.sql" 2> /dev/null || true
 
  log_success "Base structure loaded"
 }

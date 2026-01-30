@@ -157,7 +157,7 @@ DBNAME=osm_notes ./bin/scripts/generateNoteLocationBackup.sh
 
 - Automatically loaded by `processPlanetNotes.sh` and `noteProcessingFunctions.sh`
 - Allows skipping spatial queries for notes that already have country assignments
-- See `sql/functionsProcess_32_loadsBackupNoteLocation.sql` for loading logic
+- See `sql/functionsProcess_31_loadsBackupNoteLocation.sql` for loading logic
 
 ## Requirements
 

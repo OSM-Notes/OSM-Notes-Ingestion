@@ -16,22 +16,22 @@ Scripts for processing and loading data, organized by processing type:
 
 **Base Table Creation** (Sequence: 21-23):
 
-- **`processPlanetNotes_21_createBaseTables_enum.sql`**: Creates ENUM types
+- **`processPlanetNotes_20_createBaseTables_enum.sql`**: Creates ENUM types
   - Defines: `note_status_enum`, `note_action_enum`
   - Usage: Called first during base table creation
 
-- **`processPlanetNotes_22_createBaseTables_tables.sql`**: Creates main tables
+- **`processPlanetNotes_21_createBaseTables_tables.sql`**: Creates main tables
   - Creates: `notes`, `note_comments`, `note_comments_text` tables
   - Includes: Primary keys, indexes, constraints
   - Usage: Called after enum creation
 
-- **`processPlanetNotes_23_createBaseTables_constraints.sql`**: Adds constraints
+- **`processPlanetNotes_22_createBaseTables_constraints.sql`**: Adds constraints
   - Adds: Foreign keys, check constraints, unique constraints
   - Usage: Called after table creation
 
 **Table Management** (Sequence: 11-13):
 
-- **`processPlanetNotes_11_dropSyncTables.sql`**: Drops sync tables
+- **`processPlanetNotes_10_dropSyncTables.sql`**: Drops sync tables
   - Purpose: Cleanup before base mode
   - Usage: Called at start of `--base` mode
 
@@ -39,20 +39,20 @@ Scripts for processing and loading data, organized by processing type:
   - Purpose: Cleanup partitions before recreation
   - Usage: Called during partition management
 
-- **`processPlanetNotes_13_dropBaseTables.sql`**: Drops base tables
+- **`processPlanetNotes_12_dropBaseTables.sql`**: Drops base tables
   - Purpose: Full cleanup for base mode
   - Usage: Called at start of `--base` mode
 
 **Sync Tables** (Sequence: 24):
 
-- **`processPlanetNotes_24_createSyncTables.sql`**: Creates sync tables
+- **`processPlanetNotes_23_createSyncTables.sql`**: Creates sync tables
   - Creates: `notes_sync`, `note_comments_sync`, `note_comments_text_sync`
   - Purpose: Intermediate tables for Planet data before consolidation
   - Usage: Called during Planet processing
 
 **Partition Management** (Sequence: 25):
 
-- **`processPlanetNotes_25_createPartitions.sql`**: Creates partition tables
+- **`processPlanetNotes_24_createPartitions.sql`**: Creates partition tables
   - Purpose: Creates partition tables for parallel processing
   - Creates: `notes_sync_part_0` through `notes_sync_part_N` (N = MAX_THREADS)
   - Usage: Called before parallel CSV loading
@@ -77,12 +77,12 @@ Scripts for processing and loading data, organized by processing type:
 
 **Data Loading** (Sequence: 41-45):
 
-- **`processPlanetNotes_41_loadPartitionedSyncNotes.sql`**: Loads partitioned notes
+- **`processPlanetNotes_30_loadPartitionedSyncNotes.sql`**: Loads partitioned notes
   - Purpose: Bulk loads CSV data into partition tables using COPY
   - Usage: Called for each partition during parallel processing
   - Performance: Critical for Planet processing speed
 
-- **`processPlanetNotes_42_consolidatePartitions.sql`**: Consolidates partitions
+- **`processPlanetNotes_31_consolidatePartitions.sql`**: Consolidates partitions
   - Purpose: Merges partition tables into sync tables
   - Usage: Called after all partitions are loaded
   - Performance: Massive INSERT operation
@@ -91,7 +91,7 @@ Scripts for processing and loading data, organized by processing type:
   - Purpose: Sets up sequences for comment IDs
   - Usage: Called before comment loading
 
-- **`processPlanetNotes_43_moveSyncToMain.sql`**: Moves sync to main tables
+- **`processPlanetNotes_33_moveSyncToMain.sql`**: Moves sync to main tables
   - Purpose: Consolidates sync tables into main tables
   - Usage: Called after sync tables are populated
 
@@ -111,13 +111,13 @@ Scripts for processing and loading data, organized by processing type:
 
 **Table Management** (Sequence: 12):
 
-- **`processAPINotes_12_dropApiTables.sql`**: Drops API tables
+- **`processAPINotes_10_dropApiTables.sql`**: Drops API tables
   - Purpose: Cleanup before recreation
   - Usage: Called at start of processing if needed
 
 **Table Creation** (Sequence: 21-23):
 
-- **`processAPINotes_21_createApiTables.sql`**: Creates API tables
+- **`processAPINotes_20_createApiTables.sql`**: Creates API tables
   - Creates: `notes_api`, `note_comments_api`, `note_comments_text_api`
   - Purpose: Intermediate tables for API data before insertion
   - Usage: Called at start of API processing
@@ -127,28 +127,28 @@ Scripts for processing and loading data, organized by processing type:
   - Creates: `notes_api_part_0` through `notes_api_part_N`
   - Usage: Called before parallel CSV loading
 
-- **`processAPINotes_23_createPropertiesTables.sql`**: Creates properties table
+- **`processAPINotes_21_createPropertiesTables.sql`**: Creates properties table
   - Creates: `properties` table for storing last processed sequence
   - Purpose: Tracks last API sequence number for incremental sync
   - Usage: Called during initial setup
 
 **Data Loading** (Sequence: 31-35):
 
-- **`processAPINotes_31_loadApiNotes.sql`**: Loads API notes into partitions
+- **`processAPINotes_30_loadApiNotes.sql`**: Loads API notes into partitions
   - Purpose: Bulk loads CSV data into API partition tables
   - Usage: Called for each partition during parallel processing
 
-- **`processAPINotes_32_insertNewNotesAndComments.sql`**: Inserts new notes/comments
+- **`processAPINotes_31_insertNewNotesAndComments.sql`**: Inserts new notes/comments
   - Purpose: Inserts new notes and comments from API tables to main tables
   - Uses: Stored procedures `insert_note()` and `insert_note_comment()`
   - Strategy: Cursor-based batch processing for efficiency
   - Usage: Called after API tables are loaded
 
-- **`processAPINotes_33_loadNewTextComments.sql`**: Loads new text comments
+- **`processAPINotes_32_loadNewTextComments.sql`**: Loads new text comments
   - Purpose: Loads text comments from API to main tables
   - Usage: Called after comments are inserted
 
-- **`processAPINotes_34_updateLastValues.sql`**: Updates last processed sequence
+- **`processAPINotes_33_updateLastValues.sql`**: Updates last processed sequence
   - Purpose: Stores last processed API sequence number
   - Usage: Called at end of API processing
 
@@ -165,15 +165,15 @@ Database functions and procedures (located directly in `sql/`):
 
 #### Country Resolution Functions
 
-- **`functionsProcess_21_createFunctionToGetCountry.sql`**: Main function for country assignment
+- **`functionsProcess_20_createFunctionToGetCountry.sql`**: Main function for country assignment
   - **Purpose**: Determines which country a note belongs to based on coordinates
   - **Function**: `get_country(lon, lat, note_id) RETURNS INTEGER`
   - **Strategy**: Uses 2D grid partitioning (24 zones) to minimize expensive ST_Contains calls
   - **Optimization**: Checks current country first (95% hit rate when updating boundaries)
   - **Usage**: Called by note insertion procedures and country assignment scripts
-  - **Related**: `sql/functionsProcess_31_organizeAreas_2DGrid.sql` (grid setup)
+  - **Related**: `sql/functionsProcess_30_organizeAreas_2DGrid.sql` (grid setup)
 
-- **`functionsProcess_21_createFunctionToGetCountry_stub.sql`**: Stub version for testing
+- **`functionsProcess_20_createFunctionToGetCountry_stub.sql`**: Stub version for testing
   - **Purpose**: Simplified version for unit testing without full spatial logic
 
 #### Note Processing Procedures
@@ -202,12 +202,12 @@ Database functions and procedures (located directly in `sql/`):
   - **Purpose**: Sets up spatial organization for efficient country lookup
   - **Usage**: Called during initial setup
 
-- **`functionsProcess_31_organizeAreas_2DGrid.sql`**: 2D grid partitioning setup
+- **`functionsProcess_30_organizeAreas_2DGrid.sql`**: 2D grid partitioning setup
   - **Purpose**: Creates 24-zone grid system for optimized country assignment
   - **Strategy**: Divides world into zones based on longitude/latitude ranges
   - **Usage**: Called by `get_country()` function for efficient spatial queries
 
-- **`functionsProcess_32_loadsBackupNoteLocation.sql`**: Load note location backup
+- **`functionsProcess_31_loadsBackupNoteLocation.sql`**: Load note location backup
   - **Purpose**: Loads note_id/id_country pairs from backup CSV for faster processing
   - **Usage**: Called by `noteProcessingFunctions.sh` to speed up country assignment
   - **Performance**: Avoids spatial queries for notes that already have country assignments
@@ -243,13 +243,13 @@ Database functions and procedures (located directly in `sql/`):
     in same country
   - **Usage**: Called repeatedly by `updateCountries.sh` until all affected notes are processed
 
-- **`functionsProcess_37_assignCountryToNotesChunk.sql`**: Assign country to notes chunk (optimized)
+- **`functionsProcess_32_assignCountryToNotesChunk.sql`**: Assign country to notes chunk (optimized)
   - **Purpose**: Optimized version for assigning countries to note chunks
   - **Usage**: Called during Planet processing for bulk country assignment
 
 #### Validation Functions
 
-- **`functionsProcess_11_checkBaseTables.sql`**: Check base tables exist
+- **`functionsProcess_10_checkBaseTables.sql`**: Check base tables exist
   - **Purpose**: Validates that required base tables exist
   - **Usage**: Called during setup and validation
 

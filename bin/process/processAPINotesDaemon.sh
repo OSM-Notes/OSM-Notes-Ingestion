@@ -626,7 +626,7 @@ function __daemon_init {
  # This matches processAPINotes.sh behavior (ENUMs are created by processPlanetNotes.sh --base,
  # but we create them here too to ensure API tables can be created even if base tables don't exist)
  __logi "Ensuring ENUMs exist (needed for API tables)..."
- local ENUMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+ local ENUMS_SCRIPT="${SCRIPT_BASE_DIRECTORY}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
  if [[ -f "${ENUMS_SCRIPT}" ]]; then
   PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
    -f "${ENUMS_SCRIPT}" 2> /dev/null || {

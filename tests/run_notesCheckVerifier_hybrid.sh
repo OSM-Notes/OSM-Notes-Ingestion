@@ -169,7 +169,7 @@ setup_test_database() {
 
  if [[ "${note_status_exists}" != "t" ]] || [[ "${note_event_exists}" != "t" ]]; then
   log_info "Base enums missing. Creating them using DDL script..."
-  local enum_sql="${PROJECT_ROOT}/sql/process/processPlanetNotes_21_createBaseTables_enum.sql"
+  local enum_sql="${PROJECT_ROOT}/sql/process/processPlanetNotes_20_createBaseTables_enum.sql"
   if [[ -f "${enum_sql}" ]]; then
    if ${psql_cmd} -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${enum_sql}" > /dev/null 2>&1; then
     log_success "Base enums created using DDL script"

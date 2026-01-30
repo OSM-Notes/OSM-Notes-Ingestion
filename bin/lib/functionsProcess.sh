@@ -523,7 +523,7 @@ fi
 # Check base tables.
 # Only set if not already declared (e.g., when sourced from another script)
 if ! declare -p POSTGRES_11_CHECK_BASE_TABLES > /dev/null 2>&1; then
- declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkBaseTables.sql"
+ declare -r POSTGRES_11_CHECK_BASE_TABLES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_10_checkBaseTables.sql"
 fi
 if ! declare -p POSTGRES_11_CHECK_HISTORICAL_DATA > /dev/null 2>&1; then
  declare -r POSTGRES_11_CHECK_HISTORICAL_DATA="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_11_checkHistoricalData.sql"
@@ -532,19 +532,19 @@ if ! declare -p POSTGRES_12_DROP_GENERIC_OBJECTS > /dev/null 2>&1; then
  declare -r POSTGRES_12_DROP_GENERIC_OBJECTS="${SCRIPT_BASE_DIRECTORY}/sql/consolidated_cleanup.sql"
 fi
 if ! declare -p POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY > /dev/null 2>&1; then
- declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry.sql"
+ declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_20_createFunctionToGetCountry.sql"
 fi
 if ! declare -p POSTGRES_22_CREATE_PROC_INSERT_NOTE > /dev/null 2>&1; then
- declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNote.sql"
+ declare -r POSTGRES_22_CREATE_PROC_INSERT_NOTE="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createProcedure_insertNote.sql"
 fi
 if ! declare -p POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT > /dev/null 2>&1; then
- declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_23_createProcedure_insertNoteComment.sql"
+ declare -r POSTGRES_23_CREATE_PROC_INSERT_NOTE_COMMENT="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_22_createProcedure_insertNoteComment.sql"
 fi
 if ! declare -p POSTGRES_31_ORGANIZE_AREAS > /dev/null 2>&1; then
- declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_organizeAreas.sql"
+ declare -r POSTGRES_31_ORGANIZE_AREAS="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_30_organizeAreas_2DGrid.sql"
 fi
 if ! declare -p POSTGRES_32_UPLOAD_NOTE_LOCATION > /dev/null 2>&1; then
- declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_loadsBackupNoteLocation.sql"
+ declare -r POSTGRES_32_UPLOAD_NOTE_LOCATION="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_31_loadsBackupNoteLocation.sql"
 fi
 if ! declare -p POSTGRES_33_VERIFY_NOTE_INTEGRITY > /dev/null 2>&1; then
  declare -r POSTGRES_33_VERIFY_NOTE_INTEGRITY="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_33_verifyNoteIntegrity.sql"
@@ -553,10 +553,10 @@ if ! declare -p POSTGRES_36_REASSIGN_AFFECTED_NOTES > /dev/null 2>&1; then
  declare -r POSTGRES_36_REASSIGN_AFFECTED_NOTES="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_36_reassignAffectedNotes.sql"
 fi
 if ! declare -p POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK > /dev/null 2>&1; then
- declare -r POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_37_assignCountryToNotesChunk.sql"
+ declare -r POSTGRES_37_ASSIGN_COUNTRY_TO_NOTES_CHUNK="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_32_assignCountryToNotesChunk.sql"
 fi
 if ! declare -p POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB > /dev/null 2>&1; then
- declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_21_createFunctionToGetCountry_stub.sql"
+ declare -r POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB="${SCRIPT_BASE_DIRECTORY}/sql/functionsProcess_20_createFunctionToGetCountry_stub.sql"
 fi
 
 if [[ -z "${COUNTRIES_BOUNDARY_IDS_FILE:-}" ]]; then
@@ -3483,14 +3483,42 @@ function __createFunctionToGetCountry {
    return 1
   fi
   # Create a stub function that returns NULL when countries table doesn't exist
-  PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" || true
+  local STUB_PSQL_EXIT_CODE=0
+  local STUB_PSQL_OUTPUT
+  set +e
+  STUB_PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY_STUB}" 2>&1) || STUB_PSQL_EXIT_CODE=$?
+  set -e
+  
+  if [[ "${STUB_PSQL_EXIT_CODE}" -ne 0 ]]; then
+   __logw "WARNING: Stub function creation had warnings (exit code: ${STUB_PSQL_EXIT_CODE}), but continuing..."
+   __logd "Stub psql output: ${STUB_PSQL_OUTPUT}"
+  fi
   __log_finish
   return 0
  fi
 
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
-  -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
+ if [[ ! -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" ]]; then
+  __loge "ERROR: SQL file does not exist: ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
+  __log_finish
+  return 1
+ fi
+
+ local PSQL_EXIT_CODE=0
+ local PSQL_OUTPUT
+ set +e
+ PSQL_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+  -f "${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}" 2>&1) || PSQL_EXIT_CODE=$?
+ set -e
+ 
+ if [[ "${PSQL_EXIT_CODE}" -ne 0 ]]; then
+  __loge "ERROR: Failed to create get_country function from ${POSTGRES_21_CREATE_FUNCTION_GET_COUNTRY}"
+  __loge "psql exit code: ${PSQL_EXIT_CODE}"
+  __loge "psql output: ${PSQL_OUTPUT}"
+  __log_finish
+  return 1
+ fi
  __log_finish
+ return 0
 }
 
 ##
@@ -3667,7 +3695,8 @@ function __organizeAreas {
   __loge "ERROR: This variable should be defined in the calling script"
   # shellcheck disable=SC2154
   # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
-  exit "${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Validate that the SQL file exists
@@ -3675,7 +3704,8 @@ function __organizeAreas {
   __loge "ERROR: SQL file not found: ${POSTGRES_31_ORGANIZE_AREAS}"
   # shellcheck disable=SC2154
   # ERROR_MISSING_LIBRARY is defined in lib/osm-common/commonFunctions.sh
-  exit "${ERROR_MISSING_LIBRARY}"
+  __log_finish
+  return "${ERROR_MISSING_LIBRARY}"
  fi
 
  # Check if countries table exists
@@ -3710,6 +3740,10 @@ function __organizeAreas {
  # shellcheck disable=SC2034
  RET_FUNC="${RET}"
  __log_finish
+ if [[ "${RET}" -ne 0 ]]; then
+  return "${RET}"
+ fi
+ return 0
 }
 
 # Processes a specific boundary ID.

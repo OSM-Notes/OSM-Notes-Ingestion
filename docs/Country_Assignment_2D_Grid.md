@@ -287,11 +287,11 @@ For each zone column:
    - Creates `countries` table with all zone columns
    - Creates spatial indexes
 
-2. **`sql/functionsProcess_21_createFunctionToGetCountry.sql`**
+2. **`sql/functionsProcess_20_createFunctionToGetCountry.sql`**
    - Contains the `get_country()` function
    - Implements 2D zone detection and priority search
 
-3. **`sql/functionsProcess_31_organizeAreas_2DGrid.sql`**
+3. **`sql/functionsProcess_30_organizeAreas_2DGrid.sql`**
    - Assigns priority values for all 24 zones
    - Based on note density statistics
    - Run after loading country geometries
@@ -319,10 +319,10 @@ psql -d notes -f sql/process/processPlanetNotes_25_createCountryTables.sql
 DBNAME=notes ./bin/process/updateCountries.sh --base
 
 # 3. Assign zone priorities
-psql -d notes -f sql/functionsProcess_31_organizeAreas_2DGrid.sql
+psql -d notes -f sql/functionsProcess_30_organizeAreas_2DGrid.sql
 
 # 4. Create get_country function
-psql -d notes -f sql/functionsProcess_21_createFunctionToGetCountry.sql
+psql -d notes -f sql/functionsProcess_20_createFunctionToGetCountry.sql
 
 # 5. Assign countries to all notes (automatic during processPlanetNotes.sh)
 # Countries are assigned automatically when processing Planet notes
@@ -422,10 +422,10 @@ ALTER TABLE countries ADD COLUMN zone_western_europe INTEGER;
 # ... (add all 24 zone columns)
 
 # 2. Populate zone priorities
-psql -d notes -f sql/functionsProcess_31_organizeAreas_2DGrid.sql
+psql -d notes -f sql/functionsProcess_30_organizeAreas_2DGrid.sql
 
 # 3. Update get_country function
-psql -d notes -f sql/functionsProcess_21_createFunctionToGetCountry.sql
+psql -d notes -f sql/functionsProcess_20_createFunctionToGetCountry.sql
 
 # 4. Test with sample notes
 EXPLAIN (ANALYZE, BUFFERS, VERBOSE)
@@ -453,7 +453,7 @@ FROM notes
 WHERE note_id IN (SELECT note_id FROM notes WHERE id_country IS NULL LIMIT 100);
 ```
 
-**Solution**: Adjust priority order for that zone in `functionsProcess_31_organizeAreas_2DGrid.sql`
+**Solution**: Adjust priority order for that zone in `functionsProcess_30_organizeAreas_2DGrid.sql`
 
 ### Notes Not Assigned
 

@@ -355,13 +355,13 @@ invalid JSON.
 2. Create tables if they don't exist:
 
    ```bash
-   psql -d osm_notes_ingestion_test -f sql/process/processPlanetNotes_22_createBaseTables_tables.sql
+   psql -d osm_notes_ingestion_test -f sql/process/processPlanetNotes_21_createBaseTables_tables.sql
    ```
 
 3. Verify SQL scripts:
 
    ```bash
-   psql -d osm_notes_ingestion_test -f sql/process/processAPINotes_23_createPropertiesTables.sql
+   psql -d osm_notes_ingestion_test -f sql/process/processAPINotes_21_createPropertiesTables.sql
    ```
 
 ### Problem 3: "FAIL! (1) - \_\_validation error"

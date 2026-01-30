@@ -606,10 +606,10 @@ graph TD
     end
     
     subgraph SQL["SQL Scripts"]
-        SQL1[sql/process/processAPINotes_21_createApiTables.sql]
-        SQL2[sql/process/processAPINotes_31_loadApiNotes.sql]
-        SQL3[sql/process/processAPINotes_32_insertNewNotesAndComments.sql]
-        SQL4[sql/process/processAPINotes_33_loadNewTextComments.sql]
+        SQL1[sql/process/processAPINotes_20_createApiTables.sql]
+        SQL2[sql/process/processAPINotes_30_loadApiNotes.sql]
+        SQL3[sql/process/processAPINotes_31_insertNewNotesAndComments.sql]
+        SQL4[sql/process/processAPINotes_32_loadNewTextComments.sql]
     end
     
     MAIN -->|Calls| Functions
@@ -814,7 +814,7 @@ __processApiXmlSequential "${XML_FILE}"
 
 ```sql
 -- Example API table structure
--- Created by: sql/process/processAPINotes_21_createApiTables.sql
+-- Created by: sql/process/processAPINotes_20_createApiTables.sql
 
 CREATE TABLE IF NOT EXISTS notes_api (
   note_id INTEGER NOT NULL,
@@ -1032,7 +1032,7 @@ The `__insertNewNotesAndComments()` function uses bulk INSERT operations for opt
 
 ```sql
 -- Example bulk insertion used by __insertNewNotesAndComments()
--- Located in: sql/process/processAPINotes_32_insertNewNotesAndComments.sql
+-- Located in: sql/process/processAPINotes_31_insertNewNotesAndComments.sql
 
 -- Insert notes with country lookup for new notes only
 WITH notes_with_countries AS (
@@ -1103,7 +1103,7 @@ their associated comments properly inserted.
 
 #### How the Integrity Check Works
 
-The integrity check is performed in `processAPINotes_32_insertNewNotesAndComments.sql` after
+The integrity check is performed in `processAPINotes_31_insertNewNotesAndComments.sql` after
 inserting notes and comments:
 
 1. **Count notes without comments**: Identifies notes from the last day that don't have any
@@ -1117,9 +1117,9 @@ inserting notes and comments:
 
 **Code Location:**
 
-- Integrity check logic: `sql/process/processAPINotes_32_insertNewNotesAndComments.sql` (lines
+- Integrity check logic: `sql/process/processAPINotes_31_insertNewNotesAndComments.sql` (lines
   193-257)
-- Timestamp update logic: `sql/process/processAPINotes_34_updateLastValues.sql` (lines 10-113)
+- Timestamp update logic: `sql/process/processAPINotes_33_updateLastValues.sql` (lines 10-113)
 
 #### Integrity Check Threshold: Why 5%?
 
@@ -1215,7 +1215,7 @@ flowchart TD
     START[processAPINotes.sh]
     
     START --> INSERT[Insert notes and comments]
-    INSERT --> INTEGRITY[Integrity Check<br/>processAPINotes_32_insertNewNotesAndComments.sql]
+    INSERT --> INTEGRITY[Integrity Check<br/>processAPINotes_31_insertNewNotesAndComments.sql]
     
     INTEGRITY --> COUNT[Count notes without comments<br/>last day]
     COUNT --> CALC[Calculate gap percentage]
@@ -1230,7 +1230,7 @@ flowchart TD
     SET_TRUE --> LOG_SMALL[Log small gaps to data_gaps<br/>if any]
     LOG_SMALL --> ALLOW[Allow timestamp update]
     
-    BLOCK --> UPDATE[Update Timestamp<br/>processAPINotes_34_updateLastValues.sql]
+    BLOCK --> UPDATE[Update Timestamp<br/>processAPINotes_33_updateLastValues.sql]
     ALLOW --> UPDATE
     
     UPDATE --> READ[Read integrity_check_passed]
@@ -1282,9 +1282,9 @@ update. This is achieved by:
    # Both scripts executed in single psql call
    cat > "${TEMP_SQL_FILE}" << EOF
    SET app.process_id = '${PROCESS_ID_INTEGER}';
-   ${SQL_CMD}  # processAPINotes_32_insertNewNotesAndComments.sql
+   ${SQL_CMD}  # processAPINotes_31_insertNewNotesAndComments.sql
    EOF
-   cat "${POSTGRES_34_UPDATE_LAST_VALUES}" >> "${TEMP_SQL_FILE}"  # processAPINotes_34_updateLastValues.sql
+   cat "${POSTGRES_34_UPDATE_LAST_VALUES}" >> "${TEMP_SQL_FILE}"  # processAPINotes_33_updateLastValues.sql
    psql -d "${DBNAME}" -f "${TEMP_SQL_FILE}"  # Single connection
    ```
 

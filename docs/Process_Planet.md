@@ -208,7 +208,7 @@ psql -d "${DBNAME}" -c "
 
 ```sql
 -- Example SQL used by __moveSyncToMain()
--- Located in: sql/process/processPlanetNotes_43_moveSyncToMain.sql
+-- Located in: sql/process/processPlanetNotes_33_moveSyncToMain.sql
 
 -- Insert new notes from sync to base
 INSERT INTO notes (
