@@ -34,18 +34,25 @@ COMMENT ON COLUMN international_waters.is_special_point IS
   'True if this is a special point (not a polygon area)';
 
 -- Create spatial index for polygon areas
+-- Index: international_waters_geom_gist (geom) - GIST Partial Index
+-- Benefits: Ingestion (spatial queries identifying international waters, early detection of points not in any country,
+--                     avoids expensive spatial queries on all countries)
+-- Used by: Spatial queries finding if a point is in international waters, country assignment optimization
 CREATE INDEX IF NOT EXISTS international_waters_geom_gist ON international_waters
   USING GIST (geom)
   WHERE geom IS NOT NULL;
 COMMENT ON INDEX international_waters_geom_gist IS
-  'Spatial index for international waters polygons';
+  'Spatial index for international waters polygons. Used by: Ingestion (get_country() - early detection of international waters, avoids expensive country searches)';
 
 -- Create index for special points
+-- Index: international_waters_point_gist (point_coords) - GIST Partial Index
+-- Benefits: Ingestion (fast lookups of special points like Null Island (0,0), quick detection of known special coordinates)
+-- Used by: Queries checking if coordinates match known special points, fast point-in-polygon checks for special points
 CREATE INDEX IF NOT EXISTS international_waters_point_gist ON international_waters
   USING GIST (point_coords)
   WHERE point_coords IS NOT NULL;
 COMMENT ON INDEX international_waters_point_gist IS
-  'Spatial index for special points';
+  'Spatial index for special points. Used by: Ingestion (get_country() - fast lookup of special points like Null Island)';
 
 -- Insert known special points
 -- Null Island (0, 0) - Gulf of Guinea

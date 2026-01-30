@@ -123,19 +123,31 @@ COMMENT ON COLUMN countries.update_failed IS
 COMMENT ON COLUMN countries.is_maritime IS
   'Indicates if this is a maritime boundary (boundary=maritime in OSM) or a regular country boundary (boundary=administrative). TRUE for EEZ, contiguous zones, territorial seas, etc. FALSE for regular countries.';
 
+-- Index: countries_spatial (geom) - GIST Spatial Index
+-- Benefits: Ingestion (functionsProcess_20_createFunctionToGetCountry.sql - get_country() function searches country by coordinates using spatial operations,
+--                     processAPINotes_31_insertNewNotesAndComments.sql:133 - country assignment to notes using spatial lookup),
+--           WMS (spatial queries for country visualization on maps),
+--           Analytics (geographic analysis and country-based groupings)
+-- Used by: Spatial queries finding country for a point, country assignment by coordinates, map visualizations
 CREATE INDEX IF NOT EXISTS countries_spatial ON countries
   USING GIST (geom);
-COMMENT ON INDEX countries_spatial IS 'Spatial index for countries';
+COMMENT ON INDEX countries_spatial IS 'Spatial index for countries. Used by: Ingestion (get_country() coordinate lookup), WMS (map visualization), Analytics (geographic analysis)';
 
+-- Index: idx_countries_update_failed (update_failed) - Partial Index
+-- Benefits: Ingestion (bin/process/updateCountries.sh - quickly identifies countries that failed to update)
+-- Used by: Monitoring queries finding countries with update problems, country update status checks
 CREATE INDEX IF NOT EXISTS idx_countries_update_failed ON countries (update_failed)
  WHERE update_failed = TRUE;
 COMMENT ON INDEX idx_countries_update_failed IS
-  'Index to quickly find countries that failed to update';
+  'Index to quickly find countries that failed to update. Used by: Ingestion (updateCountries.sh - finding failed updates)';
 
+-- Index: idx_countries_is_maritime (is_maritime) - Partial Index
+-- Benefits: Ingestion (queries distinguishing between maritime boundaries (EEZ, contiguous zones, territorial seas) and regular administrative boundaries)
+-- Used by: Queries filtering maritime boundaries for special processing, distinguishing EEZ from regular countries
 CREATE INDEX IF NOT EXISTS idx_countries_is_maritime ON countries (is_maritime)
  WHERE is_maritime = TRUE;
 COMMENT ON INDEX idx_countries_is_maritime IS
-  'Index to quickly find maritime boundaries';
+  'Index to quickly find maritime boundaries. Used by: Ingestion (filtering maritime vs administrative boundaries)';
 
 DO $$
 BEGIN
