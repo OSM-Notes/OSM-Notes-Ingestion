@@ -4,10 +4,10 @@
 # Centralized directory initialization with installation detection and fallback
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-16
+# Version: 2026-02-01
 # shellcheck disable=SC2034
 # VERSION is used for version tracking but may not be referenced in code
-VERSION="2026-01-16"
+VERSION="2026-02-01"
 
 # shellcheck disable=SC2317,SC2155
 
@@ -137,10 +137,12 @@ function __init_lock_dir() {
   # Verify the override directory exists and is writable
   if [[ ! -d "${LOCK_DIR}" ]] || [[ ! -w "${LOCK_DIR}" ]]; then
    echo "ERROR: LOCK_DIR override '${LOCK_DIR}' does not exist or is not writable" >&2
-   return "${ERROR_MISSING_LIBRARY:-241}"
+   # Fallback to /tmp if override fails
+   FORCE_FALLBACK="true"
+  else
+   echo "${LOCK_DIR}"
+   return 0
   fi
-  echo "${LOCK_DIR}"
-  return 0
  fi
 
  # Determine base lock directory
@@ -150,24 +152,28 @@ function __init_lock_dir() {
  if [[ "${FORCE_FALLBACK}" == "true" ]] || ! __is_installed; then
   # Fallback mode: use /tmp (non-persistent, for testing)
   BASE_LOCK_DIR="/tmp/osm-notes-ingestion/locks"
-  mkdir -p "${BASE_LOCK_DIR}" 2> /dev/null || {
-   # If creation fails, return error
-   echo "ERROR: Cannot create fallback lock directory '${BASE_LOCK_DIR}'" >&2
-   return "${ERROR_MISSING_LIBRARY:-241}"
-  }
+  if ! mkdir -p "${BASE_LOCK_DIR}" 2> /dev/null; then
+   # If creation fails, try alternative location
+   BASE_LOCK_DIR="/tmp/osm-notes-ingestion-locks"
+   if ! mkdir -p "${BASE_LOCK_DIR}" 2> /dev/null; then
+    # Last resort: use /tmp directly
+    BASE_LOCK_DIR="/tmp"
+   fi
+  fi
+  # Ensure directory is writable
+  chmod 777 "${BASE_LOCK_DIR}" 2> /dev/null || true
  else
   # Installed mode: use /var/run (standard for lock files)
   BASE_LOCK_DIR="/var/run/osm-notes-ingestion"
   # Verify directory exists and is writable
-  if [[ ! -d "${BASE_LOCK_DIR}" ]]; then
-   echo "ERROR: Lock directory '${BASE_LOCK_DIR}' does not exist" >&2
-   echo "ERROR: Please run 'sudo bin/scripts/install_directories.sh' to create it" >&2
-   return "${ERROR_MISSING_LIBRARY:-241}"
-  fi
-  if [[ ! -w "${BASE_LOCK_DIR}" ]]; then
-   echo "ERROR: Lock directory '${BASE_LOCK_DIR}' is not writable" >&2
-   echo "ERROR: Please check permissions (should be 775) and ownership (should be notes:maptimebogota)" >&2
-   return "${ERROR_MISSING_LIBRARY:-241}"
+  if [[ ! -d "${BASE_LOCK_DIR}" ]] || [[ ! -w "${BASE_LOCK_DIR}" ]]; then
+   # Fallback to /tmp if installed directory doesn't work
+   echo "WARNING: Lock directory '${BASE_LOCK_DIR}' does not exist or is not writable, using fallback" >&2
+   BASE_LOCK_DIR="/tmp/osm-notes-ingestion/locks"
+   mkdir -p "${BASE_LOCK_DIR}" 2> /dev/null || {
+    BASE_LOCK_DIR="/tmp"
+   }
+   chmod 777 "${BASE_LOCK_DIR}" 2> /dev/null || true
   fi
  fi
 
@@ -276,26 +282,53 @@ function __init_directories() {
   FORCE_FALLBACK="true"
  fi
 
- # Initialize directories
+ # Initialize directories with error handling
  local LOG_DIR_VAL
- LOG_DIR_VAL=$(__init_log_dir "${BASENAME_VALUE}" "${FORCE_FALLBACK}")
+ LOG_DIR_VAL=$(__init_log_dir "${BASENAME_VALUE}" "${FORCE_FALLBACK}" 2> /dev/null)
  if [[ -z "${LOG_DIR_VAL}" ]]; then
-  echo "ERROR: Failed to initialize log directory" >&2
-  return "${ERROR_MISSING_LIBRARY:-241}"
+  # Try fallback mode as last resort
+  if [[ "${FORCE_FALLBACK}" != "true" ]]; then
+   LOG_DIR_VAL=$(__init_log_dir "${BASENAME_VALUE}" "true" 2> /dev/null)
+   if [[ -z "${LOG_DIR_VAL}" ]]; then
+    echo "ERROR: Failed to initialize log directory even in fallback mode" >&2
+    return "${ERROR_MISSING_LIBRARY:-241}"
+   fi
+  else
+   echo "ERROR: Failed to initialize log directory" >&2
+   return "${ERROR_MISSING_LIBRARY:-241}"
+  fi
  fi
 
  local TMP_DIR_VAL
- TMP_DIR_VAL=$(__init_tmp_dir "${BASENAME_VALUE}" "${FORCE_FALLBACK}")
+ TMP_DIR_VAL=$(__init_tmp_dir "${BASENAME_VALUE}" "${FORCE_FALLBACK}" 2> /dev/null)
  if [[ -z "${TMP_DIR_VAL}" ]]; then
-  echo "ERROR: Failed to initialize temporary directory" >&2
-  return "${ERROR_MISSING_LIBRARY:-241}"
+  # Try fallback mode as last resort
+  if [[ "${FORCE_FALLBACK}" != "true" ]]; then
+   TMP_DIR_VAL=$(__init_tmp_dir "${BASENAME_VALUE}" "true" 2> /dev/null)
+   if [[ -z "${TMP_DIR_VAL}" ]]; then
+    echo "ERROR: Failed to initialize temporary directory even in fallback mode" >&2
+    return "${ERROR_MISSING_LIBRARY:-241}"
+   fi
+  else
+   echo "ERROR: Failed to initialize temporary directory" >&2
+   return "${ERROR_MISSING_LIBRARY:-241}"
+  fi
  fi
 
  local LOCK_DIR_VAL
- LOCK_DIR_VAL=$(__init_lock_dir "${FORCE_FALLBACK}")
+ LOCK_DIR_VAL=$(__init_lock_dir "${FORCE_FALLBACK}" 2> /dev/null)
  if [[ -z "${LOCK_DIR_VAL}" ]]; then
-  echo "ERROR: Failed to initialize lock directory" >&2
-  return "${ERROR_MISSING_LIBRARY:-241}"
+  # Try fallback mode as last resort
+  if [[ "${FORCE_FALLBACK}" != "true" ]]; then
+   LOCK_DIR_VAL=$(__init_lock_dir "true" 2> /dev/null)
+   if [[ -z "${LOCK_DIR_VAL}" ]]; then
+    echo "ERROR: Failed to initialize lock directory even in fallback mode" >&2
+    return "${ERROR_MISSING_LIBRARY:-241}"
+   fi
+  else
+   echo "ERROR: Failed to initialize lock directory" >&2
+   return "${ERROR_MISSING_LIBRARY:-241}"
+  fi
  fi
 
  # Export for use in scripts

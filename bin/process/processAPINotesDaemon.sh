@@ -18,8 +18,8 @@
 #   - systemd: See examples/systemd/osm-notes-ingestion-daemon.service (recommended)
 #
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-16
-VERSION="2026-01-16"
+# Version: 2026-02-01
+VERSION="2026-02-01"
 
 # IMPORTANT: This daemon sources processAPINotes.sh to reuse all its functions
 # The daemon adds daemon-specific functionality (looping, signal handling, etc.)
@@ -56,8 +56,16 @@ SCRIPT_BASE_DIRECTORY="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." \
 readonly SCRIPT_BASE_DIRECTORY
 
 # Load properties
+PROPERTIES_FILE="${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+if [[ ! -f "${PROPERTIES_FILE}" ]]; then
+ echo "ERROR: Properties file not found: ${PROPERTIES_FILE}" >&2
+ echo "Please create it from the example file:" >&2
+ echo "  cp ${SCRIPT_BASE_DIRECTORY}/etc/properties.sh.example ${PROPERTIES_FILE}" >&2
+ echo "Then edit ${PROPERTIES_FILE} with your configuration." >&2
+ exit 1
+fi
 # shellcheck disable=SC1091
-source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+source "${PROPERTIES_FILE}"
 
 umask 0000
 
@@ -229,8 +237,14 @@ function __daemon_shutdown {
 function __daemon_reload_config {
  __logi "Received reload signal, reloading configuration..."
  # Recargar properties
+ PROPERTIES_FILE="${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+ if [[ ! -f "${PROPERTIES_FILE}" ]]; then
+  __loge "Properties file not found: ${PROPERTIES_FILE}"
+  __loge "Cannot reload configuration"
+  return 1
+ fi
  # shellcheck disable=SC1091
- source "${SCRIPT_BASE_DIRECTORY}/etc/properties.sh"
+ source "${PROPERTIES_FILE}"
 
  # Actualizar intervalo si cambió
  if [[ -n "${DAEMON_SLEEP_INTERVAL_NEW:-}" ]]; then
