@@ -2,9 +2,9 @@
 
 # Note Processing Functions for OSM-Notes-profile
 # Author: Andres Gomez (AngocA)
-# Version: 2025-12-20
+# Version: 2026-02-01
 # shellcheck disable=SC2034
-VERSION="2025-12-20"
+VERSION="2026-02-01"
 
 # shellcheck disable=SC2317,SC2155,SC2034
 
@@ -183,11 +183,45 @@ function __getLocationNotes_impl {
  # shellcheck disable=SC2016
  # shellcheck disable=SC2154
  # POSTGRES_32_UPLOAD_NOTE_LOCATION is defined in pathConfigurationFunctions.sh
- PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
+ local BACKUP_UPDATE_OUTPUT
+ BACKUP_UPDATE_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
-   < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)"
+   < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)" 2>&1)
 
- __logi "Note locations imported successfully. Starting integrity verification process..."
+ # Extract and log statistics from PostgreSQL output
+ if echo "${BACKUP_UPDATE_OUTPUT}" | grep -q "Backup statistics:"; then
+  __logi "=== BACKUP STATISTICS ==="
+  echo "${BACKUP_UPDATE_OUTPUT}" | grep -A 5 "Backup statistics:" | while IFS= read -r LINE || true; do
+   if [[ -n "${LINE}" ]] && [[ "${LINE}" != "Backup statistics:" ]]; then
+    __logi "${LINE}"
+   fi
+  done
+ fi
+
+ # Extract and log update results
+ if echo "${BACKUP_UPDATE_OUTPUT}" | grep -q "Update results:"; then
+  __logi "=== UPDATE RESULTS ==="
+  echo "${BACKUP_UPDATE_OUTPUT}" | grep -A 3 "Update results:" | while IFS= read -r LINE || true; do
+   if [[ -n "${LINE}" ]] && [[ "${LINE}" != "Update results:" ]]; then
+    __logi "${LINE}"
+   fi
+  done
+ fi
+
+ # Log warnings if any
+ if echo "${BACKUP_UPDATE_OUTPUT}" | grep -q "WARNING:"; then
+  echo "${BACKUP_UPDATE_OUTPUT}" | grep "WARNING:" | while IFS= read -r LINE || true; do
+   __logw "${LINE}"
+  done
+ fi
+
+ # Check if update was successful
+ if echo "${BACKUP_UPDATE_OUTPUT}" | grep -q "Notes updated with location"; then
+  __logi "Note locations imported successfully. Starting integrity verification process..."
+ else
+  __logw "Backup import completed but may not have updated all notes. Check warnings above."
+  __logi "Proceeding with integrity verification process..."
+ fi
  __logi "This process will verify that all assigned countries are correct by recalculating"
  __logi "each note's country using spatial queries. This may take several minutes for"
  __logi "large datasets (e.g., ~5 minutes for 4.8M notes with parallel processing)."
