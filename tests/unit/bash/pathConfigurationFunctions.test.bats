@@ -3,7 +3,7 @@
 # Path Configuration Functions Tests
 # Tests for directory initialization with installation detection and fallback
 # Author: Andres Gomez (AngocA)
-# Version: 2026-01-16
+# Version: 2026-02-01
 
 load "${BATS_TEST_DIRNAME}/../../test_helper"
 
@@ -195,6 +195,56 @@ teardown() {
   local result
   result=$(__init_lock_dir "false")
   [[ "${result}" == "${custom_lock_dir}" ]]
+
+  unset LOCK_DIR
+  export FORCE_FALLBACK_MODE="true"
+}
+
+@test "__init_lock_dir should fail when LOCK_DIR is set to invalid path" {
+  # Set LOCK_DIR to a non-existent directory
+  export LOCK_DIR="/nonexistent/lock/dir/that/does/not/exist"
+  unset FORCE_FALLBACK_MODE
+
+  # Function should return error code (not fallback silently)
+  run __init_lock_dir "false"
+  [[ "${status}" -eq 241 ]]
+  [[ "${output}" =~ "ERROR: LOCK_DIR override" ]]
+
+  unset LOCK_DIR
+  export FORCE_FALLBACK_MODE="true"
+}
+
+@test "__init_lock_dir should fail when LOCK_DIR is set to non-writable path" {
+  # Create a directory but make it non-writable
+  local non_writable_dir="${TEST_DIR}/non_writable"
+  mkdir -p "${non_writable_dir}"
+  chmod 555 "${non_writable_dir}"
+
+  export LOCK_DIR="${non_writable_dir}"
+  unset FORCE_FALLBACK_MODE
+
+  # Function should return error code (not fallback silently)
+  run __init_lock_dir "false"
+  [[ "${status}" -eq 241 ]]
+  [[ "${output}" =~ "ERROR: LOCK_DIR override" ]]
+
+  # Cleanup
+  chmod 755 "${non_writable_dir}"
+  rm -rf "${non_writable_dir}"
+  unset LOCK_DIR
+  export FORCE_FALLBACK_MODE="true"
+}
+
+@test "__init_directories should fail when LOCK_DIR override is invalid" {
+  # Set LOCK_DIR to invalid path
+  export LOCK_DIR="/nonexistent/lock/dir/that/does/not/exist"
+  unset FORCE_FALLBACK_MODE
+
+  # Function should return error code and display error message
+  run __init_directories "testScript" "false"
+  [[ "${status}" -eq 241 ]]
+  [[ "${output}" =~ "ERROR: LOCK_DIR override" ]]
+  [[ "${output}" =~ "Invalid LOCK_DIR override detected" ]]
 
   unset LOCK_DIR
   export FORCE_FALLBACK_MODE="true"

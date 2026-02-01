@@ -129,6 +129,7 @@ function __init_tmp_dir() {
 # Initialize lock directory
 # Returns: LOCK_DIR (via echo, capture with: LOCK_DIR=$(__init_lock_dir))
 # Uses fallback mode when FORCE_FALLBACK=true or when installed directories don't exist
+# Returns error code if LOCK_DIR override is invalid (does not fallback silently)
 function __init_lock_dir() {
  local FORCE_FALLBACK="${1:-false}"
 
@@ -137,8 +138,8 @@ function __init_lock_dir() {
   # Verify the override directory exists and is writable
   if [[ ! -d "${LOCK_DIR}" ]] || [[ ! -w "${LOCK_DIR}" ]]; then
    echo "ERROR: LOCK_DIR override '${LOCK_DIR}' does not exist or is not writable" >&2
-   # Fallback to /tmp if override fails
-   FORCE_FALLBACK="true"
+   # Return error instead of silently falling back when override is explicitly set
+   return "${ERROR_MISSING_LIBRARY:-241}"
   else
    echo "${LOCK_DIR}"
    return 0
@@ -316,12 +317,38 @@ function __init_directories() {
  fi
 
  local LOCK_DIR_VAL
- LOCK_DIR_VAL=$(__init_lock_dir "${FORCE_FALLBACK}" 2> /dev/null)
- if [[ -z "${LOCK_DIR_VAL}" ]]; then
-  # Try fallback mode as last resort
+ local LOCK_DIR_ERROR
+ LOCK_DIR_ERROR=$(mktemp) || {
+  echo "ERROR: Cannot create temporary file for error capture" >&2
+  return "${ERROR_MISSING_LIBRARY:-241}"
+ }
+ LOCK_DIR_VAL=$(__init_lock_dir "${FORCE_FALLBACK}" 2> "${LOCK_DIR_ERROR}")
+ local LOCK_DIR_EXIT_CODE=$?
+ # Display any error messages
+ if [[ -s "${LOCK_DIR_ERROR}" ]]; then
+  cat "${LOCK_DIR_ERROR}" >&2
+ fi
+ rm -f "${LOCK_DIR_ERROR}"
+ # If function returned error code, handle it
+ if [[ ${LOCK_DIR_EXIT_CODE} -ne 0 ]]; then
+  # If LOCK_DIR override was invalid, fail immediately (don't fallback silently)
+  if [[ -n "${LOCK_DIR:-}" ]] && [[ "${FORCE_FALLBACK}" != "true" ]]; then
+   echo "ERROR: Invalid LOCK_DIR override detected. Cannot proceed." >&2
+   return "${ERROR_MISSING_LIBRARY:-241}"
+  fi
+  # For other errors, try fallback mode
   if [[ "${FORCE_FALLBACK}" != "true" ]]; then
-   LOCK_DIR_VAL=$(__init_lock_dir "true" 2> /dev/null)
-   if [[ -z "${LOCK_DIR_VAL}" ]]; then
+   LOCK_DIR_ERROR=$(mktemp) || {
+    echo "ERROR: Cannot create temporary file for error capture" >&2
+    return "${ERROR_MISSING_LIBRARY:-241}"
+   }
+   LOCK_DIR_VAL=$(__init_lock_dir "true" 2> "${LOCK_DIR_ERROR}")
+   LOCK_DIR_EXIT_CODE=$?
+   if [[ -s "${LOCK_DIR_ERROR}" ]]; then
+    cat "${LOCK_DIR_ERROR}" >&2
+   fi
+   rm -f "${LOCK_DIR_ERROR}"
+   if [[ ${LOCK_DIR_EXIT_CODE} -ne 0 ]] || [[ -z "${LOCK_DIR_VAL}" ]]; then
     echo "ERROR: Failed to initialize lock directory even in fallback mode" >&2
     return "${ERROR_MISSING_LIBRARY:-241}"
    fi
@@ -329,6 +356,10 @@ function __init_directories() {
    echo "ERROR: Failed to initialize lock directory" >&2
    return "${ERROR_MISSING_LIBRARY:-241}"
   fi
+ fi
+ if [[ -z "${LOCK_DIR_VAL}" ]]; then
+  echo "ERROR: Lock directory initialization returned empty value" >&2
+  return "${ERROR_MISSING_LIBRARY:-241}"
  fi
 
  # Export for use in scripts
