@@ -48,6 +48,7 @@ sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE \"notes\" TO notes;"
 ```bash
 psql -U notes -d notes -c 'CREATE EXTENSION postgis;'
 psql -U notes -d notes -c 'CREATE EXTENSION btree_gist;'
+psql -U notes -d notes -c 'CREATE EXTENSION pg_trgm;'
 ```
 
 ### Step 5: Configure Authentication
@@ -154,6 +155,7 @@ If you don't want to configure a separate PostgreSQL user, you can use your curr
    createdb notes
    psql -d notes -c 'CREATE EXTENSION postgis;'
    psql -d notes -c 'CREATE EXTENSION btree_gist;'
+   psql -d notes -c 'CREATE EXTENSION pg_trgm;'
    ```
 
 ---

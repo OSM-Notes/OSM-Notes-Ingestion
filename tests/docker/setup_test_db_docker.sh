@@ -82,6 +82,7 @@ fi
 log_info "Installing required extensions..."
 PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS postgis;" > /dev/null 2>&1 || log_warning "PostGIS extension installation failed"
 PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS btree_gist;" > /dev/null 2>&1 || log_warning "btree_gist extension installation failed"
+PGPASSWORD="${TEST_DBPASSWORD}" psql -h "${TEST_DBHOST}" -U "${TEST_DBUSER}" -d "${TEST_DBNAME}" -c "CREATE EXTENSION IF NOT EXISTS pg_trgm;" > /dev/null 2>&1 || log_warning "pg_trgm extension installation failed"
 
 # Create enums
 log_info "Creating enums..."
