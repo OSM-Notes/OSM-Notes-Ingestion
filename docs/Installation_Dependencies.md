@@ -189,11 +189,16 @@ sudo bin/scripts/install_directories.sh
 ```
 
 This creates:
-- `/var/log/osm-notes-ingestion/` - Log files
-- `/var/tmp/osm-notes-ingestion/` - Temporary files
-- `/var/run/osm-notes-ingestion/` - Lock files
+- `/var/log/osm-notes-ingestion/` - Log files (with subdirectories: daemon, processing, monitoring)
+- `/var/tmp/osm-notes-ingestion/` - Temporary files (with subdirectories: planet, overpass, api)
+- `/var/run/osm-notes-ingestion/` - Lock files (required for daemon operation)
 
-**Note**: For development, the system will use `/tmp` directories automatically.
+The script sets proper ownership (`notes:maptimebogota` by default) and permissions:
+- Logs: `755` (readable by group, writable by owner)
+- Temp: `775` (writable by owner and group)
+- Locks: `775` (writable by owner and group)
+
+**Note**: For development, the system will use `/tmp` directories automatically. However, for production with systemd service, the lock directory `/var/run/osm-notes-ingestion` must exist and be writable by the service user.
 
 ---
 

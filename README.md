@@ -2,7 +2,7 @@
 title: "OSM-Notes-Ingestion"
 description: "Data Ingestion for OpenStreetMap Notes"
 version: "latest"
-last_updated: "2026-01-25"
+last_updated: "2026-02-01"
 author: "AngocA"
 tags:
   - "ingestion"
@@ -68,26 +68,49 @@ To exercise your rights, contact: notes@osm.lat
 
 ### Step 0: Install Directories (Production Only)
 
-For production, install directories for persistent logs:
+For production, install directories for persistent logs, temporary files, and lock files:
 
 ```bash
 # Install directories (requires sudo)
 sudo bin/scripts/install_directories.sh
 ```
 
-**Note:** For development/testing, you can skip this step. The system will automatically use fallback mode (`/tmp` directories). See `docs/LOCAL_SETUP.md` for details.
+This script creates:
+- `/var/log/osm-notes-ingestion/` - Log files (with subdirectories: daemon, processing, monitoring)
+- `/var/tmp/osm-notes-ingestion/` - Temporary files (with subdirectories: planet, overpass, api)
+- `/var/run/osm-notes-ingestion/` - Lock files (**required for daemon operation**)
+
+The script sets proper ownership (`notes:maptimebogota` by default) and permissions:
+- Logs: `755` (readable by group, writable by owner)
+- Temp: `775` (writable by owner and group)
+- Locks: `775` (writable by owner and group)
+
+**Important:** The lock directory (`/var/run/osm-notes-ingestion`) is critical for the daemon service. If it doesn't exist or isn't writable, the service will fail with exit code 241 (`CONFIGURATION_DIRECTORY`).
+
+**Note:** For development/testing, you can skip this step. The system will automatically use fallback mode (`/tmp` directories). See `docs/Local_Setup.md` for details.
 
 ### Recommended: Daemon Mode (systemd)
 
 For production use, the daemon mode is recommended for lower latency (30-60 seconds vs 15 minutes):
 
 ```bash
+# Ensure directories are installed (see Step 0 above)
+sudo bin/scripts/install_directories.sh
+
 # Install systemd service
 sudo cp examples/systemd/osm-notes-ingestion-daemon.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable osm-notes-ingestion-daemon
 sudo systemctl start osm-notes-ingestion-daemon
+
+# Verify service is running
+sudo systemctl status osm-notes-ingestion-daemon.service
 ```
+
+**Prerequisites for daemon:**
+- Directories must be installed (see Step 0)
+- Lock directory `/var/run/osm-notes-ingestion` must exist and be writable
+- PostgreSQL extensions `postgis` and `btree_gist` must be created in the database
 
 See `docs/Process_API.md` "Daemon Mode" section for details.
 

@@ -2,7 +2,7 @@
 title: "Installation Guide"
 description: "OSM-Notes-Ingestion supports two modes of operation:"
 version: "1.0.0"
-last_updated: "2026-01-25"
+last_updated: "2026-02-01"
 author: "AngocA"
 tags:
   - "installation"
@@ -41,21 +41,32 @@ This script:
 
 - Creates `/var/log/osm-notes-ingestion/` with subdirectories (daemon, processing, monitoring)
 - Creates `/var/tmp/osm-notes-ingestion/` with subdirectories (planet, overpass, api)
-- Creates `/var/run/osm-notes-ingestion/` for lock files
-- Sets proper ownership and permissions
+- Creates `/var/run/osm-notes-ingestion/` for lock files (required for daemon operation)
+- Sets proper ownership (`notes:maptimebogota` by default) and permissions:
+  - Logs: `755` (readable by group, writable by owner)
+  - Temp: `775` (writable by owner and group)
+  - Locks: `775` (writable by owner and group)
 - Configures logrotate for automatic log rotation
 
 ### 2. Verify Installation
 
 ```bash
-# Check directories
+# Check directories exist and have correct ownership
+ls -ld /var/log/osm-notes-ingestion/
+ls -ld /var/tmp/osm-notes-ingestion/
+ls -ld /var/run/osm-notes-ingestion/
+
+# Check subdirectories
 ls -la /var/log/osm-notes-ingestion/
 ls -la /var/tmp/osm-notes-ingestion/
-ls -la /var/run/osm-notes-ingestion/
 
 # Test write access (replace 'notes' with your user)
 sudo -u notes touch /var/log/osm-notes-ingestion/test.log
 sudo -u notes rm /var/log/osm-notes-ingestion/test.log
+
+# Test lock directory write access (critical for daemon)
+sudo -u notes touch /var/run/osm-notes-ingestion/test.lock
+sudo -u notes rm /var/run/osm-notes-ingestion/test.lock
 ```
 
 ### 3. Configure Logrotate (Optional)
@@ -165,17 +176,29 @@ sudo rm /etc/logrotate.d/osm-notes-ingestion
 
 ### Permission Denied
 
-If you get permission errors:
+If you get permission errors (especially `status=241/CONFIGURATION_DIRECTORY`):
 
 ```bash
-# Check ownership
-ls -la /var/log/osm-notes-ingestion/
+# Check ownership and permissions
+ls -ld /var/log/osm-notes-ingestion/
+ls -ld /var/tmp/osm-notes-ingestion/
+ls -ld /var/run/osm-notes-ingestion/
 
-# Fix ownership (replace 'notes' with your user)
+# Fix ownership (replace 'notes' and 'maptimebogota' with your user and group)
 sudo chown -R notes:maptimebogota /var/log/osm-notes-ingestion
 sudo chown -R notes:maptimebogota /var/tmp/osm-notes-ingestion
 sudo chown -R notes:maptimebogota /var/run/osm-notes-ingestion
+
+# Fix permissions
+sudo chmod -R 755 /var/log/osm-notes-ingestion
+sudo chmod -R 775 /var/tmp/osm-notes-ingestion
+sudo chmod -R 775 /var/run/osm-notes-ingestion
+
+# Verify write access
+sudo -u notes test -w /var/run/osm-notes-ingestion && echo "OK" || echo "FAILED"
 ```
+
+**Note:** The lock directory (`/var/run/osm-notes-ingestion`) is critical for the daemon. If it doesn't exist or isn't writable, the service will fail with exit code 241.
 
 ### Logs Not Rotating
 
