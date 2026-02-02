@@ -184,9 +184,16 @@ function __getLocationNotes_impl {
  # shellcheck disable=SC2154
  # POSTGRES_32_UPLOAD_NOTE_LOCATION is defined in pathConfigurationFunctions.sh
  local BACKUP_UPDATE_OUTPUT
+ # Capture both stdout and stderr, and ensure NOTICE messages are shown
  BACKUP_UPDATE_OUTPUT=$(PGAPPNAME="${PGAPPNAME}" psql -d "${DBNAME}" -v ON_ERROR_STOP=1 \
   -c "$(envsubst '$CSV_BACKUP_NOTE_LOCATION' \
    < "${POSTGRES_32_UPLOAD_NOTE_LOCATION}" || true)" 2>&1)
+
+ # Log the raw output for debugging (first 50 lines to avoid flooding logs)
+ __logd "PostgreSQL backup update output (first 50 lines):"
+ echo "${BACKUP_UPDATE_OUTPUT}" | head -50 | while IFS= read -r LINE || true; do
+  __logd "  ${LINE}"
+ done
 
  # Extract and log statistics from PostgreSQL output
  if echo "${BACKUP_UPDATE_OUTPUT}" | grep -q "Backup statistics:"; then
