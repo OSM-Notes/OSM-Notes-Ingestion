@@ -2510,12 +2510,13 @@ EOF
  OVERPASS_TEST_CURL+=(-d "data=${OVERPASS_TEST_QUERY}")
  if ! timeout 15 curl "${OVERPASS_TEST_CURL[@]}" \
   "${OVERPASS_URL}" > /dev/null 2>&1; then
-  __loge "ERROR: Cannot access Overpass API at ${OVERPASS_URL}."
-  __loge "Please check your internet connection and firewall settings."
-  __loge "Note: Overpass access is required for downloading country boundaries."
-  exit "${ERROR_INTERNET_ISSUE}"
+  # Not fatal: the base load uses the boundaries backup from GitHub, and
+  # boundary updates continue on Overpass errors (CONTINUE_ON_OVERPASS_ERROR).
+  __logw "WARNING: Cannot access Overpass API at ${OVERPASS_URL}."
+  __logw "Country boundaries will come from the backup until Overpass is reachable."
+ else
+  __logd "Overpass API is accessible."
  fi
- __logd "Overpass API is accessible."
 
  __logi "All network connectivity and external service checks passed."
 

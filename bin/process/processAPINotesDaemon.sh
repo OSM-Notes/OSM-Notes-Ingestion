@@ -675,7 +675,13 @@ function __daemon_init {
  # This matches processAPINotes.sh behavior (always creates functions and procedures)
  __logi "Checking functions and procedures..."
  __ensureGetCountryFunction
- __createProcedures
+ # On a fresh DB, skip procedures: some SQL (osm_user_identity_23) needs base
+ # tables that do not exist yet. They are created after the Planet base load.
+ if [[ "${RET_FUNC}" -eq 0 ]]; then
+  __createProcedures
+ else
+  __logw "Base tables missing. Procedures will be created after the Planet base load."
+ fi
 
  # Get initial timestamp
  LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
@@ -1091,6 +1097,7 @@ function __process_api_data {
    LAST_PROCESSED_TIMESTAMP=$(psql -d "${DBNAME}" -Atq -c \
     "SELECT TO_CHAR(timestamp, E'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') FROM max_note_timestamp" \
     2> /dev/null | head -1 || echo "")
+   export BASE_TABLES_EXIST=0
    __logi "Database initialized. Next cycle will process API updates."
    local CYCLE_DURATION
    CYCLE_DURATION=$(($(date +%s) - CYCLE_START_TIME))
@@ -1487,7 +1494,9 @@ function __daemon_loop {
   local PROCESSING_SUCCESS=false
   # shellcheck disable=SC2310
   # Function is invoked in if condition intentionally
-  if __check_api_for_updates; then
+  # On a fresh DB, go straight to processing so the Planet base load starts
+  # without waiting for new notes in the API.
+  if [[ "${BASE_TABLES_EXIST:-1}" -ne 0 ]] || __check_api_for_updates; then
    HAD_UPDATES=true
    # Process data
    # shellcheck disable=SC2310

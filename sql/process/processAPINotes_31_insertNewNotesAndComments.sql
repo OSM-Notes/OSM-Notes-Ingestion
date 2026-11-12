@@ -323,6 +323,7 @@ $$
   m_comments_count_after INTEGER;
   m_existing_comments_count INTEGER;
   m_new_comments_count INTEGER;
+  m_new_identities INTEGER;
   m_last_analyze_time TIMESTAMP;
   m_analyze_interval_hours INTEGER := 6;
   m_stage_start TIMESTAMP;
@@ -543,7 +544,7 @@ $$
         ('user_id_link_opened'::VARCHAR(64))
     ) AS ev (event_type)
   )
-  SELECT 1;
+  SELECT COUNT(*) INTO m_new_identities FROM paired;
 
   UPDATE osm_user_id_link l
   SET last_observed_at = GREATEST(
